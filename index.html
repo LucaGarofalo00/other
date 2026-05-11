@@ -329,19 +329,36 @@ function PageHeader(p){return h('div',{style:{padding:'20px 16px 0'}},h('div',{s
 /* ── exercise picker (shared pesi+cal) ── */
 function ExercisePicker(p){
   var visible=p.visible,onClose=p.onClose,onAdd=p.onAdd,baseList=p.baseList,label=p.label;
+  var showPosition=p.showPosition,currentLabel=p.currentLabel,totalCount=p.totalCount,curIdx=p.curIdx;
   var _s=useState('');var search=_s[0];var setSearch=_s[1];
+  var _pos=useState('next');var pos=_pos[0];var setPos=_pos[1];
   if(!visible)return null;
   var sugg=getSugg(baseList,search,12);
+  function pick(n){addFreq(n);onAdd(n,showPosition?pos:null);setSearch('');setPos('next');onClose();}
   return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:300,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget){setSearch('');onClose();}}},
     h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'0 0 36px'}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 12px'}},
         h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.03em'}},label||'Aggiungi esercizio'),
         h('button',{onClick:function(){setSearch('');onClose();},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:20,c:MUTED}))
       ),
+      showPosition&&h('div',{style:{padding:'0 16px 14px'}},
+        h(Lbl,null,'Dove inserirlo?'),
+        h('div',{style:{display:'flex',gap:6,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:4}},
+          [['next','Subito dopo'],['end','In fondo']].map(function(opt){
+            var on=pos===opt[0];
+            return h('button',{key:opt[0],onClick:function(){setPos(opt[0]);},style:{flex:1,padding:'8px 6px',borderRadius:7,border:'none',background:on?ACC:'transparent',color:on?ACT:MUTED,fontSize:12,cursor:'pointer',fontWeight:on?700:500,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em',textTransform:'uppercase'}},opt[1]);
+          })
+        ),
+        h('div',{style:{fontSize:10,color:MUTED,marginTop:6,lineHeight:1.4}},
+          pos==='next'
+            ?('Verrà eseguito subito dopo "'+(currentLabel||'esercizio corrente')+'" — diventerà la posizione #'+((curIdx||0)+2))
+            :('Verrà aggiunto come ultimo esercizio della sessione — posizione #'+((totalCount||0)+1))
+        )
+      ),
       h('div',{style:{padding:'0 16px 12px'}},
         h('div',{style:{position:'relative'}},
           h('input',{value:search,onChange:function(e){setSearch(e.target.value);},
-            onKeyDown:function(e){if(e.key==='Enter'&&search.trim()){addFreq(search.trim());onAdd(search.trim());setSearch('');onClose();}},
+            onKeyDown:function(e){if(e.key==='Enter'&&search.trim()){pick(search.trim());}},
             placeholder:'Cerca o scrivi il nome…',autoFocus:true,
             style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'12px 40px 12px 14px',color:TEXT,fontSize:15}}),
           h('div',{style:{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}},
@@ -357,11 +374,11 @@ function ExercisePicker(p){
         ),
         h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
           sugg.map(function(n){
-            return h('button',{key:n,onClick:function(){addFreq(n);onAdd(n);setSearch('');onClose();},style:{padding:'7px 13px',borderRadius:20,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:13,cursor:'pointer'}},n);
+            return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'7px 13px',borderRadius:20,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:13,cursor:'pointer'}},n);
           })
         ),
         search.trim()&&sugg.indexOf(search.trim())<0&&h('div',{style:{marginTop:12}},
-          h('button',{onClick:function(){addFreq(search.trim());onAdd(search.trim());setSearch('');onClose();},style:{width:'100%',padding:'11px',borderRadius:10,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:14,cursor:'pointer',fontWeight:600}},
+          h('button',{onClick:function(){pick(search.trim());},style:{width:'100%',padding:'11px',borderRadius:10,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:14,cursor:'pointer',fontWeight:600}},
             '+ Aggiungi "'+search.trim()+'"'
           )
         )
@@ -1009,11 +1026,14 @@ function PesiLive(p){
     var s={id:uid(),sId:p.sId,bId:bl.id,t0:new Date(t0).toISOString(),dur:dur,es:es,umore:umore,nota:nota};
     onSave(s);go('home');
   }
-  function addExercise(nome){
+  function addExercise(nome,where){
     var newEx={id:uid(),nome:nome,tipo:'standard',sets:3,serie:[{n:1,peso:0,reps:10,ok:false,t:null},{n:2,peso:0,reps:10,ok:false,t:null},{n:3,peso:0,reps:10,ok:false,t:null}],reps:'10',peso:0,recSet:90,recEs:60,rec:90,gr:'',note:''};
-    setEs(function(prev){return prev.concat([newEx]);});
+    if(where==='next'){
+      setEs(function(prev){var arr=prev.slice();arr.splice(ex+1,0,newEx);return arr;});
+    }else{
+      setEs(function(prev){return prev.concat([newEx]);});
+    }
     setPicker(false);
-    setTimeout(function(){setEx(es.length);},50);
   }
 
   if(done){
@@ -1087,7 +1107,7 @@ function PesiLive(p){
         h(Btn,{full:true,onClick:next},ex===es.length-1?'✓ Termina':'Avanti →')
       )
     ),
-    picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:PESI_ES,label:'Aggiungi esercizio'}),
+    picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:PESI_ES,label:'Aggiungi esercizio',showPosition:true,currentLabel:curr.nome,curIdx:ex,totalCount:es.length}),
     tipFor&&h(TipCard,{nome:tipFor,onClose:function(){setTipFor(null);}}),
     editingEx&&h(ExerciseConfigSheet,{ex:editingEx,onClose:function(){setEditingEx(null);},onSave:function(updated){
       setEs(function(prev){return prev.map(function(e,i){if(i!==ex)return e;var serie=e.serie.map(function(s){return Object.assign({},s,{peso:s.ok?s.peso:(updated.peso||s.peso)});});return Object.assign({},updated,{serie:serie});});});
