@@ -7,7 +7,7 @@
  * To force update: bump CACHE_VERSION below.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.0.0';
+const CACHE_VERSION = 'gymtracker-v1.2.0';
 const CACHE_RUNTIME = 'gymtracker-runtime-v1';
 
 const PRECACHE_URLS = [

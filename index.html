@@ -153,20 +153,6 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script>
 'use strict';
-var PDFJS_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-var PDFJS_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-var _pdfjsLoading=false,_pdfjsLoaded=false,_pdfjsCbs=[];
-function loadPdfJs(cb){
-  if(_pdfjsLoaded){cb(window.pdfjsLib);return;}
-  _pdfjsCbs.push(cb);
-  if(_pdfjsLoading)return;
-  _pdfjsLoading=true;
-  var s=document.createElement('script');
-  s.src=PDFJS_URL;
-  s.onload=function(){window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;_pdfjsLoaded=true;_pdfjsLoading=false;_pdfjsCbs.forEach(function(f){f(window.pdfjsLib);});_pdfjsCbs=[];};
-  s.onerror=function(){_pdfjsLoading=false;_pdfjsCbs.forEach(function(f){f(null);});_pdfjsCbs=[];};
-  document.head.appendChild(s);
-}
 var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback;
 var THEMES=[{id:'lime',name:'Lime',hex:'#C8FF00',text:'#000'},{id:'cyan',name:'Cyan',hex:'#00F0FF',text:'#000'},{id:'fire',name:'Fire',hex:'#FF5722',text:'#fff'},{id:'violet',name:'Violet',hex:'#C084FC',text:'#000'},{id:'gold',name:'Gold',hex:'#FFD700',text:'#000'},{id:'red',name:'Red',hex:'#FF2244',text:'#fff'}];
 var TK='gymtracker_theme',BG='#0C0C0D',SURF='#161618',SURF2='#202022',BORD='rgba(255,255,255,0.08)',TEXT='#F0EFE8',MUTED='rgba(240,239,232,0.38)',SK='gymtracker_v9',PK='gymtracker_profile',FK='gymtracker_freq';
@@ -204,6 +190,51 @@ function loadProfile(){try{return JSON.parse(localStorage.getItem(PK))||null;}ca
 function saveProfile(p){try{localStorage.setItem(PK,JSON.stringify(p));}catch(e){}}
 function stLoad(){try{return JSON.parse(localStorage.getItem(SK))||null;}catch(e){return null;}}
 function stSave(d){try{localStorage.setItem(SK,JSON.stringify(d));}catch(e){}}
+/* ── auto-snapshot giornaliero (locale) ── */
+var SNAP_PREFIX='gymtracker_snap_',SNAP_MAX_DAYS=7;
+function todayISO(){return new Date().toISOString().split('T')[0];}
+function makeDailySnapshot(data){
+  try{
+    var key=SNAP_PREFIX+todayISO();
+    if(localStorage.getItem(key))return false;
+    localStorage.setItem(key,JSON.stringify({date:todayISO(),createdAt:new Date().toISOString(),data:data}));
+    cleanOldSnapshots();
+    return true;
+  }catch(e){return false;}
+}
+function cleanOldSnapshots(){
+  try{
+    var cutoff=new Date(Date.now()-SNAP_MAX_DAYS*86400000).toISOString().split('T')[0];
+    var toDelete=[];
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&k.indexOf(SNAP_PREFIX)===0){
+        var d=k.replace(SNAP_PREFIX,'');
+        if(d<cutoff)toDelete.push(k);
+      }
+    }
+    toDelete.forEach(function(k){localStorage.removeItem(k);});
+  }catch(e){}
+}
+function listSnapshots(){
+  var arr=[];
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&k.indexOf(SNAP_PREFIX)===0){
+        var raw=localStorage.getItem(k);
+        arr.push({key:k,date:k.replace(SNAP_PREFIX,''),size:Math.round((raw||'').length/1024*10)/10});
+      }
+    }
+  }catch(e){}
+  return arr.sort(function(a,b){return a.date<b.date?1:-1;});
+}
+function getSnapshotData(key){
+  try{
+    var raw=localStorage.getItem(key);if(!raw)return null;
+    var snap=JSON.parse(raw);return snap.data||null;
+  }catch(e){return null;}
+}
 /* ── github gist sync ── */
 var GID_KEY='gymtracker_gist_id', TOK_KEY='gymtracker_token';
 function getToken(){try{return localStorage.getItem(TOK_KEY)||'';}catch(e){return '';}}
@@ -246,43 +277,6 @@ async function syncToGist(data,token){
   await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({files:{'gymtracker.json':{content:content}}})});
 }
 
-/* ── github pdf storage ── */
-var REPO_KEY='gymtracker_pdfrepo';
-function getPdfRepo(){try{return localStorage.getItem(REPO_KEY)||'';}catch(e){return '';}}
-function savePdfRepo(r){try{localStorage.setItem(REPO_KEY,r);}catch(e){}}
-var PDF_FOLDER='gymtracker-pdfs';
-
-async function githubPdfGet(token,repo,id){
-  var res=await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/'+id+'.pdf',{headers:{'Authorization':'Bearer '+token}});
-  if(!res.ok)return null;
-  var d=await res.json();
-  return d;
-}
-async function ensureGithubFolder(token,repo){
-  var res=await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER,{headers:{'Authorization':'Bearer '+token}});
-  if(res.ok)return;
-  await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/.gitkeep',{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({message:'Init gymtracker-pdfs folder',content:btoa('')})});
-}
-async function uploadPdfGithub(token,repo,id,b64){
-  await ensureGithubFolder(token,repo);
-  var existing=await githubPdfGet(token,repo,id);
-  var body={message:'Add report PDF',content:b64};
-  if(existing&&existing.sha)body.sha=existing.sha;
-  var res=await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/'+id+'.pdf',{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  var d=await res.json();
-  if(!res.ok){throw new Error((d.message||'HTTP '+res.status)+' — assicurati che il token abbia scope "repo" e che il repo esista');}
-  return (d.content&&d.content.sha)||null;
-}
-async function fetchPdfGithub(token,repo,id){
-  var d=await githubPdfGet(token,repo,id);
-  if(!d||!d.content)return null;
-  return d.content.replace(/\n/g,'');
-}
-async function deletePdfGithub(token,repo,id,sha){
-  if(!sha)return;
-  await fetch('https://api.github.com/repos/'+repo+'/contents/'+PDF_FOLDER+'/'+id+'.pdf',{method:'DELETE',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({message:'Delete report PDF',sha:sha})});
-}
-
 function uid(){return Math.random().toString(36).slice(2,8);}
 function fmtD(d){return new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'short'});}
 function fmtHM(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
@@ -292,16 +286,6 @@ function ton(es){return es.reduce(function(t,e){return t+(e.serie||[]).filter(fu
 function rm1(p,r){return r<=1?p:Math.round(p*(1+r/30));}
 function parseReps(r){var s=String(r);return s.indexOf('-')>=0?parseInt(s,10):(parseInt(s,10)||10);}
 function estimateTime(bl){var m=10;bl.es.forEach(function(ex){if(ex.tipo==='riscaldamento'){m+=(ex.durata||10)+1;}else{var s=typeof ex.serie==='number'?ex.serie:(ex.sets||3);var r=ex.rec||ex.recSet||90;m+=s*(0.75+r/60)+1;}});return Math.ceil(m/5)*5;}
-
-/* ── pdf blob helper ── */
-function b64ToBlob(b64){
-  var binary=atob(b64);var bytes=new Uint8Array(binary.length);
-  for(var i=0;i<binary.length;i++){bytes[i]=binary.charCodeAt(i);}
-  return new Blob([bytes],{type:'application/pdf'});
-}
-function savePdfLocal(id,b64){try{localStorage.setItem('pdfdata_'+id,b64);}catch(e){}}
-function loadPdfLocal(id){try{return localStorage.getItem('pdfdata_'+id)||null;}catch(e){return null;}}
-function deletePdfLocal(id){try{localStorage.removeItem('pdfdata_'+id);}catch(e){}}
 
 /* ── SVG icons ── */
 function Ico(p){
@@ -330,9 +314,7 @@ var IC={
   close:[['line',{x1:'18',y1:'6',x2:'6',y2:'18'}],['line',{x1:'6',y1:'6',x2:'18',y2:'18'}]],
   person:[['path',{d:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2'}],['circle',{cx:'12',cy:'7',r:'4'}]],
   palette:[['circle',{cx:'13.5',cy:'6.5',r:'.5'}],['circle',{cx:'17.5',cy:'10.5',r:'.5'}],['circle',{cx:'8.5',cy:'7.5',r:'.5'}],['circle',{cx:'6.5',cy:'12.5',r:'.5'}],['path',{d:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z'}]],
-  trash:[['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2'}],['line',{x1:'10',y1:'11',x2:'10',y2:'17'}],['line',{x1:'14',y1:'11',x2:'14',y2:'17'}]],
-  corpo:[['path',{d:'M12 2a3 3 0 013 3 3 3 0 01-3 3 3 3 0 01-3-3 3 3 0 013-3'}],['path',{d:'M6.5 8.5C5 9.5 4 11.5 4 14l1 7h14l1-7c0-2.5-1-4.5-2.5-5.5'}],['path',{d:'M9 21l.5-6M15 21l-.5-6'}],['path',{d:'M9 12l-1.5 3M15 12l1.5 3'}]],
-  upload:[['path',{d:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4'}],['polyline',{points:'17 8 12 3 7 8'}],['line',{x1:'12',y1:'3',x2:'12',y2:'15'}]]
+  trash:[['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2'}],['line',{x1:'10',y1:'11',x2:'10',y2:'17'}],['line',{x1:'14',y1:'11',x2:'14',y2:'17'}]]
 };
 function Icon(p){return h(Ico,{paths:IC[p.n]||[],sz:p.sz||20,c:p.c,style:p.style});}
 
@@ -545,7 +527,7 @@ function TipCard(p){
 
 /* ── nav (with iOS safe-area bottom inset) ── */
 function Nav(p){
-  var tabs=[['home',IC.home,'Casa'],['start',IC.train,'Allena'],['log',IC.history,'Log'],['stats',IC.stats,'Stats'],['scheda',IC.scheda,'Scheda'],['corpo',IC.corpo,'Corpo']];
+  var tabs=[['home',IC.home,'Casa'],['start',IC.train,'Allena'],['log',IC.history,'Log'],['stats',IC.stats,'Stats'],['scheda',IC.scheda,'Scheda']];
   return h('div',{style:{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:440,background:SURF,borderTop:'1px solid '+BORD,display:'flex',zIndex:99,paddingBottom:'env(safe-area-inset-bottom, 0)'}},
     tabs.map(function(t){
       var on=p.cur===t[0]||((p.cur==='live'||p.cur==='callive')&&t[0]==='start');
@@ -600,11 +582,60 @@ function ProfileSetup(p){
 function Settings(p){
   var profile=p.profile,onProfile=p.onProfile,go=p.go;
   var _1=useState(loadTheme().id);var themeId=_1[0];var setThemeId=_1[1];
-  var _2=useState(Object.assign({token:getToken(),pdfrepo:getPdfRepo()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
+  var _2=useState(Object.assign({token:getToken()},profile||{nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'}));
   var form=_2[0];var setForm=_2[1];
   function set(k,v){setForm(function(prev){var u=Object.assign({},prev);u[k]=v;return u;});}
   function pickTheme(t){applyTheme(t);setThemeId(t.id);}
   var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'11px 12px',color:TEXT,fontSize:14,marginBottom:10};
+  var _3=useState(listSnapshots());var snaps=_3[0];var setSnaps=_3[1];
+  function handleExport(){
+    var data={
+      version:'1.2.0',
+      exportedAt:new Date().toISOString(),
+      schede:p.schede||[],
+      sessions:p.sessions||[],
+      profile:profile||null,
+      theme:loadTheme().id,
+      freq:getFreq()
+    };
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='gymtracker-backup-'+new Date().toISOString().split('T')[0]+'.json';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);if(a.parentNode)a.parentNode.removeChild(a);},100);
+  }
+  function handleImport(ev){
+    var f=ev.target.files[0];if(!f)return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var d=JSON.parse(rd.result);
+        var summary='Backup del '+(d.exportedAt?fmtD(d.exportedAt):'data sconosciuta')+'\n'+
+                    'Schede: '+(d.schede?d.schede.length:0)+'\n'+
+                    'Sessioni: '+(d.sessions?d.sessions.length:0)+'\n\n'+
+                    'Sostituire tutti i dati attuali con questo backup?\nL\'operazione non è reversibile.';
+        if(!confirm(summary))return;
+        if(d.schede&&p.setSchede)p.setSchede(d.schede);
+        if(d.sessions&&p.setSessions)p.setSessions(d.sessions);
+        if(d.profile){saveProfile(d.profile);onProfile(d.profile);}
+        if(d.freq){try{localStorage.setItem(FK,JSON.stringify(d.freq));}catch(e){}}
+        if(d.theme){var t=THEMES.find(function(x){return x.id===d.theme;});if(t){applyTheme(t);setThemeId(t.id);}}
+        alert('Backup ripristinato con successo!');
+      }catch(e){alert('File non valido: '+e.message);}
+    };
+    rd.readAsText(f);ev.target.value='';
+  }
+  function handleRestoreSnapshot(snap){
+    if(!confirm('Ripristinare lo snapshot del '+snap.date+'?\n\nI dati attuali verranno sovrascritti.'))return;
+    var data=getSnapshotData(snap.key);
+    if(!data){alert('Snapshot illeggibile');return;}
+    if(data.schede&&p.setSchede)p.setSchede(data.schede);
+    if(data.sessions&&p.setSessions)p.setSessions(data.sessions);
+    if(data.profile){saveProfile(data.profile);onProfile(data.profile);}
+    alert('Snapshot del '+snap.date+' ripristinato!');
+  }
   return h('div',{style:{padding:'24px 16px 100px'}},
     h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}},
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em'}},'Impostazioni'),
@@ -623,21 +654,40 @@ function Settings(p){
     h(Lbl,null,'Sincronizzazione GitHub'),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
       h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Personal Access Token'),
-      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Crea un token con scope "gist" + "repo" su github.com/settings/tokens → il tuo Gist viene creato automaticamente'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Crea un token con scope "gist" su github.com/settings/tokens → il tuo Gist viene creato automaticamente'),
       h('input',{type:'password',value:form.token||'',onChange:function(e){set('token',e.target.value);},placeholder:'ghp_...',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
       (form.token||getToken())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
         h('div',{style:{width:7,height:7,borderRadius:'50%',background:'#22C55E'}}),
         h('span',{style:{fontSize:11,color:MUTED}},'Token configurato — i dati si sincronizzano automaticamente')
       )
     ),
+    h('div',{style:{height:1,background:BORD,marginBottom:20}}),
+    h(Lbl,null,'Backup dati'),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
-      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Repository PDF'),
-      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'I PDF dei report vengono salvati nella cartella "gymtracker-pdfs/" del tuo repository. Crea prima il repo su github.com (può essere privato).'),
-      h('input',{type:'text',value:form.pdfrepo||'',onChange:function(e){set('pdfrepo',e.target.value);},placeholder:'username/nome-repository',style:Object.assign({},inp,{marginBottom:0,fontFamily:"'Roboto Mono',monospace",fontSize:13})}),
-      (form.pdfrepo||getPdfRepo())&&h('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:6}},
-        h('div',{style:{width:7,height:7,borderRadius:'50%',background:'#22C55E'}}),
-        h('span',{style:{fontSize:11,color:MUTED}},'Repository configurato ✓')
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Esporta tutti i dati'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Scarica un file JSON con schede, sessioni, profilo e tema. Conservalo come backup o per trasferire i dati su un altro dispositivo.'),
+      h(Btn,{full:true,sm:true,onClick:handleExport},'⬇  Esporta backup (.json)')
+    ),
+    h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Importa da file'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Ripristina un backup esportato in precedenza. Tutti i dati attuali vengono sostituiti.'),
+      h('label',{style:{display:'block',width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:10,padding:'9px 14px',color:TEXT,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'center'}},
+        h('input',{type:'file',accept:'application/json',onChange:handleImport,style:{display:'none'}}),
+        '↑  Scegli file .json'
       )
+    ),
+    snaps.length>0&&h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Snapshot automatici'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'L\'app crea un backup giornaliero locale ogni volta che usi l\'app. Sono conservati gli ultimi 7 giorni.'),
+      snaps.map(function(s){
+        return h('div',{key:s.key,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderTop:'0.5px solid '+BORD}},
+          h('div',null,
+            h('div',{style:{fontSize:13,fontFamily:"'Roboto Mono',monospace"}},s.date),
+            h('div',{style:{fontSize:10,color:MUTED}},s.size+' KB')
+          ),
+          h('button',{onClick:function(){handleRestoreSnapshot(s);},style:{background:ACC2,border:'1px solid '+ACC3,color:ACC,fontSize:11,padding:'5px 11px',borderRadius:7,cursor:'pointer',fontWeight:600,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.05em'}},'RIPRISTINA')
+        );
+      })
     ),
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
     h(Lbl,null,'Profilo personale'),
@@ -664,7 +714,7 @@ function Settings(p){
         return h('button',{key:v,onClick:function(){set('livello',v);},style:{padding:'7px 12px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},v);
       })
     ),
-    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);if(form.pdfrepo!==undefined)savePdfRepo(form.pdfrepo.trim());saveProfile(form);onProfile(form);go('home');}},'Salva')
+    h(Btn,{full:true,onClick:function(){if(form.token)saveToken(form.token);saveProfile(form);onProfile(form);go('home');}},'Salva')
   );
 }
 
@@ -747,17 +797,21 @@ function Home(p){
 /* ── start: scegli modalità ── */
 function Start(p){
   var schede=p.schede,go=p.go;
-  var scheda=schede.find(function(s){return s.attiva;})||schede[0];
+  var attive=schede.filter(function(s){return s.attiva;});
+  var scheda=attive[0]||schede[0];
+  var multi=attive.length>1;
   return h('div',{style:{padding:'24px 16px'}},
     h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',marginBottom:6}},'Allena'),
     h('div',{style:{fontSize:13,color:MUTED,marginBottom:24}},'Scegli la modalità per oggi'),
     h(Card,{onClick:function(){go('pesiblocks');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14}},
         h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h(Icon,{n:'dumbbell',sz:22,c:ACC})),
-        h('div',{style:{flex:1}},
+        h('div',{style:{flex:1,minWidth:0}},
           h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Sala pesi'),
-          h('div',{style:{fontSize:12,color:MUTED}},scheda?scheda.nome:'Crea prima una scheda PT'),
-          scheda&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},scheda.blocchi.length+' blocchi · '+scheda.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi')
+          h('div',{style:{fontSize:12,color:MUTED}},multi?(attive.length+' schede attive'):(scheda?scheda.nome:'Crea prima una scheda PT')),
+          multi
+            ?h('div',{style:{fontSize:11,color:MUTED,marginTop:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},attive.map(function(s){return s.nome;}).join(' · '))
+            :(scheda&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},scheda.blocchi.length+' blocchi · '+scheda.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi'))
         ),
         h(Icon,{n:'next',sz:18,c:ACC})
       )
@@ -780,9 +834,11 @@ function Start(p){
 /* ── pesi blocks con stima tempo ── */
 function PesiBlocks(p){
   var schede=p.schede,sessions=p.sessions,go=p.go;
-  var _1=useState(schede.findIndex(function(s){return s.attiva;}));
+  var attive=schede.filter(function(s){return s.attiva;});
+  if(attive.length===0)attive=schede;
+  var _1=useState(0);
   var si=_1[0];var setSi=_1[1];
-  var scheda=(si>=0&&si<schede.length)?schede[si]:(schede.find(function(s){return s.attiva;})||schede[0]);
+  var scheda=attive[si]||attive[0];
   if(!scheda)return h('div',{style:{padding:'40px 16px',textAlign:'center'}},
     h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,marginBottom:20}},'Nessuna scheda caricata'),
     h(Btn,{onClick:function(){go('nuova');}},'Crea scheda')
@@ -791,12 +847,12 @@ function PesiBlocks(p){
     h(Back,{onClick:function(){go('start');}}),
     h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',margin:'12px 0 4px'}},
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,letterSpacing:'0.02em'}},scheda.nome.length>24?scheda.nome.slice(0,24)+'…':scheda.nome),
-      schede.length>1&&h('div',{style:{display:'flex',gap:6}},
-        h('button',{onClick:function(){setSi(function(i){return(i-1+schede.length)%schede.length;});},style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'6px 8px',cursor:'pointer'}},h(Icon,{n:'back',sz:14,c:MUTED})),
-        h('button',{onClick:function(){setSi(function(i){return(i+1)%schede.length;});},style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'6px 8px',cursor:'pointer'}},h(Icon,{n:'next',sz:14,c:MUTED}))
+      attive.length>1&&h('div',{style:{display:'flex',gap:6}},
+        h('button',{onClick:function(){setSi(function(i){return(i-1+attive.length)%attive.length;});},style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'6px 8px',cursor:'pointer'}},h(Icon,{n:'back',sz:14,c:MUTED})),
+        h('button',{onClick:function(){setSi(function(i){return(i+1)%attive.length;});},style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'6px 8px',cursor:'pointer'}},h(Icon,{n:'next',sz:14,c:MUTED}))
       )
     ),
-    schede.length>1&&h('div',{style:{fontSize:11,color:MUTED,marginBottom:14}},((si<0?schede.findIndex(function(s){return s.attiva;}):si)+1)+' / '+schede.length+' schede'),
+    attive.length>1&&h('div',{style:{fontSize:11,color:MUTED,marginBottom:14}},(si+1)+' / '+attive.length+' schede attive'),
     (function(){
       var mergedEs=scheda.blocchi.reduce(function(all,b){return all.concat(b.es);}, []);
       var mergedBl={id:scheda.id,nome:scheda.nome,es:mergedEs};
@@ -1187,7 +1243,13 @@ function Det(p){
           fatte.map(function(sr,i){return h('div',{key:i,style:{fontSize:11,padding:'3px 8px',borderRadius:6,background:SURF2,fontFamily:"'Roboto Mono',monospace"}},sr.peso+'×'+sr.reps);})
         )
       );
-    })
+    }),
+    h('div',{style:{marginTop:28,paddingTop:18,borderTop:'0.5px solid '+BORD}},
+      h('button',{onClick:function(){p.onDelete&&p.onDelete(s.id);},style:{width:'100%',padding:'12px',borderRadius:10,border:'1px solid rgba(239,68,68,0.3)',background:'rgba(239,68,68,0.08)',color:'#EF4444',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+        h(Icon,{n:'trash',sz:15,c:'#EF4444'}),
+        'Elimina sessione'
+      )
+    )
   );
 }
 
@@ -1304,8 +1366,9 @@ function EsDetail(p){
 /* ── schede view ── */
 function SchedaV(p){
   var schede=p.schede,setSchede=p.setSchede,go=p.go;
+  var attiveCount=schede.filter(function(s){return s.attiva;}).length;
   return h('div',{style:{padding:'24px 16px 100px'}},
-    h(PageHeader,{title:'Schede'}),
+    h(PageHeader,{title:'Schede',sub:schede.length>0?(attiveCount+' attiva'+(attiveCount===1?'':'e')+' su '+schede.length):''}),
     schede.length===0&&h('div',{style:{textAlign:'center',padding:'30px 20px',color:MUTED}},'Nessuna scheda ancora'),
     schede.map(function(sc){
       return h(Card,{key:sc.id,style:{border:sc.attiva?'1px solid '+ACC3:'0.5px solid '+BORD,background:sc.attiva?ACC5:SURF}},
@@ -1318,7 +1381,7 @@ function SchedaV(p){
             h('div',{style:{fontSize:11,color:MUTED}},sc.blocchi.length+' blocchi · '+sc.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi')
           ),
           h('div',{style:{display:'flex',gap:4}},
-            !sc.attiva&&h('button',{onClick:function(){setSchede(function(prev){return prev.map(function(x){return Object.assign({},x,{attiva:x.id===sc.id});});});},style:{background:ACC2,border:'1px solid '+ACC3,borderRadius:8,padding:'5px 10px',cursor:'pointer',color:ACC,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},'ATTIVA'),
+            h('button',{onClick:function(){setSchede(function(prev){return prev.map(function(x){return x.id===sc.id?Object.assign({},x,{attiva:!x.attiva}):x;});});},style:{background:sc.attiva?'transparent':ACC2,border:'1px solid '+(sc.attiva?BORD:ACC3),borderRadius:8,padding:'5px 10px',cursor:'pointer',color:sc.attiva?MUTED:ACC,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},sc.attiva?'DISATTIVA':'ATTIVA'),
             h('button',{onClick:function(){if(confirm('Eliminare "'+sc.nome+'"?'))setSchede(function(prev){return prev.filter(function(x){return x.id!==sc.id;});});},style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
           )
         ),
@@ -1359,7 +1422,7 @@ function NuovaScheda(p){
   function save(){
     if(!sc.nome.trim()){alert('Inserisci un nome per la scheda');return;}
     if(sc.blocchi.length===0){alert('Aggiungi almeno un blocco');return;}
-    setSchede(function(prev){return prev.map(function(x){return Object.assign({},x,{attiva:false});}).concat([sc]);});
+    setSchede(function(prev){return prev.concat([sc]);});
     go('scheda');
   }
   return h('div',{style:{padding:'24px 16px 100px'}},
@@ -1387,175 +1450,6 @@ function NuovaScheda(p){
     h(Btn,{full:true,onClick:save},'Salva scheda'),
     picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:onPickerAdd,baseList:PESI_ES,label:'Scegli esercizio'}),
     editEx&&h(ExerciseConfigSheet,{ex:editEx.id?editEx:null,nome:editEx.nome,onClose:function(){setEditEx(null);},onSave:onSaveEx})
-  );
-}
-
-/* ── pdf viewer pagina singola con cache rendering ── */
-function PdfPage(p){
-  var pdf=p.pdf,pageNum=p.pageNum,scale=p.scale;
-  var _1=useState(false);var loading=_1[0];var setLoading=_1[1];
-  var canvasRef=useRef(null);
-  useEffect(function(){
-    if(!pdf||!canvasRef.current)return;
-    setLoading(true);
-    pdf.getPage(pageNum).then(function(page){
-      var canvas=canvasRef.current;if(!canvas)return;
-      var vp=page.getViewport({scale:scale});
-      var ctx=canvas.getContext('2d');
-      canvas.width=vp.width;canvas.height=vp.height;
-      page.render({canvasContext:ctx,viewport:vp}).promise.then(function(){setLoading(false);}).catch(function(){setLoading(false);});
-    }).catch(function(){setLoading(false);});
-  },[pdf,pageNum,scale]);
-  return h('div',{style:{position:'relative',background:'#fff',borderRadius:6,overflow:'hidden',marginBottom:8,boxShadow:'0 2px 12px rgba(0,0,0,0.3)'}},
-    loading&&h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'#fff',zIndex:1}},h('div',{style:{color:'#888',fontSize:12}},'Rendering pag '+pageNum+'…')),
-    h('canvas',{ref:canvasRef,style:{display:'block',width:'100%',height:'auto'}})
-  );
-}
-function PdfViewer(p){
-  var b64=p.b64,onClose=p.onClose,title=p.title;
-  var _1=useState(null);var pdf=_1[0];var setPdf=_1[1];
-  var _2=useState(0);var pages=_2[0];var setPages=_2[1];
-  var _3=useState(1);var scale=_3[0];var setScale=_3[1];
-  var _4=useState('Carico…');var msg=_4[0];var setMsg=_4[1];
-  useEffect(function(){
-    if(!b64)return;
-    loadPdfJs(function(pdfjsLib){
-      if(!pdfjsLib){setMsg('PDF library non disponibile (sei offline?)');return;}
-      try{
-        var binary=atob(b64);var bytes=new Uint8Array(binary.length);
-        for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-        pdfjsLib.getDocument({data:bytes}).promise.then(function(doc){
-          setPdf(doc);setPages(doc.numPages);setMsg('');
-        }).catch(function(e){setMsg('Errore PDF: '+e.message);});
-      }catch(e){setMsg('Errore PDF: '+e.message);}
-    });
-  },[b64]);
-  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.95)',zIndex:500,display:'flex',flexDirection:'column'}},
-    h('div',{style:{padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'#000',borderBottom:'1px solid '+BORD,flexShrink:0}},
-      h('div',{style:{flex:1,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginRight:8,fontSize:14,color:TEXT}},title||'PDF'),
-      h('div',{style:{display:'flex',gap:4}},
-        h('button',{onClick:function(){setScale(function(s){return Math.max(0.5,s-0.25);});},style:{background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'6px 10px',cursor:'pointer',color:TEXT,fontSize:14}},'−'),
-        h('div',{style:{padding:'6px 8px',color:MUTED,fontSize:12,fontFamily:"'Roboto Mono',monospace",minWidth:48,textAlign:'center'}},Math.round(scale*100)+'%'),
-        h('button',{onClick:function(){setScale(function(s){return Math.min(3,s+0.25);});},style:{background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'6px 10px',cursor:'pointer',color:TEXT,fontSize:14}},'+'),
-        h('button',{onClick:onClose,style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:6}},h(Icon,{n:'close',sz:20,c:MUTED}))
-      )
-    ),
-    h('div',{style:{flex:1,overflow:'auto',padding:8,WebkitOverflowScrolling:'touch'}},
-      msg&&h('div',{style:{padding:30,textAlign:'center',color:MUTED,fontSize:13}},msg),
-      pdf&&Array.from({length:pages},function(_,i){return h(PdfPage,{key:i+1,pdf:pdf,pageNum:i+1,scale:scale});})
-    )
-  );
-}
-
-/* ── corpo & nutrizione: archivio file ── */
-function CorpoNutri(p){
-  var profile=p.profile,go=p.go;
-  var _1=useState(false);var addOpen=_1[0];var setAddOpen=_1[1];
-  var _2=useState([]);var files=_2[0];var setFiles=_2[1];
-  var _3=useState(null);var view=_3[0];var setView=_3[1];
-  var _4=useState({tipo:'corpo',titolo:'',data:new Date().toISOString().split('T')[0],b64:null});var form=_4[0];var setForm=_4[1];
-  var _5=useState('');var status=_5[0];var setStatus=_5[1];
-  function setF(k,v){setForm(function(p){var u=Object.assign({},p);u[k]=v;return u;});}
-  useEffect(function(){
-    try{var raw=localStorage.getItem('gymtracker_files');setFiles(raw?JSON.parse(raw):[]);}catch(e){setFiles([]);}
-  },[]);
-  function saveFiles(arr){setFiles(arr);try{localStorage.setItem('gymtracker_files',JSON.stringify(arr));}catch(e){}}
-  function pickFile(ev){
-    var f=ev.target.files[0];if(!f)return;
-    if(!f.type.includes('pdf')){alert('Solo PDF');return;}
-    var rd=new FileReader();rd.onload=function(){var b64=rd.result.split(',')[1];setF('b64',b64);setStatus('PDF caricato in memoria, pronto per il salvataggio');};
-    rd.readAsDataURL(f);
-  }
-  async function saveFile(){
-    if(!form.titolo.trim()){alert('Inserisci un titolo');return;}
-    if(!form.b64){alert('Carica un PDF');return;}
-    var id=uid();
-    var meta={id:id,tipo:form.tipo,titolo:form.titolo,data:form.data,addedAt:new Date().toISOString()};
-    var tok=getToken();var repo=getPdfRepo();
-    if(tok&&repo){
-      try{
-        setStatus('Caricamento su GitHub…');
-        var sha=await uploadPdfGithub(tok,repo,id,form.b64);
-        meta.gitSha=sha;meta.location='github';setStatus('✓ Salvato su GitHub');
-      }catch(e){
-        setStatus('Errore GitHub: '+e.message+' → salvo in locale');
-        savePdfLocal(id,form.b64);meta.location='local';
-      }
-    }else{
-      savePdfLocal(id,form.b64);meta.location='local';setStatus('✓ Salvato in locale (configura GitHub in Impostazioni per sincronizzare)');
-    }
-    saveFiles(files.concat([meta]));setTimeout(function(){setAddOpen(false);setForm({tipo:'corpo',titolo:'',data:new Date().toISOString().split('T')[0],b64:null});setStatus('');},1500);
-  }
-  async function openFile(f){
-    if(f.location==='github'){
-      var tok=getToken();var repo=getPdfRepo();
-      if(!tok||!repo){alert('Token o repo GitHub mancante, vai in Impostazioni');return;}
-      setStatus('Scarico…');
-      try{var b64=await fetchPdfGithub(tok,repo,f.id);setStatus('');if(!b64){alert('PDF non trovato su GitHub');return;}setView({b64:b64,title:f.titolo});}
-      catch(e){setStatus('');alert('Errore: '+e.message);}
-    }else{
-      var b64Local=loadPdfLocal(f.id);
-      if(!b64Local){alert('PDF non trovato localmente');return;}
-      setView({b64:b64Local,title:f.titolo});
-    }
-  }
-  async function delFile(f){
-    if(!confirm('Eliminare "'+f.titolo+'"?'))return;
-    if(f.location==='github'){var tok=getToken();var repo=getPdfRepo();if(tok&&repo&&f.gitSha){try{await deletePdfGithub(tok,repo,f.id,f.gitSha);}catch(e){}}}
-    else{deletePdfLocal(f.id);}
-    saveFiles(files.filter(function(x){return x.id!==f.id;}));
-  }
-  var grouped={corpo:files.filter(function(f){return f.tipo==='corpo';}),nutri:files.filter(function(f){return f.tipo==='nutri';})};
-  return h('div',{style:{padding:'24px 16px 100px'}},
-    h(PageHeader,{title:'Corpo & Nutrizione',sub:'I tuoi report PDF organizzati'}),
-    h(Btn,{full:true,onClick:function(){setAddOpen(true);setStatus('');}},'+ Carica PDF'),
-    h('div',{style:{height:20}}),
-    !getToken()&&h('div',{style:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:10,padding:'11px 13px',marginBottom:14,fontSize:12,color:'#F59E0B'}},'⚠ Sync GitHub non configurato — i PDF vengono salvati solo in locale e occupano spazio del browser. Vai in Impostazioni per attivare la sincronizzazione.'),
-    [['corpo','Composizione corporea','💪'],['nutri','Nutrizione','🥗']].map(function(t){
-      return h('div',{key:t[0],style:{marginBottom:20}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},h('span',{style:{fontSize:18}},t[2]),h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.02em'}},t[1])),
-        grouped[t[0]].length===0?h('div',{style:{fontSize:12,color:MUTED,padding:10,background:SURF,borderRadius:10,border:'0.5px solid '+BORD}},'Nessun file ancora'):
-        grouped[t[0]].sort(function(a,b){return new Date(b.data)-new Date(a.data);}).map(function(f){
-          return h(Card,{key:f.id,onClick:function(){openFile(f);}},
-            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
-              h('div',{style:{flex:1,minWidth:0}},
-                h('div',{style:{fontSize:14,fontWeight:500,marginBottom:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},f.titolo),
-                h('div',{style:{fontSize:11,color:MUTED,display:'flex',alignItems:'center',gap:6}},
-                  fmtD(f.data),
-                  h('span',{style:{padding:'1px 6px',background:f.location==='github'?'rgba(34,197,94,0.15)':'rgba(245,158,11,0.15)',color:f.location==='github'?'#22C55E':'#F59E0B',borderRadius:8,fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},f.location==='github'?'CLOUD':'LOCAL')
-                )
-              ),
-              h('button',{onClick:function(ev){ev.stopPropagation();delFile(f);},style:{background:'none',border:'none',cursor:'pointer',padding:6}},h(Icon,{n:'trash',sz:15,c:'#EF4444'}))
-            )
-          );
-        })
-      );
-    }),
-    addOpen&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:300,display:'flex',alignItems:'flex-end'},onClick:function(e){if(e.target===e.currentTarget)setAddOpen(false);}},
-      h('div',{className:'su',style:{width:'100%',maxWidth:440,margin:'0 auto',background:SURF,borderRadius:'20px 20px 0 0',padding:'18px 16px 36px'}},
-        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}},
-          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em'}},'Carica PDF'),
-          h('button',{onClick:function(){setAddOpen(false);},style:{background:'none',border:'none',color:MUTED,cursor:'pointer'}},h(Icon,{n:'close',sz:20,c:MUTED}))
-        ),
-        h(Lbl,null,'Tipo'),
-        h('div',{style:{display:'flex',gap:6,marginBottom:14}},
-          [['corpo','Corpo'],['nutri','Nutrizione']].map(function(t){var on=form.tipo===t[0];return h('button',{key:t[0],onClick:function(){setF('tipo',t[0]);},style:{flex:1,padding:'9px 0',borderRadius:10,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:13,cursor:'pointer',fontWeight:on?700:400}},t[1]);})
-        ),
-        h(Lbl,null,'Titolo'),
-        h('input',{value:form.titolo,onChange:function(e){setF('titolo',e.target.value);},placeholder:'es. Bilancia impedenza 03/2026',style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'11px',color:TEXT,fontSize:14,marginBottom:12}}),
-        h(Lbl,null,'Data report'),
-        h('input',{type:'date',value:form.data,onChange:function(e){setF('data',e.target.value);},style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'11px',color:TEXT,fontSize:14,marginBottom:14}}),
-        h(Lbl,null,'File PDF'),
-        h('label',{style:{display:'block',width:'100%',background:form.b64?ACC5:SURF2,border:'1px dashed '+(form.b64?ACC3:BORD),borderRadius:10,padding:'14px',textAlign:'center',cursor:'pointer',marginBottom:14}},
-          h('input',{type:'file',accept:'application/pdf',onChange:pickFile,style:{display:'none'}}),
-          h('div',{style:{color:form.b64?ACC:MUTED,fontSize:13}},form.b64?'✓ PDF pronto':'Tocca per scegliere il PDF')
-        ),
-        status&&h('div',{style:{fontSize:12,color:MUTED,marginBottom:10,padding:'8px 10px',background:SURF2,borderRadius:8}},status),
-        h(Btn,{full:true,onClick:saveFile},'Salva')
-      )
-    ),
-    view&&h(PdfViewer,{b64:view.b64,title:view.title,onClose:function(){setView(null);}}),
-    status&&!addOpen&&h('div',{style:{position:'fixed',bottom:80,left:'50%',transform:'translateX(-50%)',background:SURF,border:'1px solid '+BORD,borderRadius:10,padding:'8px 14px',fontSize:12,color:MUTED,zIndex:200}},status)
   );
 }
 
@@ -1597,7 +1491,7 @@ function App(){
     }).catch(function(){setSyncStatus('error');setTimeout(function(){setSyncStatus('idle');},3000);});
   },[]);
 
-  useEffect(function(){stSave({schede:schede,sessions:sessions});},[schede,sessions]);
+  useEffect(function(){stSave({schede:schede,sessions:sessions});makeDailySnapshot({schede:schede,sessions:sessions,profile:profile});},[schede,sessions,profile]);
   var syncTimer=useRef(null);
   useEffect(function(){
     if(syncTimer.current)clearTimeout(syncTimer.current);
@@ -1610,17 +1504,16 @@ function App(){
   var isLive=view==='live'||view==='callive';
   return h('div',{style:{maxWidth:440,margin:'0 auto',paddingBottom:isLive?0:80,position:'relative'}},
     view==='home'&&h(Home,{schede:schede,sessions:sessions,profile:profile,go:go,syncStatus:syncStatus}),
-    view==='settings'&&h(Settings,{profile:profile,onProfile:setProfile,go:go}),
+    view==='settings'&&h(Settings,{profile:profile,onProfile:setProfile,go:go,schede:schede,sessions:sessions,setSchede:setSchede,setSessions:setSessions}),
     view==='start'&&h(Start,{schede:schede,go:go}),
     view==='pesiblocks'&&h(PesiBlocks,{schede:schede,sessions:sessions,go:go}),
     view==='live'&&h(PesiLive,{bl:args.bl,sId:args.sId,go:go,onSave:function(s){setSessions(function(p){return p.concat([s]);});}}),
     view==='callive'&&h(CalLive,{go:go,onSave:function(s){setSessions(function(p){return p.concat([s]);});}}),
     view==='log'&&h(Log,{sessions:sessions,schede:schede,go:go}),
-    view==='det'&&h(Det,{s:args.s,schede:schede,go:go}),
+    view==='det'&&h(Det,{s:args.s,schede:schede,go:go,onDelete:function(id){if(confirm('Eliminare questa sessione?\n\nLa cancellazione è permanente e si propaga su tutti i dispositivi sincronizzati.')){setSessions(function(prev){return prev.filter(function(x){return x.id!==id;});});go('log');}}}),
     view==='stats'&&h(Stats,{sessions:sessions,go:go}),
     view==='scheda'&&h(SchedaV,{schede:schede,setSchede:setSchede,go:go}),
     view==='nuova'&&h(NuovaScheda,{go:go,setSchede:setSchede}),
-    view==='corpo'&&h(CorpoNutri,{profile:profile,go:go}),
     !isLive&&h(Nav,{cur:view,go:go})
   );
 }

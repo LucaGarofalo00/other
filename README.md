@@ -92,14 +92,27 @@ Se il banner non appare: menu ⋮ in alto a destra → "Installa app" / "Aggiung
 
 Dopo l'installazione, apri l'app, vai in **Impostazioni** e configura:
 
-1. **GitHub Personal Access Token** — crealo qui:
-   - [github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**
-   - Scope necessari: `gist` (per la sync) + `repo` (per i PDF report)
-   - Scadenza: a piacere (90 giorni o "No expiration" se preferisci)
-   - Copia il token (inizia con `ghp_`) e incollalo in Impostazioni
-2. **Repository PDF** (opzionale) — `tuousername/nome-repo` per archiviare i report PDF su un repository GitHub privato. Puoi crearne uno apposito (es. `gymtracker-data`, privato).
+**GitHub Personal Access Token** — crealo qui:
+- [github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**
+- Scope necessario: `gist` (per la sync — niente altro serve)
+- Scadenza: a piacere (90 giorni o "No expiration" se preferisci)
+- Copia il token (inizia con `ghp_`) e incollalo in Impostazioni
 
-Con questi due valori configurati, dati e PDF si sincronizzano automaticamente fra dispositivi diversi (es. iPhone + iPad + browser desktop) tutti collegati allo stesso account GitHub.
+Con il token configurato, dati e schede si sincronizzano automaticamente fra dispositivi diversi (es. iPhone + iPad + browser desktop) tutti collegati allo stesso account GitHub.
+
+---
+
+## 💾 Backup e ripristino
+
+L'app include un sistema di backup a tre livelli:
+
+1. **Sync automatica in cloud** (se configurato il token GitHub) — ogni modifica viene salvata sul tuo Gist privato dopo ~2 secondi.
+2. **Snapshot giornaliero locale** — la prima volta che usi l'app ogni giorno, viene creata una copia di sicurezza nel browser. Vengono conservati gli ultimi 7 giorni. Visibili in **Impostazioni → Backup dati → Snapshot automatici**, con un pulsante "Ripristina" per ogni giorno.
+3. **Esporta/importa manuale** — in **Impostazioni → Backup dati** puoi:
+   - **Esportare** tutti i dati in un file `gymtracker-backup-YYYY-MM-DD.json` (da salvare su iCloud, Drive, ecc.)
+   - **Importare** un file di backup esportato in precedenza (utile per migrare a un nuovo telefono o ripristinare dopo problemi)
+
+Lo snapshot giornaliero ti protegge da cancellazioni accidentali (es. elimini per sbaglio una sessione importante: vai in Impostazioni, ripristini lo snapshot del giorno precedente). Il backup esportato a file ti protegge anche in caso di perdita totale del telefono o del Gist.
 
 ---
 
@@ -110,7 +123,7 @@ Quando modifichi `index.html` o altri file:
 1. Carica il nuovo `index.html` su GitHub (sostituendo il vecchio)
 2. Modifica `sw.js` cambiando questa riga in alto:
    ```js
-   const CACHE_VERSION = 'gymtracker-v1.0.0';  // → bump a v1.0.1, v1.1.0, ecc.
+   const CACHE_VERSION = 'gymtracker-v1.2.0';  // → bump a v1.2.1, v1.3.0, ecc.
    ```
 3. Carica anche `sw.js` aggiornato
 4. La prossima volta che apri l'app installata sul telefono, il nuovo service worker viene scaricato, e all'avvio successivo l'app userà la versione aggiornata.
@@ -122,9 +135,9 @@ Bump del numero versione: l'app non riprende automaticamente i cambiamenti — �
 ## 🔐 Privacy
 
 Tutti i dati restano:
-- in `localStorage` del browser (offline)
-- nei tuoi **Gist** privati GitHub (sync, se configurata)
-- nel tuo **repository** GitHub (PDF report, se configurato)
+- in `localStorage` del browser (dati + snapshot locali giornalieri)
+- nei tuoi **Gist** privati GitHub (sync continua, se configurata)
+- nel tuo dispositivo come file scaricabile (export manuale)
 
 Nessun dato passa per server terzi. Niente analytics, niente tracker. L'unica connessione esterna è verso le API di GitHub (per la tua sync personale) e i CDN per React e i font Google.
 
@@ -138,7 +151,7 @@ Nessun dato passa per server terzi. Niente analytics, niente tracker. L'unica co
 
 **"Sync errore" sempre**: il token GitHub è scaduto o non ha lo scope `gist`. Generane uno nuovo.
 
-**I PDF non si caricano**: serve sia il token (scope `repo`) sia il nome del repository nel formato `username/nome-repo`. Il repo deve esistere già su GitHub (può essere privato).
+**Ho cancellato qualcosa per sbaglio**: vai in Impostazioni → Backup dati → Snapshot automatici e ripristina lo snapshot del giorno precedente.
 
 **Voglio resettare l'app**: dalle impostazioni iOS → Safari → "Cancella dati siti web" oppure disinstalla l'app dalla home (touch+hold → rimuovi).
 
