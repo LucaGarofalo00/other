@@ -144,26 +144,23 @@ input:focus,textarea:focus{border-color:var(--acc) !important}
 /* === SPLASH === */
 #splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .3s}
 #splash.hide{opacity:0;pointer-events:none}
-#splash .logo{width:88px;height:88px;border-radius:20px;background:var(--acc);display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:0 8px 32px rgba(200,255,0,0.25)}
-#splash .logo svg{width:50px;height:50px}
-#splash .name{font-family:var(--f-display);font-size:30px;letter-spacing:0.05em;color:var(--text)}
-#splash .dots{display:flex;gap:6px;margin-top:14px}
-#splash .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);opacity:0.3;animation:pulse 1.2s ease-in-out infinite}
-#splash .dot:nth-child(2){animation-delay:0.2s}
-#splash .dot:nth-child(3){animation-delay:0.4s}
+#splash .mark{position:relative;display:flex;align-items:baseline;gap:2px;margin-bottom:12px}
+#splash .mark .letter{font-family:var(--f-display);font-size:96px;line-height:0.85;color:var(--text);letter-spacing:-0.04em}
+#splash .mark .letter.accent{color:var(--acc)}
+#splash .mark .bar{position:absolute;bottom:-8px;left:0;right:0;height:6px;background:var(--acc);border-radius:3px;animation:loadBar 1.4s cubic-bezier(0.4,0,0.2,1) infinite}
+@keyframes loadBar{0%{transform:scaleX(0);transform-origin:left}50%{transform:scaleX(1);transform-origin:left}51%{transform:scaleX(1);transform-origin:right}100%{transform:scaleX(0);transform-origin:right}}
+#splash .name{font-family:var(--f-cond);font-size:13px;letter-spacing:0.25em;color:var(--muted);text-transform:uppercase;font-weight:700;margin-top:10px}
+#splash .subtitle{font-family:var(--f-body);font-size:11px;color:var(--muted-2);margin-top:6px;letter-spacing:0.02em}
 </style>
 </head>
 <body>
 <div id="splash">
-  <div class="logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="6" y1="5" x2="6" y2="19"/><line x1="18" y1="5" x2="18" y2="19"/>
-      <line x1="6" y1="12" x2="18" y2="12"/>
-      <path d="M3 8h3v8H3zM18 8h3v8h-3z"/>
-    </svg>
+  <div class="mark">
+    <span class="letter">G</span><span class="letter accent">T</span>
+    <span class="bar"></span>
   </div>
   <div class="name">GymTracker</div>
-  <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="subtitle">L'allenamento, davvero tracciato.</div>
 </div>
 <div id="root"></div>
 <script>
@@ -383,6 +380,71 @@ function findBestSerie(esNome, allSessions, excludeSessionId){
 var _shownPRs = {};
 function markPRShown(esNome){ _shownPRs[esNome] = Date.now(); }
 function wasPRShownRecently(esNome){ return _shownPRs[esNome] && (Date.now() - _shownPRs[esNome]) < 3000; }
+
+/* === B9: SYNC CONFLICT RESOLUTION === */
+/* Ogni record (sessione, scheda) ha lastModified. Per merge: tieni quello più recente.
+   I record cancellati diventano tombstone (deleted:true, deletedAt) per propagare la cancellazione
+   tra dispositivi. Tombstone più vecchi di TOMBSTONE_TTL_DAYS vengono ripuliti. */
+
+var TOMBSTONE_TTL_DAYS = 30;
+
+function touchRecord(r){
+  if(!r) return r;
+  return Object.assign({}, r, {lastModified: Date.now()});
+}
+
+function touchAll(arr){ return (arr||[]).map(touchRecord); }
+
+/* Soft-delete: marca come tombstone invece di rimuovere */
+function softDelete(arr, id){
+  return (arr||[]).map(function(r){
+    if(r.id !== id) return r;
+    return Object.assign({}, r, {deleted: true, deletedAt: Date.now(), lastModified: Date.now()});
+  });
+}
+
+/* Filtra i tombstone per le query UI (Home, Log, Stats non li vedono) */
+function liveRecords(arr){
+  return (arr||[]).filter(function(r){ return !r.deleted; });
+}
+
+/* Pulisce tombstone vecchi (chiamato in save) */
+function pruneTombstones(arr){
+  var cutoff = Date.now() - TOMBSTONE_TTL_DAYS * 86400000;
+  return (arr||[]).filter(function(r){
+    return !(r.deleted && r.deletedAt && r.deletedAt < cutoff);
+  });
+}
+
+/* Merge intelligente: per ogni id, tieni il record con lastModified più recente.
+   Se uno dei due è tombstone, il tombstone "vince" se è più recente. */
+function mergeRecords(local, remote){
+  var byId = {};
+  (local||[]).forEach(function(r){ if(r && r.id) byId[r.id] = r; });
+  (remote||[]).forEach(function(r){
+    if(!r || !r.id) return;
+    var existing = byId[r.id];
+    if(!existing){ byId[r.id] = r; return; }
+    var lLM = existing.lastModified || 0;
+    var rLM = r.lastModified || 0;
+    // Se mancano timestamp da entrambe le parti, preferisci il locale (conservativo)
+    if(rLM > lLM) byId[r.id] = r;
+  });
+  return Object.values(byId);
+}
+
+function mergeData(local, remote){
+  return {
+    schede: pruneTombstones(mergeRecords(local.schede||[], remote.schede||[])),
+    sessions: pruneTombstones(mergeRecords(local.sessions||[], remote.sessions||[])),
+    profile: pickNewer(local.profile, remote.profile)
+  };
+}
+function pickNewer(a, b){
+  if(!a) return b; if(!b) return a;
+  var aLM = a.lastModified || 0, bLM = b.lastModified || 0;
+  return bLM > aLM ? b : a;
+}
 
 
 var THEMES=[{id:'lime',name:'Lime',hex:'#C8FF00',text:'#000'},{id:'cyan',name:'Cyan',hex:'#00F0FF',text:'#000'},{id:'fire',name:'Fire',hex:'#FF5722',text:'#fff'},{id:'violet',name:'Violet',hex:'#C084FC',text:'#000'},{id:'gold',name:'Gold',hex:'#FFD700',text:'#000'},{id:'red',name:'Red',hex:'#FF2244',text:'#fff'}];
@@ -1649,27 +1711,137 @@ function CalLive(p){
 /* ── log / storico ── */
 function Log(p){
   var sessions=p.sessions,schede=p.schede,go=p.go;
-  var sorted=sessions.slice().sort(function(a,b){return new Date(b.t0)-new Date(a.t0);});
+  var _s=useState('');var search=_s[0];var setSearch=_s[1];
+  var _f=useState('all');var filter=_f[0];var setFilter=_f[1];
+
+  /* Helper: nome esercizi presenti in una sessione (per la ricerca testo) */
+  function sessionLabel(s){
+    var sc=schede.find(function(x){return x.id===s.sId;});
+    var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
+    return (s.tipo==='cal'?'Calisthenics ':'') + (bl?bl.nome:sc?sc.nome:'Sessione');
+  }
+  function exerciseNames(s){
+    return (s.es||[]).map(function(e){return e.nome||'';}).join(' ');
+  }
+
+  /* Applica filtri */
+  var now = Date.now();
+  var weekAgo = now - 7*86400000;
+  var monthAgo = now - 30*86400000;
+  var sorted = sessions.slice().sort(function(a,b){return new Date(b.t0)-new Date(a.t0);});
+  var filtered = sorted.filter(function(s){
+    if(filter==='pesi' && s.tipo==='cal') return false;
+    if(filter==='cal'  && s.tipo!=='cal') return false;
+    if(filter==='week' && new Date(s.t0).getTime() < weekAgo) return false;
+    if(filter==='month'&& new Date(s.t0).getTime() < monthAgo) return false;
+    if(search.trim()){
+      var q = search.trim().toLowerCase();
+      var hay = (sessionLabel(s) + ' ' + exerciseNames(s) + ' ' + (s.nota||'')).toLowerCase();
+      if(hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+
+  /* Raggruppamento per settimana (chiave: lunedì della settimana) */
+  function weekKey(date){
+    var d = new Date(date);
+    var day = d.getDay(); // 0=domenica
+    var diff = day === 0 ? 6 : day - 1; // lunedì
+    d.setDate(d.getDate() - diff);
+    d.setHours(0,0,0,0);
+    return d.toISOString().split('T')[0];
+  }
+  function weekLabel(key){
+    var monday = new Date(key);
+    var sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    var fmt = function(dt){ return dt.toLocaleDateString('it-IT',{day:'numeric',month:'short'}); };
+    var nowMonday = weekKey(new Date());
+    if(key === nowMonday) return 'Questa settimana';
+    var lastMonday = weekKey(new Date(Date.now() - 7*86400000));
+    if(key === lastMonday) return 'Settimana scorsa';
+    return fmt(monday) + ' – ' + fmt(sunday);
+  }
+  var groups = {};
+  filtered.forEach(function(s){
+    var k = weekKey(s.t0);
+    if(!groups[k]) groups[k] = [];
+    groups[k].push(s);
+  });
+  var groupKeys = Object.keys(groups).sort(function(a,b){return a<b?1:-1;});
+
+  var filterPills = [
+    ['all', 'Tutto'],
+    ['pesi', 'Pesi'],
+    ['cal', 'Cal'],
+    ['week', '7g'],
+    ['month', '30g']
+  ];
+
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(PageHeader,{title:'Storico',sub:sessions.length+' allenament'+(sessions.length===1?'o':'i')}),
-    sorted.length===0&&h('div',{style:{textAlign:'center',padding:'40px 20px',color:MUTED}},'Nessuna sessione ancora registrata'),
-    sorted.map(function(s){
-      var sc=schede.find(function(x){return x.id===s.sId;});
-      var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
-      var isCal=s.tipo==='cal';
-      var totalReps=s.es.reduce(function(t,e){return t+e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);},0);
-      return h(Card,{key:s.id,onClick:function(){go('det',{s:s});}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}},
-          h('div',null,
-            h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
-              isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
-              h('div',{style:{fontWeight:500,fontSize:14}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sessione'))
-            ),
-            h('div',{style:{fontSize:11,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})+' · '+s.dur+'min')
-          ),
-          h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:14}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg'))
+
+    /* Ricerca */
+    sessions.length > 0 && h('div',{style:{marginBottom:10}},
+      h('input',{
+        type:'search',
+        value: search,
+        placeholder: 'Cerca per scheda, esercizio o nota…',
+        onChange: function(e){ setSearch(e.target.value); },
+        style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'11px 14px',color:TEXT,fontSize:14}
+      })
+    ),
+
+    /* Filtri */
+    sessions.length > 0 && h('div',{style:{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}},
+      filterPills.map(function(f){
+        var on = filter === f[0];
+        return h('button',{
+          key: f[0],
+          onClick: function(){ hap(8); setFilter(f[0]); },
+          style:{padding:'7px 13px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer',fontWeight:on?700:500,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em',textTransform:'uppercase'}
+        }, f[1]);
+      })
+    ),
+
+    /* C7: Empty state caldo */
+    sessions.length===0 && h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
+      h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📒'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessun allenamento ancora'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Tutti i tuoi allenamenti finiranno qui.',h('br'),'Inizia oggi e costruisci la tua storia.'),
+      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Allena ora →')
+    ),
+
+    /* Sessioni filtrate: messaggio se i filtri non producono risultati */
+    sessions.length > 0 && filtered.length === 0 && h('div',{style:{textAlign:'center',padding:'32px 16px',color:MUTED,fontSize:13}},
+      'Nessun risultato per "',h('span',{style:{color:ACC}},search||filterPills.find(function(f){return f[0]===filter;})[1]),'"'
+    ),
+
+    /* Render raggruppato per settimana */
+    groupKeys.map(function(gk){
+      return h('div',{key:gk,style:{marginBottom:16}},
+        h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6,marginTop:4}},
+          weekLabel(gk),
+          h('span',{style:{marginLeft:6,opacity:0.65}}, '· ' + groups[gk].length)
         ),
-        h('div',{style:{fontSize:11,color:MUTED}},s.es.length+' esercizi · '+s.es.reduce(function(a,e){return a+e.serie.filter(function(sr){return sr.ok;}).length;},0)+' serie')
+        groups[gk].map(function(s){
+          var sc=schede.find(function(x){return x.id===s.sId;});
+          var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
+          var isCal=s.tipo==='cal';
+          var totalReps=s.es.reduce(function(t,e){return t+e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);},0);
+          return h(Card,{key:s.id,onClick:function(){go('det',{s:s});}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}},
+              h('div',null,
+                h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+                  isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
+                  h('div',{style:{fontWeight:500,fontSize:14}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sessione'))
+                ),
+                h('div',{style:{fontSize:11,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})+' · '+s.dur+'min')
+              ),
+              h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:14,fontVariantNumeric:'tabular-nums'}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg'))
+            ),
+            h('div',{style:{fontSize:11,color:MUTED}},s.es.length+' esercizi · '+s.es.reduce(function(a,e){return a+e.serie.filter(function(sr){return sr.ok;}).length;},0)+' serie')
+          );
+        })
       );
     })
   );
@@ -1719,7 +1891,10 @@ function Stats(p){
   var _2=useState(null);var sel=_2[0];var setSel=_2[1];
   var ranges=[[7,'7g'],[30,'30g'],[90,'90g'],[365,'1a']];
   var cutoff=new Date(Date.now()-range*86400000);
+  var prevCutoff=new Date(Date.now()-range*2*86400000);
   var data=sessions.filter(function(s){return new Date(s.t0)>=cutoff;});
+  /* Periodo precedente per confronto delta */
+  var prevData=sessions.filter(function(s){var t=new Date(s.t0);return t>=prevCutoff && t<cutoff;});
   var pesiData=data.filter(function(s){return s.tipo!=='cal';});
   var calData=data.filter(function(s){return s.tipo==='cal';});
 
@@ -1731,28 +1906,145 @@ function Stats(p){
   var calByEx={};
   calData.forEach(function(s){s.es.forEach(function(e){var reps=e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);if(reps>0)calByEx[e.nome]=(calByEx[e.nome]||0)+reps;});});
 
+  /* B2: Volume per gruppo muscolare (set completati per gruppo) */
+  var volByGr={};
+  data.forEach(function(s){
+    s.es.forEach(function(e){
+      if(e.tipo==='riscaldamento' || !e.gr) return;
+      var sets = (e.serie||[]).filter(function(sr){return sr.ok;}).length;
+      if(sets>0) volByGr[e.gr] = (volByGr[e.gr]||0) + sets;
+    });
+  });
+  /* MEV/MAV/MRV settimanali (Schoenfeld + Israetel guidelines, semplificati) */
+  var grRanges = {
+    'Petto':   {mev:10, mav:18, mrv:22},
+    'Schiena': {mev:10, mav:20, mrv:25},
+    'Gambe':   {mev:8,  mav:18, mrv:25},
+    'Spalle':  {mev:8,  mav:16, mrv:20},
+    'Braccia': {mev:6,  mav:14, mrv:18},
+    'Core':    {mev:0,  mav:16, mrv:25}
+  };
+  /* Normalizziamo i set al periodo selezionato — il range MEV/MAV/MRV è settimanale */
+  var weeks = Math.max(range/7, 1);
+  var weeklyVol = {};
+  Object.keys(volByGr).forEach(function(gr){ weeklyVol[gr] = Math.round(volByGr[gr]/weeks); });
+  var gruppiOrder = ['Petto','Schiena','Gambe','Spalle','Braccia','Core'];
+  var hasVolData = Object.keys(volByGr).length > 0;
+
+  /* Delta vs periodo precedente */
+  function deltaTon(){
+    var cur = pesiData.reduce(function(t,s){return t+ton(s.es);},0);
+    var prv = prevData.filter(function(s){return s.tipo!=='cal';}).reduce(function(t,s){return t+ton(s.es);},0);
+    if(prv === 0) return null;
+    var pct = Math.round((cur-prv)/prv*100);
+    return pct;
+  }
+  function deltaSessions(){
+    var prv = prevData.length;
+    if(prv === 0) return null;
+    return data.length - prv;
+  }
+  var dTon = deltaTon();
+  var dSes = deltaSessions();
+
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(PageHeader,{title:'Statistiche'}),
     h('div',{style:{display:'flex',gap:6,marginBottom:16}},
-      ranges.map(function(r){return h('button',{key:r[0],onClick:function(){setRange(r[0]);},style:{padding:'7px 14px',borderRadius:20,border:'1px solid '+(range===r[0]?ACC:BORD),background:range===r[0]?ACC2:'transparent',color:range===r[0]?ACC:MUTED,fontSize:13,cursor:'pointer',fontWeight:range===r[0]?700:400}},r[1]);})
+      ranges.map(function(r){return h('button',{key:r[0],onClick:function(){hap(8);setRange(r[0]);},style:{padding:'8px 14px',borderRadius:20,border:'1px solid '+(range===r[0]?ACC:BORD),background:range===r[0]?ACC2:'transparent',color:range===r[0]?ACC:MUTED,fontSize:13,cursor:'pointer',fontWeight:range===r[0]?700:400}},r[1]);})
     ),
-    data.length===0&&h('div',{style:{textAlign:'center',padding:'40px 20px',color:MUTED}},'Nessun dato per questo periodo'),
+    /* C7: Empty state caldo */
+    data.length===0&&h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
+      h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📊'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Ancora nulla qui'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'I tuoi numeri appariranno dopo la prima sessione.',h('br'),'Bastano 10 minuti di allenamento.'),
+      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Allena ora →')
+    ),
     data.length>0&&h('div',null,
+      /* KPI con delta */
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:18}},
-        [[data.length,'Sessioni'],[Math.round(pesiData.reduce(function(t,s){return t+ton(s.es);},0)/100)/10+'t','Volume'],[Math.round(data.reduce(function(t,s){return t+s.dur;},0)/60)+'h','Durata']].map(function(v){
+        [
+          [data.length, 'Sessioni', dSes],
+          [Math.round(pesiData.reduce(function(t,s){return t+ton(s.es);},0)/100)/10+'t', 'Volume', dTon ? (dTon>0?'+':'')+dTon+'%' : null],
+          [Math.round(data.reduce(function(t,s){return t+s.dur;},0)/60)+'h', 'Durata', null]
+        ].map(function(v){
           return h('div',{key:v[1],style:{background:SURF2,borderRadius:10,padding:'12px 8px',textAlign:'center'}},
             h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC,lineHeight:1}},v[0]),
-            h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}},v[1])
+            h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginTop:2}},v[1]),
+            v[2] != null && h('div',{style:{fontSize:10,marginTop:4,color: (typeof v[2] === 'number' ? v[2]>=0 : String(v[2]).indexOf('-')<0) ? 'var(--success)' : 'var(--danger)',fontFamily:"'Roboto Mono',monospace",fontWeight:700}},
+              (typeof v[2] === 'number' && v[2]>0 ? '+' : '') + v[2] + (typeof v[2] === 'number' ? '' : '')
+            )
           );
         })
       ),
+
+      /* B2: Volume settimanale per gruppo muscolare con zone MEV/MAV/MRV */
+      hasVolData && h('div',{style:{marginBottom:22}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}},
+          h(Lbl,null,'Volume settimanale per gruppo'),
+          h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},'set/sett.')
+        ),
+        h('div',{style:{fontSize:10,color:MUTED,marginBottom:10,lineHeight:1.5}},
+          'Zone: ',
+          h('span',{style:{color:'#94A3B8'}},'sotto MEV '),
+          h('span',{style:{color:'var(--success)'}},'· ottimale '),
+          h('span',{style:{color:'var(--warning)'}},'· vicino MRV '),
+          h('span',{style:{color:'var(--danger)'}},'· oltre MRV')
+        ),
+        gruppiOrder.filter(function(gr){return weeklyVol[gr] !== undefined;}).map(function(gr){
+          var v = weeklyVol[gr];
+          var rg = grRanges[gr] || {mev:8, mav:18, mrv:25};
+          var color, label;
+          if(v < rg.mev){ color='#94A3B8'; label='sotto MEV (poco stimolo)'; }
+          else if(v <= rg.mav){ color='var(--success)'; label='ottimale per crescita'; }
+          else if(v <= rg.mrv){ color='var(--warning)'; label='vicino al limite'; }
+          else { color='var(--danger)'; label='oltre MRV (rischio overtraining)'; }
+          /* Calcolo posizioni proporzionali sulla scala 0 → mrv*1.3 */
+          var scale = rg.mrv * 1.3;
+          var mevPct = (rg.mev/scale)*100;
+          var mavPct = (rg.mav/scale)*100;
+          var mrvPct = (rg.mrv/scale)*100;
+          var valPct = Math.min(100, (v/scale)*100);
+          return h('div',{key:gr,style:{marginBottom:11}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}},
+              h('div',{style:{fontSize:13,fontWeight:500}},gr),
+              h('div',{style:{display:'flex',alignItems:'baseline',gap:6}},
+                h('span',{style:{fontFamily:"'Roboto Mono',monospace",fontSize:13,fontWeight:700,color:color,fontVariantNumeric:'tabular-nums'}},v),
+                h('span',{style:{fontSize:9,color:MUTED}},'·  '+label)
+              )
+            ),
+            /* Barra con segni MEV/MAV/MRV */
+            h('div',{style:{position:'relative',height:8,background:BORD,borderRadius:4,overflow:'hidden'}},
+              /* zona sotto MEV (grigio) */
+              h('div',{style:{position:'absolute',left:0,top:0,bottom:0,width:mevPct+'%',background:'rgba(148,163,184,0.18)'}}),
+              /* zona ottimale (verde) */
+              h('div',{style:{position:'absolute',left:mevPct+'%',top:0,bottom:0,width:(mavPct-mevPct)+'%',background:'rgba(34,197,94,0.18)'}}),
+              /* zona warning */
+              h('div',{style:{position:'absolute',left:mavPct+'%',top:0,bottom:0,width:(mrvPct-mavPct)+'%',background:'rgba(245,158,11,0.18)'}}),
+              /* zona oltre MRV */
+              h('div',{style:{position:'absolute',left:mrvPct+'%',top:0,bottom:0,right:0,background:'rgba(239,68,68,0.18)'}}),
+              /* indicatore valore */
+              h('div',{style:{position:'absolute',left:0,top:0,bottom:0,width:valPct+'%',background:color,borderRadius:'4px 0 0 4px'}}),
+              /* segno MEV */
+              h('div',{style:{position:'absolute',left:mevPct+'%',top:-2,bottom:-2,width:1,background:'rgba(255,255,255,0.25)'}}),
+              h('div',{style:{position:'absolute',left:mavPct+'%',top:-2,bottom:-2,width:1,background:'rgba(255,255,255,0.25)'}}),
+              h('div',{style:{position:'absolute',left:mrvPct+'%',top:-2,bottom:-2,width:1,background:'rgba(255,255,255,0.25)'}})
+            ),
+            h('div',{style:{display:'flex',justifyContent:'space-between',marginTop:2,fontSize:8,color:'var(--muted-2)',fontFamily:"'Roboto Mono',monospace"}},
+              h('span',{style:{position:'absolute',left:(mevPct)+'%',transform:'translateX(-50%)'}},rg.mev),
+              h('span',{style:{position:'absolute',left:(mavPct)+'%',transform:'translateX(-50%)'}},rg.mav),
+              h('span',{style:{position:'absolute',left:(mrvPct)+'%',transform:'translateX(-50%)'}},rg.mrv)
+            )
+          );
+        })
+      ),
+
       topExs.length>0&&h('div',null,
         h(Lbl,null,'Top esercizi sala pesi · tonnellaggio'),
         topExs.map(function(e){
           return h('div',{key:e[0],onClick:function(){setSel({nome:e[0],sessions:sessions});},style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'12px 14px',marginBottom:8,cursor:'pointer'}},
             h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}},
               h('div',{style:{fontSize:13,fontWeight:500}},e[0]),
-              h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700}},Math.round(e[1])+'kg')
+              h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700,fontVariantNumeric:'tabular-nums'}},Math.round(e[1])+'kg')
             ),
             h('div',{style:{height:6,background:BORD,borderRadius:3}},h('div',{style:{height:'100%',background:ACC,borderRadius:3,width:(e[1]/maxT*100)+'%'}}))
           );
@@ -1763,7 +2055,7 @@ function Stats(p){
         Object.entries(calByEx).sort(function(a,b){return b[1]-a[1];}).slice(0,5).map(function(e){
           return h('div',{key:e[0],style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'10px 14px',marginBottom:6,display:'flex',justifyContent:'space-between'}},
             h('div',{style:{fontSize:13}},e[0]),
-            h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700}},e[1]+' reps')
+            h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700,fontVariantNumeric:'tabular-nums'}},e[1]+' reps')
           );
         })
       )
@@ -1841,13 +2133,18 @@ function SchedaV(p){
   }
   function elimina(sc){
     if(!confirm('Eliminare "'+sc.nome+'"?')) return;
-    setSchede(function(prev){ return prev.filter(function(x){ return x.id!==sc.id; }); });
+    setSchede(function(prev){ return softDelete(prev, sc.id); });
     if(setUndoData) setUndoData({type:'scheda', item:sc, msg:'Scheda "'+sc.nome+'" eliminata', t:Date.now()});
     hap(20);
   }
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(PageHeader,{title:'Schede',sub:schede.length>0?(attiveCount+' attiva'+(attiveCount===1?'':'e')+' su '+schede.length):''}),
-    schede.length===0&&h('div',{style:{textAlign:'center',padding:'30px 20px',color:MUTED}},'Nessuna scheda ancora'),
+    schede.length===0&&h('div',{style:{textAlign:'center',padding:'40px 24px',color:MUTED}},
+      h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📋'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessuna scheda ancora'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:20}},'Crea la prima scheda da zero, oppure',h('br'),'parti da un template e personalizza.'),
+      h('button',{onClick:function(){go('nuova');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'+ Crea scheda')
+    ),
     schede.map(function(sc){
       return h(Card,{key:sc.id,style:{border:sc.attiva?'1px solid '+ACC3:'0.5px solid '+BORD,background:sc.attiva?ACC5:SURF}},
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:5}},
@@ -1997,11 +2294,12 @@ function App(){
 
   function go(v,a){setArgs(a||{});setView(v);window.scrollTo({top:0,left:0,behavior:'instant'});}
 
-  /* Cancella sessione con undo (B10) */
+  /* Cancella sessione con undo (B10) + soft-delete (B9) */
   function deleteSessionWithUndo(id){
-    var deleted = sessions.find(function(x){ return x.id===id; });
+    var deleted = sessions.find(function(x){ return x.id===id && !x.deleted; });
     if(!deleted) return;
-    setSessions(function(prev){ return prev.filter(function(x){ return x.id!==id; }); });
+    /* Soft-delete: marca come tombstone invece di rimuovere */
+    setSessions(function(prev){ return softDelete(prev, id); });
     setUndoData({type:'session', item:deleted, msg:'Sessione eliminata', t:Date.now()});
     hap(20);
   }
@@ -2009,10 +2307,27 @@ function App(){
     if(!undoData) return;
     if(undoData.type === 'session'){
       var item = undoData.item;
-      setSessions(function(prev){ return prev.concat([item]); });
+      /* Ripristina rimuovendo il tombstone (riprende il record originale) */
+      setSessions(function(prev){
+        return prev.map(function(r){
+          if(r.id !== item.id) return r;
+          var restored = Object.assign({}, r);
+          delete restored.deleted; delete restored.deletedAt;
+          restored.lastModified = Date.now();
+          return restored;
+        });
+      });
     } else if(undoData.type === 'scheda'){
       var sc = undoData.item;
-      setSchede(function(prev){ return prev.concat([sc]); });
+      setSchede(function(prev){
+        return prev.map(function(r){
+          if(r.id !== sc.id) return r;
+          var restored = Object.assign({}, r);
+          delete restored.deleted; delete restored.deletedAt;
+          restored.lastModified = Date.now();
+          return restored;
+        });
+      });
     }
     setUndoData(null);
     hap(15);
@@ -2030,11 +2345,21 @@ function App(){
     var tok=getToken();
     if(!tok)return;
     setSyncStatus('loading');
-    loadFromGist(tok).then(function(data){
-      if(data){
-        if(data.schede&&data.schede.length>0)setSchede(data.schede);
-        if(data.sessions&&data.sessions.length>0)setSessions(data.sessions);
-        if(data.profile)setProfile(data.profile);
+    loadFromGist(tok).then(function(remote){
+      if(remote){
+        /* B9: merge intelligente per id+lastModified invece di overwrite */
+        var local = {schede: schede, sessions: sessions, profile: profile};
+        var merged = mergeData(local, remote);
+        // Applica solo se ci sono cambiamenti effettivi
+        if(merged.schede && (merged.schede.length !== schede.length || JSON.stringify(merged.schede) !== JSON.stringify(schede))){
+          setSchede(merged.schede);
+        }
+        if(merged.sessions && (merged.sessions.length !== sessions.length || JSON.stringify(merged.sessions) !== JSON.stringify(sessions))){
+          setSessions(merged.sessions);
+        }
+        if(merged.profile && JSON.stringify(merged.profile) !== JSON.stringify(profile)){
+          setProfile(merged.profile);
+        }
       }
       setSyncStatus('ok');setTimeout(function(){setSyncStatus('idle');},2000);
     }).catch(function(){setSyncStatus('error');setTimeout(function(){setSyncStatus('idle');},3000);});
@@ -2048,24 +2373,49 @@ function App(){
     return function(){if(syncTimer.current)clearTimeout(syncTimer.current);};
   },[schede,sessions,profile]);
 
+  /* Sessions/schede live (filtro tombstone per le viste) */
+  var liveSessions = liveRecords(sessions);
+  var liveSchede = liveRecords(schede);
+
   if(!profile)return h(ProfileSetup,{onDone:setProfile, onApplyTemplate:function(templateId){
     var sch = window.applyTemplate(templateId);
-    if(sch && sch.length){ setSchede(sch); }
+    if(sch && sch.length){ setSchede(touchAll(sch)); }
   }});
 
   var isLive=view==='live'||view==='callive';
   return h('div',{style:{maxWidth:440,margin:'0 auto',paddingBottom:isLive?0:80,position:'relative'}},
-    view==='home'&&h(Home,{schede:schede,sessions:sessions,profile:profile,go:go,syncStatus:syncStatus}),
-    view==='settings'&&h(Settings,{profile:profile,onProfile:setProfile,go:go,schede:schede,sessions:sessions,setSchede:setSchede,setSessions:setSessions}),
-    view==='start'&&h(Start,{schede:schede,go:go}),
-    view==='pesiblocks'&&h(PesiBlocks,{schede:schede,sessions:sessions,go:go}),
-    view==='live'&&h(PesiLive,{bl:args.bl,sId:args.sId,go:go,allSessions:sessions,onSave:function(s){setSessions(function(p){return p.concat([s]);});}}),
-    view==='callive'&&h(CalLive,{go:go,allSessions:sessions,onSave:function(s){setSessions(function(p){return p.concat([s]);});}}),
-    view==='log'&&h(Log,{sessions:sessions,schede:schede,go:go}),
-    view==='det'&&h(Det,{s:args.s,schede:schede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');}}),
-    view==='stats'&&h(Stats,{sessions:sessions,go:go}),
-    view==='scheda'&&h(SchedaV,{schede:schede,setSchede:setSchede,go:go,setUndoData:setUndoData}),
-    view==='nuova'&&h(NuovaScheda,{go:go,setSchede:setSchede}),
+    view==='home'&&h(Home,{schede:liveSchede,sessions:liveSessions,profile:profile,go:go,syncStatus:syncStatus}),
+    view==='settings'&&h(Settings,{profile:profile,onProfile:setProfile,go:go,schede:liveSchede,sessions:liveSessions,setSchede:function(s){setSchede(touchAll(s));},setSessions:function(s){setSessions(touchAll(s));}}),
+    view==='start'&&h(Start,{schede:liveSchede,go:go}),
+    view==='pesiblocks'&&h(PesiBlocks,{schede:liveSchede,sessions:liveSessions,go:go}),
+    view==='live'&&h(PesiLive,{bl:args.bl,sId:args.sId,go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
+    view==='callive'&&h(CalLive,{go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
+    view==='log'&&h(Log,{sessions:liveSessions,schede:liveSchede,go:go}),
+    view==='det'&&h(Det,{s:args.s,schede:liveSchede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');}}),
+    view==='stats'&&h(Stats,{sessions:liveSessions,go:go}),
+    view==='scheda'&&h(SchedaV,{schede:liveSchede,setSchede:function(updater){
+      setSchede(function(prev){
+        var next = typeof updater === 'function' ? updater(prev) : updater;
+        return next.map(function(s){
+          // Tocca solo i record non-tombstone modificati di recente
+          var was = prev.find(function(p){ return p.id === s.id; });
+          if(!was || JSON.stringify(was) !== JSON.stringify(s)){
+            return Object.assign({}, s, {lastModified: Date.now()});
+          }
+          return s;
+        });
+      });
+    },go:go,setUndoData:setUndoData}),
+    view==='nuova'&&h(NuovaScheda,{go:go,setSchede:function(updater){
+      setSchede(function(prev){
+        var next = typeof updater === 'function' ? updater(prev) : updater;
+        return next.map(function(s){
+          var was = prev.find(function(p){ return p.id === s.id; });
+          if(!was) return Object.assign({}, s, {lastModified: Date.now()});
+          return s;
+        });
+      });
+    }}),
     !isLive&&h(Nav,{cur:view,go:go}),
     /* PR Burst overlay (C12) */
     prBurst && h('div', {className:'pr-burst'},

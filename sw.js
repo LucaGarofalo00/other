@@ -1,14 +1,15 @@
-/* GymTracker Service Worker — v1.4.0
+/* GymTracker Service Worker — v1.5.0
  * Strategy:
  *   - Precache: shell app (HTML, manifest, icons) on install
  *   - Runtime: stale-while-revalidate for static assets (React CDN, Google Fonts)
  *   - Bypass: GitHub API calls (Gist sync) — must always be fresh
- *   - NEW v1.4.0: rest timer notifications that survive screen lock
+ *   - v1.4.0: rest timer notifications that survive screen lock
+ *   - v1.5.0: sync conflict resolution + B2/B4/C5/C7 improvements
  *
  * To force update: bump CACHE_VERSION below.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.4.0';
+const CACHE_VERSION = 'gymtracker-v1.5.0';
 const CACHE_RUNTIME = 'gymtracker-runtime-v1';
 
 const PRECACHE_URLS = [
