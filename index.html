@@ -508,6 +508,89 @@ function applyTheme(t){var r=document.documentElement;r.style.setProperty('--acc
 function loadTheme(){try{var id=localStorage.getItem(TK);return THEMES.find(function(t){return t.id===id;})||THEMES[0];}catch(e){return THEMES[0];}}
 var PESI_ES=['Panca Piana','Panca Inclinata Manubri','Panca Inclinata Bilanciere','Panca Declinata','Croci ai Cavi','Peck Deck','Chest Press','Squat','Leg Press','Hack Squat','Affondi','Bulgarian Split Squat','Leg Extension','Leg Curl','Hip Thrust','Calf Raise','Sumo Squat','Stacco da Terra','Stacco Rumeno','Trazioni','Rematore Bilanciere','Rematore Manubri','Lat Machine','Seated Row','Pull-over','T-Bar Row','Face Pull','Lento Avanti','Arnold Press','Alzate Laterali','Alzate Frontali','Alzate Posteriori','Curl Bilanciere','Curl Manubri','Curl Martello','Curl ai Cavi','French Press','Skull Crusher','Push Down ai Cavi','Dip Tricipiti','Plank','Crunch','Leg Raise','Ab Wheel','Russian Twist','Hyperextension','Treadmill','Cyclette','Rowing Machine','Mobilità Articolare','Stretching Dinamico','Kettlebell Swing'];
 var CAL_ES=['Pull-up','Chin-up','Muscle-up','Dip','Push-up','Pike Push-up','Diamond Push-up','Archer Push-up','Pseudo Planche Push-up','Handstand Push-up','L-sit','Tuck L-sit','V-sit','Dragon Flag','Front Lever','Back Lever','Planche','Human Flag','Pistol Squat','Shrimp Squat','Nordic Curl','Hanging Leg Raise','Toes to Bar','Bar Row','Inverted Row','Ring Dip','Ring Push-up','Skin the Cat','Hollow Hold','Arch Hold','Handstand'];
+/* ── catalogo esercizi per gruppo muscolare (inserimento rapido) ── */
+var MUSCLE_GROUPS=[
+  {id:'petto',label:'Petto',emoji:'🫁',es:[
+    'Panca Piana','Panca Inclinata Bilanciere','Panca Inclinata Manubri','Panca Declinata',
+    'Panca piana multipower','Smith Machine Bench','Croci con Manubri','Croci ai Cavi',
+    'Cable Crossover','Croci alla macchina','Peck Deck','Chest Press','Chest Press Machine',
+    'Push-up','Knee Push-up','Wide Push-up','Decline Push-up','Push-up Piedi Elevati',
+    'Diamond Push-up','Archer Push-up','Hindu Push-up','Typewriter Push-up','Clap Push-up',
+    'One Arm Push-up','One Arm Archer Push-up','Pseudo Planche Push-up','Ring Push-up',
+    'Cobra Push-up','Serratus Push-up','Pull-over','Dumbbell Pullover'
+  ]},
+  {id:'schiena',label:'Schiena',emoji:'🦅',es:[
+    'Stacco da Terra','Sumo Deadlift','Trap Bar Deadlift','Deficit Deadlift','Block Pull',
+    'Jefferson Deadlift','Trazioni','Pull-up','Chin-up','Muscle-up','Trazioni Presa Neutra',
+    'Australian Pull-up','Commando Pull-up','L-sit Pull-up','Typewriter Pull-up','Archer Pull-up',
+    'Chest-to-bar Pull-up','One Arm Pull-up','360 Pull-up','Kip Pull-up','Scapular Pull-up',
+    'Front Lever Row','Back Lever Pull-up','German Hang',
+    'Rematore Bilanciere','Rematore Manubri','Pendlay Row','T-Bar Row','Chest Supported Row',
+    'Seal Row','Meadows Row','Ring Row','Lat Machine','Lat machine supina','Pulley Basso','Seated Row',
+    'Pulley presa neutra spalle','Straight-arm Pulldown','Lat Pullover Machine','Low Row Machine',
+    'High Row Machine','Inverted Row','Bar Row','Skin the Cat','Shrug Bilanciere','Shrug Manubri'
+  ]},
+  {id:'spalle',label:'Spalle',emoji:'🪖',es:[
+    'Military Press','Lento Avanti','Lento Avanti Manubri','Overhead Press Manubri Seduto',
+    'Arnold Press','Shoulder Press Machine','Alzate Laterali','Alzate laterali manubri',
+    'Alzate Frontali','Alzate Posteriori','Face Pull','Landmine Press','Band Pull-apart',
+    'Pike Push-up','Handstand Push-up','Strict HSPU','Deficit HSPU','Handstand',
+    'Wall Handstand Hold','Freestanding Handstand','Handstand Walk','Straddle Press Handstand',
+    'Scapular Push-up'
+  ]},
+  {id:'bicipiti',label:'Bicipiti',emoji:'💪',es:[
+    'Curl Bilanciere','Curl Bilanciere EZ','Curl Manubri','Curl Manubri Alternato','Curl Martello',
+    'Curl ai Cavi','Curl Concentrato','Incline Curl','Spider Curl','Curl manubri panca 45°',
+    'Bayesian Curl','Preacher Curl Machine','21s Bicipiti'
+  ]},
+  {id:'tricipiti',label:'Tricipiti',emoji:'🦾',es:[
+    'French Press','Skull Crusher','Push Down ai Cavi','Pushdown Corda','Pulldown corda cavo alto',
+    'Tricipiti Sopra Testa Manubrio','Kickback con Manubrio','Incline Dumbbell Kickback',
+    'Close Grip Bench Press','Dip Tricipiti','Dip','Ring Dip','Gironda Dip','Tate Press','JM Press',
+    'French press manubri'
+  ]},
+  {id:'gambe',label:'Gambe',emoji:'🦵',es:[
+    'Squat','Front Squat','Hack Squat','Hack Squat Machine','Pendulum Squat','Paused Squat',
+    'Zercher Squat','Hatfield Squat','Sissy Squat','Sumo Squat','Smith Machine Squat','V-Squat',
+    'Squat a Corpo Libero','Jump Squat','Box Jump','Broad Jump','Deep Squat Hold','Step-up',
+    'Affondi','Bulgarian Split Squat','Affondi bulgari','Leg Press','Leg Press 45°','Leg press',
+    'Leg Extension','Leg extension monolat','Leg Curl','Seated Leg Curl','Romanian Deadlift',
+    'Stacco Rumeno','Stacchi rumeni manubri','Single-leg Romanian Deadlift','Hip Thrust',
+    'Glute Bridge','Single-leg Glute Bridge','Cable Pull-through','Reverse Hyper','Good Morning',
+    'Glute-Ham Raise','Nordic Curl','Hyperextension','Calf Raise','Polpacci seduto','Polpacci in piedi',
+    'Seated Calf Raise Machine','Standing Calf Raise Machine','Pistol Squat','Shrimp Squat',
+    'Abductor Machine','Adductor Machine','Tibialis Raise','Farmer\'s Walk'
+  ]},
+  {id:'core',label:'Core',emoji:'🎯',es:[
+    'Plank','Side Plank','Crunch','Leg Raise','Russian Twist','Ab Wheel','Ab Wheel Rollout',
+    'Vacuum Addominale','Hanging Knee Raise','Hanging Leg Raise','Toes to Bar','Windshield Wiper',
+    'L-sit','Tuck L-sit','V-sit','Dragon Flag','Dragon flag','Hollow Body Hold','Hollow Body Rock',
+    'Hollow Hold','Arch Hold','V-up','Crunch inversi a terra','V-ups gambe tese',
+    'Neck Curl','Neck Extension'
+  ]},
+  {id:'cardio',label:'Cardio',emoji:'❤️',es:[
+    'Treadmill','Cyclette','Rowing Machine','Kettlebell Swing','Mobilità Articolare',
+    'Stretching Dinamico','Jefferson Curl','Pancake Stretch','Shoulder Dislocate','Wrist Conditioning'
+  ]},
+  {id:'calistenico',label:'Calistenico',emoji:'🤸',es:[
+    'Planche','Tuck Planche','Straddle Planche','Planche Lean','Planche Lean Push-up','Planche Push-up',
+    'Front Lever','Tuck Front Lever','Straddle Front Lever',
+    'Back Lever','Tuck Back Lever','Straddle Back Lever',
+    'Human Flag','Tuck Human Flag','Straddle Human Flag',
+    'Manna','Iron Cross','Muscle-up Anelli','Bar Kip','Giant Swing',
+    'Cartwheel','Round-off','Back Tuck','Front Tuck','Precision Jump',
+    'Bridge','Thoracic Bridge'
+  ]}
+];
+function muscleGroupOf(name){
+  if(!name)return null;
+  var n=name.toLowerCase();
+  for(var i=0;i<MUSCLE_GROUPS.length;i++){
+    var g=MUSCLE_GROUPS[i];
+    for(var j=0;j<g.es.length;j++){if(g.es[j].toLowerCase()===n)return g;}
+  }
+  return null;
+}
 var TIPS={'Panca Piana':{exec:'Scapole retratte e bloccate, schiena arcuata, barra tocca il basso del petto. Spingi in traiettoria leggermente diagonale.',prog:'In stallo? Prova 5×5 con 90% del max. Aggiungi pausa 2s al petto per spezzare il punto morto.',motto:'Un kg in più sulla panca è la prova concreta che stai crescendo.'},'Squat':{exec:'Petto alto, core braced, ginocchia in linea con le punte. Scendi sotto il parallelo, sguardo avanti.',prog:'Pause squat (3s in fondo) rompono qualsiasi plateau. Prova anche front squat per variare.',motto:'Lo squat costruisce gambe, core e carattere. Nulla lo sostituisce.'},'Stacco da Terra':{exec:'Barra sopra le dita dei piedi, schiena neutra, braccia verticali. Spingi il pavimento, non tirare.',prog:'Deficit deadlift (+3cm) allarga il ROM e rompe gli stalli. Usa cinghie per superare il grip.',motto:'Il deadlift rivela la tua forza vera. Rispettalo e allenalo seriamente.'},'Stacco Rumeno':{exec:'Schiena neutra, barra scorre vicino alle gambe, spingi i fianchi indietro. Non è uno squat.',prog:'Single-leg RDL corregge i squilibri tra i lati. Pausa a metà per attivare meglio.',motto:'La catena posteriore è la tua superpotenza. Costruiscila.'},'Trazioni':{exec:'Partenza da braccia estese. Tira scapole giù e indietro prima dei gomiti. Petto verso la barra.',prog:'Non riesci ancora? Serie negative 5s. Ne fai 15+? Aggiungi peso con la cintura.',motto:'Ogni trazioni è una battaglia vinta contro la gravità. Combatti.'},'Rematore Bilanciere':{exec:'Busto quasi parallelo al suolo, barra tirata verso il basso addome, scapole retratte in cima.',prog:'Prova il Pendlay row (parte da terra ogni rep) per eliminare lo slancio totalmente.',motto:'Una schiena forte è la base di ogni sollevamento pesante.'},'Lento Avanti':{exec:'Core stabile, non arcuare la bassa schiena. Barra in linea con le orecchie sopra la testa.',prog:'Alterna manubri e bilanciere. I manubri correggono gli squilibri e aumentano il ROM.',motto:'Spalle forti trasformano la silhouette da ogni angolazione.'},'Alzate Laterali':{exec:'Leggera flessione al gomito, alza fino alla larghezza spalle. Nessuno slancio. Controlla la discesa.',prog:'2s su, 3s giù. La tensione conta più del peso. Prova dropset fino al cedimento.',motto:'Le alzate costanti costruiscono le spalle che vuoi.'},'Hip Thrust':{exec:'Schiena sull\'anca della panca, imbottitura sulla barra. Spingi forte con i glutei, non con la schiena.',prog:'Mini-band sopra le ginocchia attiva i glutei medi. Pausa 1s in cima per più contrazione.',motto:'Glutei forti proteggono la schiena e potenziano tutto il corpo.'},'Leg Press':{exec:'Piedi alti per femorali, bassi per quadricipiti. Non bloccare le ginocchia in estensione.',prog:'Dropset fino al cedimento: riduci il peso senza pausa. Pausa 3s in basso per più stimolo.',motto:'Le gambe forti sono la base di ogni tipo di atletismo.'},'Curl Bilanciere':{exec:'Gomiti fissi ai fianchi. Contrai il bicipite in cima, abbassa lentamente in 3-4 secondi.',prog:'Metodo 21: 7 reps metà bassa + 7 metà alta + 7 complete. Intensità senza aumentare il peso.',motto:'I bicipiti si costruiscono con la costanza, non con la fretta.'},'French Press':{exec:'Gomiti verso il soffitto, non allargarli. Abbassa la barra verso la fronte controllato.',prog:'Prova al cavo basso per tensione costante. Skull crusher EZ bar è più ergonomico.',motto:'I tricipiti sono 2/3 del braccio. Dagli la priorità che meritano.'},'Pull-up':{exec:'Partenza da braccia estese. Tira le scapole giù prima dei gomiti. Petto verso la barra.',prog:'Non riesci? Negatives 5s. Ne fai 15+? Aggiungi peso alla cintura. Chin-ups per variare.',motto:'Ogni pull-up è una conversazione con la gravità. Fai tu il primo passo.'},'Dip':{exec:'Busto in avanti per il petto, verticale per i tricipiti. Abbassa fino a 90° al gomito.',prog:'Non riesci? Macchina assistita. Ne fai 15+? Aggiungi peso. Ring dip per instabilità.',motto:'I dip combinano petto, spalle e tricipiti. Uno strumento potente.'},'Push-up':{exec:'Mani sotto le spalle, corpo dritto, petto sfiora il suolo. Spingi completamente.',prog:'Progressioni: inclinato → standard → pike → archer → pseudo planche → monobraccio.',motto:'Il push-up è il test universale della forza funzionale.'},'Plank':{exec:'Corpo dritto dalla testa ai talloni. Contrai addome, glutei e quadricipiti. Respira normalmente.',prog:'Plank dinamico: solleva un braccio alternato. Poi prova il plank con pesi sul dorso.',motto:'Il core è l\'origine di ogni forza. Mantienilo sempre forte.'},
 'Panca piana multipower':{exec:'Scapole retratte e bloccate prima di abbassare il bilanciere. La guida del multipower è verticale: assicurati che la barra tocchi il basso del petto, non la gola. Mai sbloccare le scapole durante il movimento.',prog:'Con la progressione in scheda, aumenta prima il volume poi il carico. Pausa 2s al petto per spezzare il punto morto nelle settimane pesanti.',motto:'La coerenza sulla panca costruisce un petto solido. Rispetta la progressione.'},
 'Croci alla macchina':{exec:'Regola il sedile: le impugnature al livello del petto, gomiti leggermente flessi fissi. Chiudi davanti senza sbattere le mani. Controlla la fase di ritorno in 3-4 secondi — è lì che avvengono i danni.',prog:'Pausa 2s al picco della contrazione per più ipertrofia. Dropset fino al cedimento come tecnica intensificatrice.',motto:'Il petto si costruisce con la contrazione, non col peso mosso.'},
@@ -659,6 +742,8 @@ var IC={
   bulb:[['line',{x1:'12',y1:'22',x2:'12',y2:'18'}],['path',{d:'M15 14c.2-1 .7-1.7 1.5-2.5C17.5 10.5 18 9 18 7a6 6 0 00-12 0c0 2 .5 3.5 1.5 4.5.8.8 1.3 1.5 1.5 2.5'}],['path',{d:'M9 18h6'}]],
   target:[['circle',{cx:'12',cy:'12',r:'10'}],['circle',{cx:'12',cy:'12',r:'6'}],['circle',{cx:'12',cy:'12',r:'2'}]],
   close:[['line',{x1:'18',y1:'6',x2:'6',y2:'18'}],['line',{x1:'6',y1:'6',x2:'18',y2:'18'}]],
+  search:[['circle',{cx:'11',cy:'11',r:'7'}],['line',{x1:'21',y1:'21',x2:'16.5',y2:'16.5'}]],
+  edit:[['path',{d:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7'}],['path',{d:'M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'}]],
   person:[['path',{d:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2'}],['circle',{cx:'12',cy:'7',r:'4'}]],
   palette:[['circle',{cx:'13.5',cy:'6.5',r:'.5'}],['circle',{cx:'17.5',cy:'10.5',r:'.5'}],['circle',{cx:'8.5',cy:'7.5',r:'.5'}],['circle',{cx:'6.5',cy:'12.5',r:'.5'}],['path',{d:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z'}]],
   trash:[['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2'}],['line',{x1:'10',y1:'11',x2:'10',y2:'17'}],['line',{x1:'14',y1:'11',x2:'14',y2:'17'}]]
@@ -679,16 +764,25 @@ function ExercisePicker(p){
   var showPosition=p.showPosition,currentLabel=p.currentLabel,totalCount=p.totalCount,curIdx=p.curIdx;
   var _s=useState('');var search=_s[0];var setSearch=_s[1];
   var _pos=useState('next');var pos=_pos[0];var setPos=_pos[1];
+  var _g=useState(null);var openGroup=_g[0];var setOpenGroup=_g[1];
   if(!visible)return null;
-  var sugg=getSugg(baseList,search,12);
-  function pick(n){addFreq(n);onAdd(n,showPosition?pos:null);setSearch('');setPos('next');onClose();}
-  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:300,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget){setSearch('');onClose();}}},
-    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'0 0 36px'}},
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 12px'}},
+  var freqMap=getFreq();
+  var hasFreq=freqMap&&Object.keys(freqMap).length>0;
+  var topUsed=hasFreq?Object.keys(freqMap).sort(function(a,b){return freqMap[b]-freqMap[a];}).slice(0,8):[];
+  /* lista visibile alla ricerca: include baseList + esercizi catalogati + frequenti */
+  var allCatalog=MUSCLE_GROUPS.reduce(function(a,g){return a.concat(g.es);},[]);
+  var sugg=getSugg((baseList||[]).concat(allCatalog),search,30);
+  /* dedup mantenendo ordine */
+  var seen={};sugg=sugg.filter(function(n){if(seen[n])return false;seen[n]=true;return true;});
+  function pick(n){addFreq(n);onAdd(n,showPosition?pos:null);setSearch('');setPos('next');setOpenGroup(null);onClose();}
+  function closeAll(){setSearch('');setOpenGroup(null);onClose();}
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:300,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget){closeAll();}}},
+    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'92vh',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 12px',flexShrink:0}},
         h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.03em'}},label||'Aggiungi esercizio'),
-        h('button',{onClick:function(){setSearch('');onClose();},style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:20,c:MUTED}))
+        h('button',{onClick:closeAll,style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:20,c:MUTED}))
       ),
-      showPosition&&h('div',{style:{padding:'0 16px 14px'}},
+      showPosition&&h('div',{style:{padding:'0 16px 14px',flexShrink:0}},
         h(Lbl,null,'Dove inserirlo?'),
         h('div',{style:{display:'flex',gap:6,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:4}},
           [['next','Subito dopo'],['end','In fondo']].map(function(opt){
@@ -702,32 +796,82 @@ function ExercisePicker(p){
             :('Verrà aggiunto come ultimo esercizio della sessione — posizione #'+((totalCount||0)+1))
         )
       ),
-      h('div',{style:{padding:'0 16px 12px'}},
+      h('div',{style:{padding:'0 16px 12px',flexShrink:0}},
         h('div',{style:{position:'relative'}},
+          h('div',{style:{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}},
+            h(Icon,{n:'search',sz:16,c:search?ACC:MUTED})
+          ),
           h('input',{value:search,onChange:function(e){setSearch(e.target.value);},
             onKeyDown:function(e){if(e.key==='Enter'&&search.trim()){pick(search.trim());}},
-            placeholder:'Cerca o scrivi il nome…',autoFocus:true,
-            style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'12px 40px 12px 14px',color:TEXT,fontSize:15}}),
-          h('div',{style:{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}},
-            h(Icon,{n:'plus',sz:16,c:MUTED})
+            placeholder:'Cerca o scrivi nome personalizzato…',autoFocus:true,
+            style:{width:'100%',background:SURF2,border:'1px solid '+(search?ACC3:BORD),borderRadius:10,padding:'12px 40px 12px 38px',color:TEXT,fontSize:15}}),
+          search&&h('button',{onClick:function(){setSearch('');},style:{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',padding:4,display:'flex'}},
+            h(Icon,{n:'close',sz:16,c:MUTED})
           )
         )
       ),
-      h('div',{style:{padding:'0 16px',maxHeight:300,overflowY:'auto'}},
-        h('div',{style:{marginBottom:8}},
-          getFreq()&&Object.keys(getFreq()).length>0
-            ?h(Lbl,null,'I tuoi più usati')
-            :h(Lbl,null,'Esercizi frequenti')
-        ),
-        h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
-          sugg.map(function(n){
-            return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'7px 13px',borderRadius:20,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:13,cursor:'pointer'}},n);
-          })
-        ),
-        search.trim()&&sugg.indexOf(search.trim())<0&&h('div',{style:{marginTop:12}},
-          h('button',{onClick:function(){pick(search.trim());},style:{width:'100%',padding:'11px',borderRadius:10,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:14,cursor:'pointer',fontWeight:600}},
-            '+ Aggiungi "'+search.trim()+'"'
+      h('div',{style:{padding:'0 16px 24px',overflowY:'auto',flex:1}},
+        /* MODALITÀ RICERCA */
+        search.trim()&&h('div',null,
+          h(Lbl,null,'Risultati per "'+search.trim()+'"'),
+          sugg.length>0?h('div',{style:{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}},
+            sugg.map(function(n){
+              var grp=muscleGroupOf(n);
+              return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'7px 11px',borderRadius:20,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:13,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}},
+                grp&&h('span',{style:{fontSize:13,lineHeight:1}},grp.emoji),
+                h('span',null,n)
+              );
+            })
+          ):h('div',{style:{fontSize:12,color:MUTED,padding:'8px 0 12px'}},'Nessuna corrispondenza nel catalogo.'),
+          sugg.indexOf(search.trim())<0&&h('button',{onClick:function(){pick(search.trim());},style:{width:'100%',padding:'11px',borderRadius:10,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:14,cursor:'pointer',fontWeight:600}},
+            '+ Crea "'+search.trim()+'"'
           )
+        ),
+        /* MODALITÀ GRUPPO APERTO */
+        !search.trim()&&openGroup&&(function(){
+          var g=MUSCLE_GROUPS.find(function(x){return x.id===openGroup;});
+          if(!g)return null;
+          return h('div',null,
+            h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}},
+              h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+                h('span',{style:{fontSize:20,lineHeight:1}},g.emoji),
+                h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.03em',color:ACC}},g.label),
+                h('div',{style:{fontSize:11,color:MUTED}},'· '+g.es.length+' esercizi')
+              ),
+              h('button',{onClick:function(){setOpenGroup(null);},style:{background:ACC2,border:'1px solid '+ACC3,borderRadius:8,color:ACC,fontSize:11,fontWeight:700,padding:'5px 10px',cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em',textTransform:'uppercase'}},'Indietro')
+            ),
+            h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
+              g.es.map(function(n){
+                return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'8px 12px',borderRadius:20,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:13,cursor:'pointer'}},n);
+              })
+            )
+          );
+        })(),
+        /* MODALITÀ HOME (no search, no group) */
+        !search.trim()&&!openGroup&&h('div',null,
+          hasFreq&&h('div',{style:{marginBottom:14}},
+            h(Lbl,null,'I tuoi più usati'),
+            h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
+              topUsed.map(function(n){
+                var grp=muscleGroupOf(n);
+                return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'7px 11px',borderRadius:20,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:13,cursor:'pointer',fontWeight:600,display:'inline-flex',alignItems:'center',gap:6}},
+                  grp&&h('span',{style:{fontSize:13,lineHeight:1,filter:'grayscale(0)'}},grp.emoji),
+                  h('span',null,n)
+                );
+              })
+            )
+          ),
+          h(Lbl,null,'Inserimento rapido per gruppo'),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:6}},
+            MUSCLE_GROUPS.map(function(g){
+              return h('button',{key:g.id,onClick:function(){setOpenGroup(g.id);hap(8);},style:{padding:'14px 6px',borderRadius:12,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,transition:'all 0.15s'}},
+                h('span',{style:{fontSize:26,lineHeight:1}},g.emoji),
+                h('span',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}},g.label),
+                h('span',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},g.es.length+' es.')
+              );
+            })
+          ),
+          h('div',{style:{fontSize:10,color:MUTED,marginTop:8,lineHeight:1.4,textAlign:'center'}},'Tocca un gruppo per gli esercizi del catalogo, oppure scrivi nella ricerca un nome personalizzato e premi Invio.')
         )
       )
     )
@@ -780,7 +924,7 @@ function ExerciseConfigSheet(p){
   var iB={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14};
   var iSm=Object.assign({},iB,{padding:'8px',fontSize:14,textAlign:'center'});
   var TIPI=[{id:'standard',label:'Normale'},{id:'progressivo',label:'Progressivo'},{id:'superset',label:'Superset'},{id:'riscaldamento',label:'🔥 Riscaldamento'}];
-  var GRP=['Petto','Schiena','Spalle','Braccia','Gambe','Core','Full Body'];
+  var GRP=['Petto','Schiena','Spalle','Braccia','Bicipiti','Tricipiti','Gambe','Core','Cardio','Full Body'];
   function doSave(){
     var base={id:ex?ex.id:uid(),nome:esNome,tipo:tipo,gr:gr,note:note};
     if(tipo==='riscaldamento'){onSave(Object.assign(base,{durata:parseInt(durata)||10,intensita:intensita}));}
@@ -1229,17 +1373,24 @@ function Home(p){
 function Start(p){
   var schede=p.schede,go=p.go;
   var attive=schede.filter(function(s){return s.attiva;});
-  var scheda=attive[0]||schede[0];
+  var scheda=attive[0];
   var multi=attive.length>1;
+  var noActive=schede.length>0&&attive.length===0;
+  var noSchede=schede.length===0;
   return h('div',{style:{padding:'24px 16px'}},
     h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',marginBottom:6}},'Allena'),
     h('div',{style:{fontSize:13,color:MUTED,marginBottom:24}},'Scegli la modalità per oggi'),
-    h(Card,{onClick:function(){go('pesiblocks');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD}},
+    h(Card,{onClick:function(){go('pesiblocks');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD,opacity:noActive?0.6:1}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14}},
         h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h(Icon,{n:'dumbbell',sz:22,c:ACC})),
         h('div',{style:{flex:1,minWidth:0}},
           h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Sala pesi'),
-          h('div',{style:{fontSize:12,color:MUTED}},multi?(attive.length+' schede attive'):(scheda?scheda.nome:'Crea prima una scheda PT')),
+          h('div',{style:{fontSize:12,color:noActive?'var(--warning)':MUTED}},
+            noSchede?'Crea prima una scheda PT'
+            :noActive?('Nessuna scheda attiva · '+schede.length+' inattiv'+(schede.length===1?'a':'e'))
+            :multi?(attive.length+' schede attive')
+            :scheda.nome
+          ),
           multi
             ?h('div',{style:{fontSize:11,color:MUTED,marginTop:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},attive.map(function(s){return s.nome;}).join(' · '))
             :(scheda&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},scheda.blocchi.length+' blocchi · '+scheda.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi'))
@@ -1266,13 +1417,23 @@ function Start(p){
 function PesiBlocks(p){
   var schede=p.schede,sessions=p.sessions,go=p.go;
   var attive=schede.filter(function(s){return s.attiva;});
-  if(attive.length===0)attive=schede;
   var _1=useState(0);
   var si=_1[0];var setSi=_1[1];
   var scheda=attive[si]||attive[0];
-  if(!scheda)return h('div',{style:{padding:'40px 16px',textAlign:'center'}},
-    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,marginBottom:20}},'Nessuna scheda caricata'),
-    h(Btn,{onClick:function(){go('nuova');}},'Crea scheda')
+  if(schede.length===0)return h('div',{style:{padding:'40px 16px',textAlign:'center'}},
+    h(Back,{onClick:function(){go('start');}}),
+    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,margin:'30px 0 14px'}},'Nessuna scheda creata'),
+    h('div',{style:{fontSize:13,color:MUTED,marginBottom:24,lineHeight:1.5}},'Crea la tua prima scheda PT per iniziare ad allenarti.'),
+    h(Btn,{onClick:function(){go('nuova');}},'+ Crea scheda')
+  );
+  if(attive.length===0)return h('div',{style:{padding:'24px 16px'}},
+    h(Back,{onClick:function(){go('start');}}),
+    h('div',{style:{textAlign:'center',padding:'30px 8px'}},
+      h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'🔌'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,marginBottom:8}},'Nessuna scheda attiva'),
+      h('div',{style:{fontSize:13,color:MUTED,marginBottom:22,lineHeight:1.5}},'Hai '+schede.length+' scheda'+(schede.length===1?'':'e')+' ma '+(schede.length===1?'è inattiva':'sono tutte inattive')+'.',h('br'),'Vai su Schede e attivane almeno una.'),
+      h(Btn,{onClick:function(){go('scheda');}},'Vai alle schede')
+    )
   );
   return h('div',{style:{padding:'24px 16px'}},
     h(Back,{onClick:function(){go('start');}}),
@@ -1876,12 +2037,15 @@ function Stats(p){
   calData.forEach(function(s){s.es.forEach(function(e){var reps=e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);if(reps>0)calByEx[e.nome]=(calByEx[e.nome]||0)+reps;});});
 
   /* B2: Volume per gruppo muscolare (set completati per gruppo) */
+  /* Bicipiti/Tricipiti vengono uniti sotto Braccia per il grafico MEV/MAV/MRV */
   var volByGr={};
   data.forEach(function(s){
     s.es.forEach(function(e){
       if(e.tipo==='riscaldamento' || !e.gr) return;
       var sets = (e.serie||[]).filter(function(sr){return sr.ok;}).length;
-      if(sets>0) volByGr[e.gr] = (volByGr[e.gr]||0) + sets;
+      if(sets<=0) return;
+      var key = (e.gr==='Bicipiti'||e.gr==='Tricipiti') ? 'Braccia' : e.gr;
+      volByGr[key] = (volByGr[key]||0) + sets;
     });
   });
   /* MEV/MAV/MRV settimanali (Schoenfeld + Israetel guidelines, semplificati) */
@@ -2118,14 +2282,12 @@ function SchedaV(p){
       return h(Card,{key:sc.id,style:{border:sc.attiva?'1px solid '+ACC3:'0.5px solid '+BORD,background:sc.attiva?ACC5:SURF}},
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:5}},
           h('div',{style:{flex:1,minWidth:0}},
-            h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
-              sc.attiva&&h('span',{style:{fontSize:9,background:ACC,color:ACT,padding:'2px 6px',borderRadius:20,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'ATTIVA'),
-              h('div',{style:{fontWeight:500,fontSize:14,wordBreak:'break-word'}},sc.nome)
-            ),
+            h('div',{style:{fontWeight:500,fontSize:14,wordBreak:'break-word',marginBottom:2}},sc.nome),
             h('div',{style:{fontSize:11,color:MUTED}},sc.blocchi.length+' blocchi · '+sc.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi')
           ),
           h('div',{style:{display:'flex',gap:4,flexShrink:0}},
-            h('button',{onClick:function(){hap(10);setSchede(function(prev){return prev.map(function(x){return x.id===sc.id?Object.assign({},x,{attiva:!x.attiva}):x;});});},style:{background:sc.attiva?'transparent':ACC2,border:'1px solid '+(sc.attiva?BORD:ACC3),borderRadius:8,padding:'6px 10px',cursor:'pointer',color:sc.attiva?MUTED:ACC,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},sc.attiva?'OFF':'ON'),
+            h('button',{onClick:function(){hap(10);setSchede(function(prev){return prev.map(function(x){return x.id===sc.id?Object.assign({},x,{attiva:!x.attiva}):x;});});},title:sc.attiva?'Tocca per disattivare (esclude dalla rotazione allenamento)':'Tocca per attivare (includi nella rotazione allenamento)','aria-label':sc.attiva?'Disattiva scheda':'Attiva scheda',style:{background:sc.attiva?ACC:'transparent',border:'1px solid '+(sc.attiva?ACC:BORD),borderRadius:8,padding:'6px 10px',cursor:'pointer',color:sc.attiva?ACT:MUTED,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},sc.attiva?'ATTIVA':'INATTIVA'),
+            h('button',{onClick:function(){hap(8);go('nuova',{edit:sc});},'aria-label':'Modifica scheda',style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'7px 8px',cursor:'pointer'}},h(Icon,{n:'edit',sz:14,c:ACC})),
             h('button',{onClick:function(){duplica(sc);},'aria-label':'Duplica scheda',style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'7px 8px',cursor:'pointer'}},h(Icon,{n:'plus',sz:14,c:MUTED})),
             h('button',{onClick:function(){elimina(sc);},'aria-label':'Elimina scheda',style:{background:'none',border:'none',cursor:'pointer',padding:6}},h(Icon,{n:'trash',sz:14,c:'#EF4444'}))
           )
@@ -2137,19 +2299,23 @@ function SchedaV(p){
   );
 }
 
-/* ── nuova scheda ── */
+/* ── nuova / modifica scheda ── */
 function NuovaScheda(p){
-  var go=p.go,setSchede=p.setSchede;
-  var _1=useState({id:uid(),nome:'',blocchi:[],attiva:true,data:new Date().toISOString()});
+  var go=p.go,setSchede=p.setSchede,existing=p.existing;
+  var isEdit=!!(existing&&existing.id);
+  var _1=useState(function(){
+    if(isEdit) return JSON.parse(JSON.stringify(existing));
+    return {id:'sc_'+uid(),nome:'',blocchi:[],attiva:true,data:new Date().toISOString()};
+  });
   var sc=_1[0];var setSc=_1[1];
   var _2=useState(null);var editEx=_2[0];var setEditEx=_2[1];
   var _3=useState({bi:null,ei:null,nuovo:null});var editCtx=_3[0];var setEditCtx=_3[1];
   var _4=useState(false);var picker=_4[0];var setPicker=_4[1];
   var _5=useState(null);var pickerCtx=_5[0];var setPickerCtx=_5[1];
   var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'12px',color:TEXT,fontSize:15,marginBottom:14};
-  function addBlocco(){setSc(function(p){return Object.assign({},p,{blocchi:p.blocchi.concat([{id:uid(),nome:'Blocco '+(p.blocchi.length+1),es:[]}])});});}
+  function addBlocco(){setSc(function(p){return Object.assign({},p,{blocchi:p.blocchi.concat([{id:'bl_'+uid(),nome:'Blocco '+(p.blocchi.length+1),es:[]}])});});}
   function setBlNome(i,v){setSc(function(p){var bl=p.blocchi.map(function(b,j){return j===i?Object.assign({},b,{nome:v}):b;});return Object.assign({},p,{blocchi:bl});});}
-  function delBl(i){setSc(function(p){return Object.assign({},p,{blocchi:p.blocchi.filter(function(_,j){return j!==i;})});});}
+  function delBl(i){if(!confirm('Eliminare il blocco "'+(sc.blocchi[i]&&sc.blocchi[i].nome||'')+'" e tutti i suoi esercizi?'))return;setSc(function(p){return Object.assign({},p,{blocchi:p.blocchi.filter(function(_,j){return j!==i;})});});}
   function delEx(bi,ei){setSc(function(p){var bl=p.blocchi.map(function(b,i){return i===bi?Object.assign({},b,{es:b.es.filter(function(_,j){return j!==ei;})}):b;});return Object.assign({},p,{blocchi:bl});});}
   function openPicker(bi){setPickerCtx({bi:bi});setPicker(true);}
   function onPickerAdd(nome){setEditCtx({bi:pickerCtx.bi,ei:null,nuovo:nome});setEditEx(null);setPicker(false);setTimeout(function(){setEditEx({nome:nome});},50);}
@@ -2167,13 +2333,17 @@ function NuovaScheda(p){
   function save(){
     if(!sc.nome.trim()){alert('Inserisci un nome per la scheda');return;}
     if(sc.blocchi.length===0){alert('Aggiungi almeno un blocco');return;}
-    setSchede(function(prev){return prev.concat([sc]);});
+    if(isEdit){
+      setSchede(function(prev){return prev.map(function(x){return x.id===sc.id?sc:x;});});
+    }else{
+      setSchede(function(prev){return prev.concat([sc]);});
+    }
     go('scheda');
   }
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(Back,{onClick:function(){go('scheda');}}),
-    h('div',{style:{margin:'14px 0 4px',fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em'}},'Nuova scheda PT'),
-    h('div',{style:{fontSize:13,color:MUTED,marginBottom:20}},'Trasponi qui la scheda del tuo personal trainer'),
+    h('div',{style:{margin:'14px 0 4px',fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em'}},isEdit?'Modifica scheda':'Nuova scheda PT'),
+    h('div',{style:{fontSize:13,color:MUTED,marginBottom:20}},isEdit?'Aggiorna nome, blocchi ed esercizi della scheda.':'Trasponi qui la scheda del tuo personal trainer'),
     h(Lbl,null,'Nome scheda'),
     h('input',{value:sc.nome,onChange:function(e){setSc(function(p){return Object.assign({},p,{nome:e.target.value});});},placeholder:'es. Forza Q4 2025, Ipertrofia 5 giorni…',style:inp}),
     sc.blocchi.map(function(b,bi){
@@ -2192,7 +2362,7 @@ function NuovaScheda(p){
       );
     }),
     h('button',{onClick:addBlocco,style:{width:'100%',padding:10,borderRadius:10,border:'1px dashed '+ACC3,background:ACC5,color:ACC,fontSize:13,cursor:'pointer',marginBottom:18,fontWeight:600}},'+ Aggiungi blocco'),
-    h(Btn,{full:true,onClick:save},'Salva scheda'),
+    h(Btn,{full:true,onClick:save},isEdit?'Salva modifiche':'Salva scheda'),
     picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:onPickerAdd,baseList:PESI_ES.concat(CAL_ES),label:'Scegli esercizio (sala pesi + calisthenics)'}),
     editEx&&h(ExerciseConfigSheet,{ex:editEx.id?editEx:null,nome:editEx.nome,onClose:function(){setEditEx(null);},onSave:onSaveEx})
   );
@@ -2375,12 +2545,14 @@ function App(){
         });
       });
     },go:go,setUndoData:setUndoData}),
-    view==='nuova'&&h(NuovaScheda,{go:go,setSchede:function(updater){
+    view==='nuova'&&h(NuovaScheda,{go:go,existing:args.edit,setSchede:function(updater){
       setSchede(function(prev){
         var next = typeof updater === 'function' ? updater(prev) : updater;
         return next.map(function(s){
           var was = prev.find(function(p){ return p.id === s.id; });
-          if(!was) return Object.assign({}, s, {lastModified: Date.now()});
+          if(!was || JSON.stringify(was) !== JSON.stringify(s)){
+            return Object.assign({}, s, {lastModified: Date.now()});
+          }
           return s;
         });
       });
