@@ -1,21 +1,24 @@
-/* GymTracker Service Worker — v1.5.1
+/* GymTracker Service Worker — v1.6.0
  * Strategy:
- *   - Precache: shell app (HTML, manifest, icons) on install
- *   - Runtime: stale-while-revalidate for static assets (React CDN, Google Fonts)
- *   - Bypass: GitHub API calls (Gist sync) — must always be fresh
- *   - v1.4.0: rest timer notifications that survive screen lock
- *   - v1.5.0: sync conflict resolution + B2/B4/C5/C7 improvements
+ *   - Precache: shell app (manifest, icons) on install
+ *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
+ *     fallback alla cache solo se offline.
+ *   - Runtime: stale-while-revalidate per asset statici (React CDN, Google Fonts)
+ *   - Bypass: GitHub API (Gist sync) — sempre fresco
+ *   - v1.4.0: rest timer notifications che sopravvivono al lock screen
+ *   - v1.5.0: sync conflict resolution + B2/B4/C5/C7
  *   - v1.5.1: fix recovery timer (useEffect dep array)
+ *   - v1.6.0: catalogo esercizi per gruppo muscolare + modifica scheda + fix toggle attiva
+ *             + network-first per HTML (niente più "vedo la vecchia versione")
  *
- * To force update: bump CACHE_VERSION below.
+ * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.5.1';
-const CACHE_RUNTIME = 'gymtracker-runtime-v1';
+const CACHE_VERSION = 'gymtracker-v1.6.0';
+const CACHE_RUNTIME = 'gymtracker-runtime-v2';
 
+/* HTML escluso dalla precache: viene preso network-first. */
 const PRECACHE_URLS = [
-  './',
-  './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -23,6 +26,14 @@ const PRECACHE_URLS = [
   './icons/icon-maskable-192.png',
   './icons/icon-maskable-512.png'
 ];
+
+/* HTML paths: trattati network-first */
+const HTML_PATHS = ['/', '/index.html'];
+function isHtmlRequest(url, req){
+  if(req && req.mode === 'navigate') return true;
+  const p = url.pathname;
+  return HTML_PATHS.some((h) => p === h || p.endsWith(h));
+}
 
 const BYPASS_HOSTS = [
   'api.github.com',
@@ -55,6 +66,22 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
 
   if (BYPASS_HOSTS.some((h) => url.hostname.includes(h))) {
+    return;
+  }
+
+  /* NETWORK-FIRST per HTML: prova rete, fallback su cache se offline. */
+  if (isHtmlRequest(url, req)) {
+    event.respondWith(
+      fetch(req)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html')))
+    );
     return;
   }
 

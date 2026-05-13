@@ -2595,17 +2595,45 @@ window.addEventListener('load', function(){
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(function(reg){
-        // Auto-reload when a new SW activates (after user closes/reopens)
+        // Mostra banner quando una nuova versione è pronta
+        function showUpdateBanner(newWorker){
+          if(document.getElementById('gt-update-banner')) return;
+          var bar = document.createElement('div');
+          bar.id = 'gt-update-banner';
+          bar.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--acc);color:var(--act);padding:12px 18px;border-radius:12px;display:flex;gap:14px;align-items:center;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,0.5);font-family:Barlow,sans-serif;font-size:13px;font-weight:600;max-width:calc(100% - 32px)';
+          bar.innerHTML = '<span>Nuova versione disponibile</span>';
+          var btn = document.createElement('button');
+          btn.textContent = 'Aggiorna';
+          btn.style.cssText = 'background:var(--act);color:var(--acc);border:none;padding:7px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;letter-spacing:0.04em;text-transform:uppercase';
+          btn.onclick = function(){
+            if(newWorker) newWorker.postMessage({type:'SKIP_WAITING'});
+            window.location.reload();
+          };
+          bar.appendChild(btn);
+          document.body.appendChild(bar);
+        }
+        // Se c'è già un SW in attesa al boot, mostra subito
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          showUpdateBanner(reg.waiting);
+        }
         reg.addEventListener('updatefound', function(){
           var n = reg.installing;
           if (!n) return;
           n.addEventListener('statechange', function(){
             if (n.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version available — will be active on next launch
-              console.log('GymTracker: nuova versione disponibile (sarà attiva al prossimo avvio)');
+              showUpdateBanner(n);
             }
           });
         });
+        // Reload automatico quando il nuovo SW prende il controllo
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function(){
+          if(refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+        // Controlla aggiornamenti periodicamente (ogni 60s quando l'app è aperta)
+        setInterval(function(){ try{ reg.update(); }catch(e){} }, 60000);
       })
       .catch(function(err){ console.warn('SW registration failed:', err); });
   }
