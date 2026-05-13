@@ -906,6 +906,66 @@ async function sbSendFeedback(payload){
   });
 }
 
+/* ── ADMIN: lista admin emails (in chiaro perché RLS lato DB è la vera barriera) ── */
+var ADMIN_EMAILS = ['lucvgar@gmail.com'];
+function isAdminEmail(email){ return !!email && ADMIN_EMAILS.indexOf(email.toLowerCase()) >= 0; }
+function isCurrentUserAdmin(user){ return !!user && isAdminEmail(user.email || ''); }
+
+/* Lista tutti i profili (visibile solo agli admin grazie alle policy RLS lato DB) */
+async function adminFetchAllProfiles(){
+  if(!sb) return [];
+  var r = await sb.from('profiles').select('*').order('created_at', {ascending: false});
+  if(r.error){ console.warn('admin profiles', r.error); throw r.error; }
+  return r.data || [];
+}
+
+/* Conta schede + sessioni per ogni utente, in batch (1 query per tabella) */
+async function adminFetchUsageCounts(){
+  if(!sb) return { schedeByUser: {}, sessionsByUser: {} };
+  var results = await Promise.all([
+    sb.from('schede').select('user_id', {count:'exact'}).eq('deleted', false),
+    sb.from('sessions').select('user_id, started_at').eq('deleted', false).order('started_at', {ascending: false})
+  ]);
+  var schedeRes = results[0], sessionsRes = results[1];
+  var schedeByUser = {};
+  (schedeRes.data || []).forEach(function(r){
+    schedeByUser[r.user_id] = (schedeByUser[r.user_id] || 0) + 1;
+  });
+  var sessionsByUser = {};
+  var lastSessionByUser = {};
+  (sessionsRes.data || []).forEach(function(r){
+    sessionsByUser[r.user_id] = (sessionsByUser[r.user_id] || 0) + 1;
+    if(!lastSessionByUser[r.user_id]) lastSessionByUser[r.user_id] = r.started_at;
+  });
+  return { schedeByUser: schedeByUser, sessionsByUser: sessionsByUser, lastSessionByUser: lastSessionByUser };
+}
+
+/* Detail di un singolo utente: tutto quello che ha */
+async function adminFetchUserDetail(userId){
+  if(!sb) return null;
+  var results = await Promise.all([
+    sb.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    sb.from('schede').select('*').eq('user_id', userId).order('last_modified', {ascending:false}),
+    sb.from('sessions').select('*').eq('user_id', userId).order('started_at', {ascending:false}).limit(100)
+  ]);
+  if(results[0].error || results[1].error || results[2].error){
+    console.warn('admin user detail errors', results[0].error, results[1].error, results[2].error);
+  }
+  return {
+    profile: results[0].data || null,
+    schede: results[1].data || [],
+    sessions: results[2].data || []
+  };
+}
+
+/* Lista feedback recente (admin) */
+async function adminFetchFeedback(){
+  if(!sb) return [];
+  var r = await sb.from('feedback').select('*').order('created_at', {ascending: false}).limit(100);
+  if(r.error){ console.warn('admin feedback', r.error); throw r.error; }
+  return r.data || [];
+}
+
 function uid(){return Math.random().toString(36).slice(2,8);}
 function fmtD(d){return new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'short'});}
 function fmtHM(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
@@ -1466,6 +1526,17 @@ function Settings(p){
           ),
           h('button',{onClick:handleLogout,style:{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid '+BORD,background:'transparent',color:'#EF4444',fontSize:13,fontWeight:600,cursor:'pointer'}},'Esci dall\'account')
         ) : h('div',{style:{fontSize:13,color:MUTED}},'Non autenticato')
+      ),
+      /* Admin entry — visibile SOLO se l'email matcha la lista ADMIN_EMAILS */
+      isCurrentUserAdmin(sbUser) && h('button',{
+        onClick:function(){ go('admin'); },
+        style:{width:'100%',background:SURF2,border:'1px solid '+ACC,borderRadius:12,padding:'12px 14px',marginBottom:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,color:TEXT}
+      },
+        h('div',{style:{textAlign:'left'}},
+          h('div',{style:{fontSize:13,fontWeight:700,color:ACC,marginBottom:2,letterSpacing:'0.04em',textTransform:'uppercase'}},'⚙ Admin Panel'),
+          h('div',{style:{fontSize:11,color:MUTED}},'Vedi tutti gli utenti e i loro dati')
+        ),
+        h('span',{style:{fontSize:18,color:ACC}},'→')
       ),
       h('div',{style:{height:1,background:BORD,marginBottom:20}})
     ),
@@ -2771,6 +2842,194 @@ function LoginScreen(p){
   );
 }
 
+/* ── ADMIN PANEL ── */
+function AdminPanel(p){
+  var _1=useState(null); var users=_1[0]; var setUsers=_1[1];
+  var _2=useState({}); var counts=_2[0]; var setCounts=_2[1];
+  var _3=useState(null); var feedback=_3[0]; var setFeedback=_3[1];
+  var _4=useState(false); var loading=_4[0]; var setLoading=_4[1];
+  var _5=useState(''); var err=_5[0]; var setErr=_5[1];
+  var _6=useState(null); var selectedUserId=_6[0]; var setSelectedUserId=_6[1];
+  var _7=useState('users'); var tab=_7[0]; var setTab=_7[1]; // 'users' | 'feedback'
+
+  useEffect(function(){
+    setLoading(true); setErr('');
+    Promise.all([
+      adminFetchAllProfiles(),
+      adminFetchUsageCounts(),
+      adminFetchFeedback()
+    ]).then(function(res){
+      setUsers(res[0]); setCounts(res[1]); setFeedback(res[2]);
+      setLoading(false);
+    }).catch(function(e){
+      setErr((e && e.message) || 'Errore caricamento dati admin. Hai eseguito lo SQL admin?');
+      setLoading(false);
+    });
+  }, []);
+
+  function fmtDate(iso){
+    if(!iso) return '—';
+    try{ return new Date(iso).toLocaleDateString('it-IT', {day:'numeric',month:'short',year:'numeric'}); }
+    catch(e){ return iso; }
+  }
+  function fmtDateTime(iso){
+    if(!iso) return '—';
+    try{ return new Date(iso).toLocaleString('it-IT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+    catch(e){ return iso; }
+  }
+
+  if(selectedUserId){
+    return h(AdminUserDetail, {userId:selectedUserId, onBack:function(){ setSelectedUserId(null); }});
+  }
+
+  return h('div',{style:{padding:'24px 16px 100px'}},
+    h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}},
+      h('div',null,
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em',color:ACC}},'Admin'),
+        h('div',{style:{fontSize:11,color:MUTED,marginTop:2}},'Read-only · accesso riservato')
+      ),
+      h('button',{onClick:function(){p.go('settings');},style:{background:'none',border:'none',color:MUTED,cursor:'pointer'}},h(Icon,{n:'close',sz:20,c:MUTED}))
+    ),
+    /* Tabs */
+    h('div',{style:{display:'flex',gap:6,marginBottom:16,background:SURF2,padding:4,borderRadius:10}},
+      [['users','Utenti'],['feedback','Feedback']].map(function(t){
+        var on = tab===t[0];
+        return h('button',{key:t[0],onClick:function(){setTab(t[0]);},style:{flex:1,padding:'9px',borderRadius:7,border:'none',background:on?ACC:'transparent',color:on?ACT:MUTED,fontWeight:on?700:500,fontSize:12,cursor:'pointer',letterSpacing:'0.03em',textTransform:'uppercase'}},t[1]);
+      })
+    ),
+    loading && h('div',{style:{color:MUTED,fontSize:13,padding:24,textAlign:'center'}},'Caricamento…'),
+    err && h('div',{style:{padding:14,background:'rgba(239,68,68,0.10)',borderRadius:10,fontSize:13,color:TEXT,marginBottom:14,lineHeight:1.5}},
+      h('div',{style:{fontWeight:700,marginBottom:6}},'⚠️ Errore'),
+      err
+    ),
+    /* TAB UTENTI */
+    !loading && !err && tab==='users' && users && h('div',null,
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10,textTransform:'uppercase',letterSpacing:'0.06em'}},(users.length||0)+' utenti registrati'),
+      users.length===0 && h('div',{style:{color:MUTED,fontSize:13,padding:24,textAlign:'center'}},'Nessun utente.'),
+      users.map(function(u){
+        var nSchede = (counts.schedeByUser && counts.schedeByUser[u.id]) || 0;
+        var nSess = (counts.sessionsByUser && counts.sessionsByUser[u.id]) || 0;
+        var lastAct = (counts.lastSessionByUser && counts.lastSessionByUser[u.id]) || null;
+        var isMe = u.email && p.user && u.email.toLowerCase() === (p.user.email||'').toLowerCase();
+        return h('button', {
+          key: u.id,
+          onClick: function(){ setSelectedUserId(u.id); },
+          style: {width:'100%', textAlign:'left', background:SURF2, border:'1px solid '+BORD, borderRadius:12, padding:'12px 14px', marginBottom:8, cursor:'pointer', display:'block'}
+        },
+          h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,gap:8}},
+            h('div',{style:{flex:1,minWidth:0}},
+              h('div',{style:{fontSize:14,fontWeight:600,marginBottom:2,wordBreak:'break-all',lineHeight:1.3}},u.nome || h('span',{style:{color:MUTED,fontStyle:'italic'}},'(senza nome)')),
+              h('div',{style:{fontSize:11,color:MUTED,wordBreak:'break-all'}},u.email || '—')
+            ),
+            isMe && h('div',{style:{fontSize:9,padding:'3px 7px',borderRadius:5,background:ACC2,color:ACC,fontWeight:700,letterSpacing:'0.06em'}},'TU')
+          ),
+          h('div',{style:{display:'flex',gap:12,fontSize:11,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},
+            h('span',null,'📋 '+nSchede),
+            h('span',null,'💪 '+nSess),
+            h('span',{style:{marginLeft:'auto'}},'Reg: '+fmtDate(u.created_at)),
+            lastAct && h('span',null,'Last: '+fmtDate(lastAct))
+          )
+        );
+      })
+    ),
+    /* TAB FEEDBACK */
+    !loading && !err && tab==='feedback' && feedback && h('div',null,
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10,textTransform:'uppercase',letterSpacing:'0.06em'}},feedback.length+' feedback'),
+      feedback.length===0 && h('div',{style:{color:MUTED,fontSize:13,padding:24,textAlign:'center'}},'Nessun feedback ancora.'),
+      feedback.map(function(f){
+        return h('div', {key:f.id, style:{background:SURF2, border:'1px solid '+BORD, borderRadius:12, padding:'12px 14px', marginBottom:8}},
+          h('div',{style:{display:'flex',gap:8,marginBottom:6,alignItems:'center',flexWrap:'wrap'}},
+            h('span',{style:{fontSize:10,padding:'2px 7px',borderRadius:5,background:ACC2,color:ACC,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}},f.type||'opinion'),
+            f.rating && h('span',{style:{fontSize:11,color:MUTED}},'⭐ '+f.rating),
+            h('span',{style:{fontSize:11,color:MUTED,marginLeft:'auto'}},fmtDateTime(f.created_at))
+          ),
+          h('div',{style:{fontSize:13,lineHeight:1.5,color:TEXT,whiteSpace:'pre-wrap',wordBreak:'break-word'}},f.message||'(vuoto)'),
+          f.app_version && h('div',{style:{fontSize:10,color:'var(--muted-2)',marginTop:6,fontFamily:"'Roboto Mono',monospace"}},'v'+f.app_version+(f.user_agent?' · '+(f.user_agent||'').slice(0,80):''))
+        );
+      })
+    )
+  );
+}
+
+/* Dettaglio di un singolo utente (admin only) */
+function AdminUserDetail(p){
+  var _1=useState(null); var data=_1[0]; var setData=_1[1];
+  var _2=useState(false); var loading=_2[0]; var setLoading=_2[1];
+  var _3=useState(''); var err=_3[0]; var setErr=_3[1];
+
+  useEffect(function(){
+    setLoading(true); setErr('');
+    adminFetchUserDetail(p.userId).then(function(d){
+      setData(d); setLoading(false);
+    }).catch(function(e){
+      setErr((e && e.message) || 'Errore'); setLoading(false);
+    });
+  }, [p.userId]);
+
+  function fmtDate(iso){
+    if(!iso) return '—';
+    try{ return new Date(iso).toLocaleString('it-IT', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+    catch(e){ return iso; }
+  }
+
+  return h('div',{style:{padding:'20px 16px 100px'}},
+    h('button',{onClick:p.onBack,style:{background:'none',border:'none',color:MUTED,fontSize:13,cursor:'pointer',marginBottom:12,padding:0}},'← Torna alla lista'),
+    loading && h('div',{style:{color:MUTED,fontSize:13,padding:24,textAlign:'center'}},'Caricamento…'),
+    err && h('div',{style:{padding:14,background:'rgba(239,68,68,0.10)',borderRadius:10,fontSize:13,color:TEXT}},err),
+    !loading && !err && data && data.profile && h('div',null,
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em',color:ACC,marginBottom:4,wordBreak:'break-word'}},data.profile.nome || '(senza nome)'),
+      h('div',{style:{fontSize:12,color:MUTED,marginBottom:18,wordBreak:'break-all'}},data.profile.email || '—'),
+      /* Profilo */
+      h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:14}},
+        h('div',{style:{fontSize:11,color:MUTED,marginBottom:8,textTransform:'uppercase',letterSpacing:'0.06em'}},'Profilo'),
+        [
+          ['ID utente', data.profile.id, true],
+          ['Nascita', data.profile.data_nascita],
+          ['Peso', data.profile.peso ? data.profile.peso+' kg' : '—'],
+          ['Altezza', data.profile.altezza ? data.profile.altezza+' cm' : '—'],
+          ['Obiettivo', data.profile.obiettivo],
+          ['Livello', data.profile.livello],
+          ['Tema', data.profile.theme],
+          ['Registrato', fmtDate(data.profile.created_at)],
+          ['Ultimo update', fmtDate(data.profile.updated_at)]
+        ].map(function(row, idx){
+          return h('div', {key:idx, style:{display:'flex',justifyContent:'space-between',gap:10,padding:'6px 0',borderBottom:idx<8?'1px solid '+BORD:'none'}},
+            h('span',{style:{fontSize:12,color:MUTED}},row[0]),
+            h('span',{style:{fontSize:12,color:TEXT,textAlign:'right',wordBreak:'break-all',fontFamily:row[2]?"'Roboto Mono',monospace":'inherit'}},row[1] || '—')
+          );
+        })
+      ),
+      /* Schede */
+      h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:14}},
+        h('div',{style:{fontSize:11,color:MUTED,marginBottom:10,textTransform:'uppercase',letterSpacing:'0.06em'}},'Schede ('+(data.schede.length)+')'),
+        data.schede.length===0 && h('div',{style:{color:MUTED,fontSize:12}},'Nessuna scheda.'),
+        data.schede.map(function(s){
+          return h('div',{key:s.id, style:{padding:'8px 0',borderBottom:'1px solid '+BORD}},
+            h('div',{style:{fontSize:13,fontWeight:600,marginBottom:2}},s.name || s.id),
+            h('div',{style:{fontSize:11,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'ID: '+s.id+' · upd '+fmtDate(s.updated_at)+(s.deleted?' · 🗑 deleted':''))
+          );
+        })
+      ),
+      /* Sessions */
+      h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:14}},
+        h('div',{style:{fontSize:11,color:MUTED,marginBottom:10,textTransform:'uppercase',letterSpacing:'0.06em'}},'Sessioni recenti ('+data.sessions.length+(data.sessions.length>=100?' max':'')+')'),
+        data.sessions.length===0 && h('div',{style:{color:MUTED,fontSize:12}},'Nessuna sessione.'),
+        data.sessions.slice(0,30).map(function(s){
+          var dur = s.duration_sec ? Math.round(s.duration_sec/60)+' min' : '';
+          return h('div',{key:s.id, style:{padding:'8px 0',borderBottom:'1px solid '+BORD}},
+            h('div',{style:{fontSize:12,display:'flex',justifyContent:'space-between',gap:8}},
+              h('span',null,fmtDate(s.started_at)),
+              h('span',{style:{color:MUTED,fontFamily:"'Roboto Mono',monospace"}},(s.type||'pesi')+' · '+dur+(s.deleted?' · 🗑':''))
+            ),
+            s.note && h('div',{style:{fontSize:11,color:MUTED,marginTop:4,fontStyle:'italic'}},'"'+s.note+'"')
+          );
+        }),
+        data.sessions.length>30 && h('div',{style:{fontSize:11,color:MUTED,marginTop:8,textAlign:'center'}},'...e altre '+(data.sessions.length-30))
+      )
+    )
+  );
+}
+
 /* ── error boundary (cattura crash invece di schermata bianca) ── */
 var ErrorBoundary = (function(){
   function EB(props){ React.Component.call(this, props); this.state = {err: null}; }
@@ -3055,6 +3314,7 @@ function App(){
   return h('div',{style:{maxWidth:440,margin:'0 auto',paddingBottom:isLive?0:80,position:'relative'}},
     view==='home'&&h(Home,{schede:liveSchede,sessions:liveSessions,profile:profile,go:go,syncStatus:syncStatus}),
     view==='settings'&&h(Settings,{profile:profile,onProfile:setProfile,go:go,schede:liveSchede,sessions:liveSessions,setSchede:function(s){setSchede(touchAll(s));},setSessions:function(s){setSessions(touchAll(s));}}),
+    view==='admin'&&isCurrentUserAdmin(user)&&h(AdminPanel,{go:go,user:user}),
     view==='start'&&h(Start,{schede:liveSchede,go:go}),
     view==='pesiblocks'&&h(PesiBlocks,{schede:liveSchede,sessions:liveSessions,go:go}),
     view==='live'&&h(PesiLive,{bl:args.bl,sId:args.sId,go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
