@@ -2622,6 +2622,44 @@ function NuovaScheda(p){
   );
 }
 
+/* ── Set new password screen (mostrato dopo click sul link di reset password) ── */
+function SetNewPasswordScreen(p){
+  var _1=useState(''); var pw=_1[0]; var setPw=_1[1];
+  var _2=useState(''); var pw2=_2[0]; var setPw2=_2[1];
+  var _3=useState(''); var msg=_3[0]; var setMsg=_3[1];
+  var _4=useState(false); var loading=_4[0]; var setLoading=_4[1];
+  async function onSave(){
+    if(pw.length < 6){ setMsg('Password minimo 6 caratteri'); return; }
+    if(pw !== pw2){ setMsg('Le due password non coincidono'); return; }
+    setLoading(true); setMsg('');
+    try{
+      var r = await sb.auth.updateUser({ password: pw });
+      if(r.error){ setMsg(r.error.message || 'Errore aggiornamento password'); setLoading(false); return; }
+      if(p.onDone) p.onDone();
+    }catch(e){
+      setMsg((e && e.message) || 'Errore aggiornamento password');
+      setLoading(false);
+    }
+  }
+  var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'13px 14px',color:TEXT,fontSize:15,marginBottom:10,outline:'none'};
+  var primaryBtn={width:'100%',padding:'14px 22px',borderRadius:10,border:'none',background:ACC,color:ACT,fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:'0.02em',opacity:loading?0.6:1,marginTop:6};
+  return h('div',{style:{padding:'40px 18px 32px',minHeight:'100vh',display:'flex',flexDirection:'column',maxWidth:440,margin:'0 auto'}},
+    h('div',{style:{flex:'0 0 auto',marginBottom:24}},
+      h('div',{style:{width:56,height:56,borderRadius:14,background:ACC,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:14}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,color:ACT,lineHeight:1}},'🔑')
+      ),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:38,letterSpacing:'0.03em',lineHeight:1,color:TEXT,marginBottom:6}},'Nuova password'),
+      h('div',{style:{fontSize:13,color:MUTED,lineHeight:1.5}},'Scegli una password sicura per il tuo account. La userai per accedere d\'ora in poi.')
+    ),
+    h('div',{style:{flex:1}},
+      h('input',{type:'password',autoComplete:'new-password',value:pw,onChange:function(e){setPw(e.target.value);setMsg('');},placeholder:'Nuova password (min 6 caratteri)',style:inp,autoFocus:true}),
+      h('input',{type:'password',autoComplete:'new-password',value:pw2,onChange:function(e){setPw2(e.target.value);setMsg('');},placeholder:'Conferma password',style:inp}),
+      h('button',{onClick:onSave,disabled:loading||!pw||!pw2,style:primaryBtn},loading?'Aggiornamento…':'Imposta password'),
+      msg && h('div',{style:{marginTop:14,padding:'11px 13px',background:'rgba(239,68,68,0.10)',borderRadius:9,fontSize:13,color:TEXT,lineHeight:1.45}},msg)
+    )
+  );
+}
+
 /* ── Login screen (auth gate prima della profile setup) ── */
 function LoginScreen(p){
   var _1=useState('password'); var mode=_1[0]; var setMode=_1[1]; // 'password' | 'signup' | 'reset'
@@ -2779,13 +2817,22 @@ function App(){
   var _au=useState(null); var user=_au[0]; var setUser=_au[1];
   var _ar=useState(false); var authReady=_ar[0]; var setAuthReady=_ar[1];
   var _cl=useState(false); var cloudLoaded=_cl[0]; var setCloudLoaded=_cl[1];
+  var _rc=useState(false); var recoveryMode=_rc[0]; var setRecoveryMode=_rc[1];
 
   useEffect(function(){applyTheme(loadTheme());},[]);
 
-  /* Auth: carica sessione + ascolta cambi (login/logout/refresh) */
+  /* Auth: carica sessione + ascolta cambi (login/logout/refresh/recovery) */
   useEffect(function(){
     if(!sb){ setAuthReady(true); return; }
     var mounted = true;
+
+    /* Check immediato URL hash: il link di reset password contiene #type=recovery.
+       Lo controllo qui prima che supabase-js consumi/pulisca l'hash. */
+    try{
+      var hash = window.location.hash || '';
+      if(hash.indexOf('type=recovery') >= 0){ setRecoveryMode(true); }
+    }catch(e){}
+
     sbGetSession().then(function(s){
       if(!mounted) return;
       setUser(s && s.user ? s.user : null);
@@ -2794,11 +2841,14 @@ function App(){
     var sub = sb.auth.onAuthStateChange(function(event, session){
       if(!mounted) return;
       setUser(session && session.user ? session.user : null);
+      /* Supabase emette PASSWORD_RECOVERY quando l'utente arriva dal link di reset
+         email: in quel momento È loggato ma deve impostare una password nuova
+         prima di poter usare l'app normalmente. */
+      if(event === 'PASSWORD_RECOVERY'){ setRecoveryMode(true); }
       if(event === 'SIGNED_OUT'){
         setCloudLoaded(false);
-        /* Reset stato React + storage per evitare che i dati dell'utente uscente
-           finiscano nel cloud del prossimo che fa login sullo stesso device.
-           Uno snapshot giornaliero locale viene comunque conservato come backup. */
+        setRecoveryMode(false);
+        /* Reset stato React + storage per evitare cross-user contamination */
         setSchede([]); setSessions([]); setProfile(null);
         try{
           localStorage.removeItem(MIGRATED_KEY);
@@ -2980,6 +3030,16 @@ function App(){
   }
   if(sb && !user){
     return h(LoginScreen,null);
+  }
+
+  /* Password recovery: l'utente è arrivato dal link reset email — forza il set password
+     prima di poter usare l'app */
+  if(sb && user && recoveryMode){
+    return h(SetNewPasswordScreen,{onDone:function(){
+      setRecoveryMode(false);
+      /* Pulisci l'hash dell'URL così se ricarica la pagina non rientra in recovery */
+      try{ history.replaceState(null,'',window.location.pathname+window.location.search); }catch(e){}
+    }});
   }
 
   if(!profile)return h(ProfileSetup,{onDone:function(p){

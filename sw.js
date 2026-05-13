@@ -18,11 +18,13 @@
  *             fix overflow del date input su iOS Safari (-webkit-appearance:none)
  *   - v1.7.3: bottone Google disabilitato con badge "Presto disponibile" finch\xe9 non
  *             configuriamo OAuth Google (richiede verifica + dominio per uso pubblico)
+ *   - v1.7.4: fix reset password — intercetta evento PASSWORD_RECOVERY e mostra
+ *             schermata "Imposta nuova password" invece di mandare l'utente in home
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.7.3';
+const CACHE_VERSION = 'gymtracker-v1.7.4';
 const CACHE_RUNTIME = 'gymtracker-runtime-v3';
 
 /* HTML escluso dalla precache: viene preso network-first. */
