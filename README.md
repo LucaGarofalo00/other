@@ -88,17 +88,42 @@ Se il banner non appare: menu ⋮ in alto a destra → "Installa app" / "Aggiung
 
 ---
 
-## 🔧 Configurare la sincronizzazione
+## 🔐 Account e sincronizzazione cloud (v1.7.0+)
 
-Dopo l'installazione, apri l'app, vai in **Impostazioni** e configura:
+Dalla versione 1.7.0 l'app usa **Supabase** come backend: ogni utente crea un account e i suoi dati (profilo, schede, sessioni, statistiche) vengono salvati nel database in cloud, protetti da Row Level Security (ogni utente vede solo i propri dati).
 
-**GitHub Personal Access Token** — crealo qui:
-- [github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**
-- Scope necessario: `gist` (per la sync — niente altro serve)
-- Scadenza: a piacere (90 giorni o "No expiration" se preferisci)
-- Copia il token (inizia con `ghp_`) e incollalo in Impostazioni
+**Al primo avvio:**
 
-Con il token configurato, dati e schede si sincronizzano automaticamente fra dispositivi diversi (es. iPhone + iPad + browser desktop) tutti collegati allo stesso account GitHub.
+1. L'app mostra la schermata di login
+2. Hai tre opzioni:
+   - **Magic link** (consigliato): inserisci l'email, ricevi un link, clicca per entrare. Niente password da ricordare.
+   - **Email + password**: registrazione classica
+   - **Continua con Google**: login OAuth in un click (richiede setup Google Cloud lato Supabase)
+3. Dopo l'accesso, se avevi dati in localStorage da una versione precedente vengono **migrati automaticamente** sul cloud al primo login
+4. Compili il profilo e parti
+
+**Sync multi-dispositivo:** ogni volta che salvi una sessione/scheda da iPhone, iPad, o desktop, i dati vengono pushati al cloud entro ~2 secondi. Sugli altri dispositivi collegati allo stesso account li ritrovi all'apertura successiva.
+
+**Offline-first:** in palestra senza segnale l'app funziona comunque. Tutto viene salvato in `localStorage` immediatamente, e quando torna la rete si sincronizza in background.
+
+### Cambia account o esci
+
+In **Impostazioni → Account** trovi email dell'utente loggato e bottone "Esci dall'account". I dati restano in cloud, ci rientri quando vuoi.
+
+### Per il developer: clonare il progetto su un altro Supabase
+
+L'URL e l'anon key Supabase sono nel codice (`index.html`, sezione "Supabase: client + auth + data layer"). Sono valori pubblici per design — la sicurezza dei dati è garantita dalla RLS sul DB, non dalla segretezza della chiave. Per usare un Supabase tuo:
+
+1. Crea progetto su [supabase.com](https://supabase.com)
+2. Esegui lo schema SQL (vedi commit storico per il blocco `create table profiles … sessions … feedback`)
+3. Sostituisci `SUPABASE_URL` e `SUPABASE_ANON_KEY` in `index.html`
+4. Bump `CACHE_VERSION` in `sw.js` per forzare l'update
+
+---
+
+## 🔧 Sincronizzazione GitHub (legacy)
+
+L'app supporta ancora la sync via Gist GitHub come **fallback opzionale**, utile per chi non vuole usare Supabase. In **Impostazioni → Sincronizzazione GitHub (legacy)** incolla un Personal Access Token con scope `gist` (crealo su [github.com/settings/tokens](https://github.com/settings/tokens)). Se sei loggato in Supabase la sync principale resta il cloud Supabase; il Gist è un backup parallelo.
 
 ---
 
@@ -134,12 +159,14 @@ Bump del numero versione: l'app non riprende automaticamente i cambiamenti — �
 
 ## 🔐 Privacy
 
-Tutti i dati restano:
-- in `localStorage` del browser (dati + snapshot locali giornalieri)
-- nei tuoi **Gist** privati GitHub (sync continua, se configurata)
-- nel tuo dispositivo come file scaricabile (export manuale)
+I tuoi dati vivono in tre posti:
+- **Cloud Supabase** (database Postgres, server EU): sync principale, protetto da Row Level Security — solo tu accedi al tuo account
+- **`localStorage` del browser**: cache offline + snapshot giornalieri (gli ultimi 7 giorni)
+- **Backup file** scaricabili manualmente dal tuo dispositivo (Impostazioni → Backup dati)
 
-Nessun dato passa per server terzi. Niente analytics, niente tracker. L'unica connessione esterna è verso le API di GitHub (per la tua sync personale) e i CDN per React e i font Google.
+In più, opzionalmente, i tuoi dati possono anche stare nei tuoi Gist privati GitHub se attivi la sync legacy.
+
+Nessun tracker, nessun analytics di terze parti. Le connessioni esterne sono solo verso Supabase (la tua sync personale), GitHub API (se attivi la sync legacy), e i CDN per React/Supabase SDK/font Google.
 
 ---
 

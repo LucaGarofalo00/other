@@ -1,21 +1,29 @@
-/* GymTracker Service Worker — v1.6.0
+/* GymTracker Service Worker — v1.7.1
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
  *     fallback alla cache solo se offline.
  *   - Runtime: stale-while-revalidate per asset statici (React CDN, Google Fonts)
- *   - Bypass: GitHub API (Gist sync) — sempre fresco
+ *   - Bypass: GitHub API (Gist sync) + Supabase API/auth — sempre fresco
  *   - v1.4.0: rest timer notifications che sopravvivono al lock screen
  *   - v1.5.0: sync conflict resolution + B2/B4/C5/C7
  *   - v1.5.1: fix recovery timer (useEffect dep array)
  *   - v1.6.0: catalogo esercizi per gruppo muscolare + modifica scheda + fix toggle attiva
  *             + network-first per HTML (niente più "vedo la vecchia versione")
+ *   - v1.7.0: cloud DB Supabase con auth (magic link / password / Google),
+ *             offline-first con sync automatica, migrazione una-tantum da localStorage
+ *   - v1.7.1: fix ProfileSetup che si chiudeva da solo subito dopo il login
+ *             (la riga profilo auto-creata dal trigger DB veniva interpretata come profilo valido)
+ *   - v1.7.2: rimosso magic link dalla LoginScreen (rate limit Supabase free tier 4/ora);
+ *             fix overflow del date input su iOS Safari (-webkit-appearance:none)
+ *   - v1.7.3: bottone Google disabilitato con badge "Presto disponibile" finch\xe9 non
+ *             configuriamo OAuth Google (richiede verifica + dominio per uso pubblico)
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.6.0';
-const CACHE_RUNTIME = 'gymtracker-runtime-v2';
+const CACHE_VERSION = 'gymtracker-v1.7.3';
+const CACHE_RUNTIME = 'gymtracker-runtime-v3';
 
 /* HTML escluso dalla precache: viene preso network-first. */
 const PRECACHE_URLS = [
@@ -37,7 +45,10 @@ function isHtmlRequest(url, req){
 
 const BYPASS_HOSTS = [
   'api.github.com',
-  'gist.githubusercontent.com'
+  'gist.githubusercontent.com',
+  /* Supabase: auth + REST API + realtime — sempre fresco, mai in cache */
+  '.supabase.co',
+  '.supabase.in'
 ];
 
 self.addEventListener('install', (event) => {
