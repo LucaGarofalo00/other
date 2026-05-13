@@ -23,11 +23,13 @@
  *   - v1.8.0: Admin Panel per lucvgar@gmail.com — vista read-only di tutti gli utenti,
  *             schede, sessioni, feedback. Protezione doppia: lista email in client +
  *             RLS policy DB-side (la vera barriera di sicurezza).
+ *   - v1.8.1: Admin write/delete — edit profilo utenti, soft-delete schede/sessioni,
+ *             delete feedback, delete account completo via Edge Function admin-delete-user.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.8.0';
+const CACHE_VERSION = 'gymtracker-v1.8.1';
 const CACHE_RUNTIME = 'gymtracker-runtime-v3';
 
 /* HTML escluso dalla precache: viene preso network-first. */
