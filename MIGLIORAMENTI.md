@@ -1,10 +1,21 @@
-# GymTracker — Miglioramenti applicati (v1.5.0)
+# GymTracker — Miglioramenti applicati (v1.5.1)
 
 Documento di riferimento delle modifiche applicate all'app GymTracker. Le sezioni sono divise in **Fatte** (già nel codice) e **Da fare** (rimane lavoro manuale o decisioni da prendere).
 
 ---
 
 ## 🟢 Cosa è stato fatto
+
+### A. Fix critici (qualità tecnica) — v1.5.1
+
+#### ✅ A1-fix — Timer di recupero che non partiva
+**Problema (v1.5.0):** la `useEffect` del tick aveva dep array `[tmr ? (tmr.endsAt || 0) : 0]`. Quando il timer veniva creato con `setTmr({s, max, label})` (senza `endsAt`), la dep restava `0` come quando `tmr` era `null` — React non ri-eseguiva l'effect e l'inizializzazione di `endsAt`/`setInterval` non avveniva mai.
+
+**Soluzione:**
+- Estratto hook `useRestTimer()` → `[tmr, startRest, stopRest]`, condiviso fra `PesiLive` e `CalLive` (prima duplicato).
+- `startRest(seconds, label)` imposta `endsAt` direttamente al momento del set, così la dep `[tmr && tmr.endsAt]` cambia (`null → timestamp`) e il tick parte subito.
+- `stopRest()` racchiude `setTmr(null) + cancelTimerNotify()` (prima lo skip della TimerBar non cancellava la notifica SW programmata).
+- Rimossi gli `setTimeout(..., 50)` in `setOk` / `setWarmFatto` che servivano solo a leggere lo stato pre-update; ora si usa una semplice variabile `willCheck`/`willMark` calcolata prima del `setEs`.
 
 ### A. Fix critici (qualità tecnica) — v1.4.0
 
@@ -168,7 +179,7 @@ Da 5 famiglie/varianti a 3. Velocizza ~150ms first load.
 
 ## 🔵 Versione e deploy
 
-**SW** → `gymtracker-v1.5.0`. Gli utenti esistenti ricevono l'update alla prossima apertura.
+**SW** → `gymtracker-v1.5.1`. Gli utenti esistenti ricevono l'update alla prossima apertura.
 
 ### Test consigliato prima di deploy
 
@@ -208,10 +219,10 @@ Da 5 famiglie/varianti a 3. Velocizza ~150ms first load.
 
 | File | Dimensione | Versione |
 |---|---|---|
-| `index.html` | ~155 KB | v1.5.0 |
-| `sw.js` | ~4.3 KB | gymtracker-v1.5.0 |
+| `index.html` | ~155 KB | v1.5.1 |
+| `sw.js` | ~4.3 KB | gymtracker-v1.5.1 |
 | `manifest.webmanifest` | 0.9 KB | invariato |
-| `MIGLIORAMENTI.md` | questo file | v1.5.0 |
+| `MIGLIORAMENTI.md` | questo file | v1.5.1 |
 | `PIANO_PRODOTTO.md` | nuovo | branding/pricing/deploy |
 
 ---
