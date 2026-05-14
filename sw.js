@@ -1,4 +1,4 @@
-/* GymTracker Service Worker — v1.7.1
+/* GymTracker Service Worker — v1.9.1
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -47,14 +47,34 @@
  *             pill sync più visibile; scheda attiva con badge "IN USO" e glow;
  *             Stats con explainer MEV/MAV/MRV plain-Italian; "Log" → "Storico"
  *             in nav, "Log diagnostico" → "Segnala un problema" in Settings.
+ *   - v1.9.0: Tracking corporeo + andamento per esercizio + calisthenics esteso.
+ *             • Stats: tab "Corpo & misure" con peso/%BF/massa magra/circonferenze,
+ *               grafici trend per metrica, export CSV.
+ *             • Sessioni live: badge "Ultima volta" con peso+reps+nota della scorsa
+ *               sessione (cerca su tutte le schede, anche inattive).
+ *             • Bottone rimuovi serie su PesiLive e CalLive.
+ *             • Top esercizi in Stats con TrendBadge ▲▼= e cronologia ricca.
+ *             • Calisthenics: catalogo esteso con 7 categorie, 150+ esercizi,
+ *               livelli 1-7 (skill ladder), supporto hold (secondi).
+ *             • Settings: export report "per nutrizionista" (.txt + .csv).
+ *   - v1.9.1: Pre-fill last-session + sala pesi libera + offline robusto.
+ *             • All'apertura di un esercizio (sia in scheda che mid-session), peso
+ *               e reps sono pre-popolati con quelli dell'ultima sessione (anche
+ *               se l'esercizio era in una scheda ora inattiva).
+ *             • Nuova card "Sala pesi libera" in Start: avvia una sessione vuota
+ *               dove gli esercizi si aggiungono mano a mano, esattamente come per
+ *               la calisthenics. PesiLive ora supporta es=[] con empty state.
+ *             • SW precache best-effort di React + ReactDOM + Supabase CDN così
+ *               anche il primo avvio offline (dopo install) carica completamente.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.8.7';
-const CACHE_RUNTIME = 'gymtracker-runtime-v3';
+const CACHE_VERSION = 'gymtracker-v1.9.1';
+const CACHE_RUNTIME = 'gymtracker-runtime-v4';
 
-/* HTML escluso dalla precache: viene preso network-first. */
+/* HTML escluso dalla precache: viene preso network-first.
+   CDN script aggiunti per garantire boot offline anche al primo riavvio. */
 const PRECACHE_URLS = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -62,6 +82,12 @@ const PRECACHE_URLS = [
   './icons/apple-touch-icon.png',
   './icons/icon-maskable-192.png',
   './icons/icon-maskable-512.png'
+];
+/* Asset esterni critici per il boot — precache best-effort (non blocca install se uno fallisce) */
+const EXTERNAL_PRECACHE = [
+  'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
+  'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
 /* HTML paths: trattati network-first */
@@ -82,6 +108,15 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() =>
+        /* Tenta di precachare anche i CDN: se uno fallisce non blocca l'install.
+           Garantisce che alla SECONDA apertura offline il boot funzioni completamente. */
+        caches.open(CACHE_RUNTIME).then((runtime) =>
+          Promise.all(EXTERNAL_PRECACHE.map((url) =>
+            fetch(url, {mode: 'cors'}).then((r) => r && r.status === 200 ? runtime.put(url, r) : null).catch(() => null)
+          ))
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });

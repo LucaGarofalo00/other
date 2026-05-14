@@ -358,7 +358,7 @@ function gtLogExport(){
   var online = navigator.onLine ? 'online' : 'offline';
   var swOk = 'serviceWorker' in navigator && navigator.serviceWorker.controller ? 'attivo' : 'no';
   var header = '=== GymTracker Diagnostic Log ===\n' +
-    'Versione: v1.8.7\n' +
+    'Versione: v1.9.1\n' +
     'Data export: ' + new Date().toISOString() + '\n' +
     'User-Agent: ' + ua + '\n' +
     'Schermo: ' + screen + ' @ ' + (window.devicePixelRatio||1) + 'x\n' +
@@ -545,6 +545,98 @@ var _shownPRs = {};
 function markPRShown(esNome){ _shownPRs[esNome] = Date.now(); }
 function wasPRShownRecently(esNome){ return _shownPRs[esNome] && (Date.now() - _shownPRs[esNome]) < 3000; }
 
+/* Trova l'ultima sessione (in ordine cronologico decrescente) in cui è stato eseguito l'esercizio.
+   Cerca su tutte le sessioni — incluse quelle di schede ora inattive — perché servono come
+   riferimento per sapere "come è andata l'ultima volta" indipendentemente dalla scheda attiva. */
+function findLastExerciseSession(esNome, allSessions, excludeSessionId){
+  if(!esNome || !allSessions) return null;
+  var sorted = allSessions.slice().sort(function(a,b){
+    return new Date(b.t0) - new Date(a.t0);
+  });
+  for(var i=0;i<sorted.length;i++){
+    var s = sorted[i];
+    if(excludeSessionId && s.id === excludeSessionId) continue;
+    var es = s.es || [];
+    for(var j=0;j<es.length;j++){
+      var e = es[j];
+      if(e.nome !== esNome) continue;
+      var done = (e.serie||[]).filter(function(sr){return sr.ok;});
+      if(done.length > 0){
+        return {session: s, es: e, serie: done, note: s.nota || '', t0: s.t0};
+      }
+    }
+  }
+  return null;
+}
+
+/* Calcola trend (up/down/flat) per serie temporale di {v:number}.
+   Usa il delta cumulativo first → last in % per evitare oscillazioni casuali. */
+function computeTrend(points){
+  if(!points || points.length < 2) return {dir:'flat', pct:0, delta:0};
+  var first = points[0].v, last = points[points.length-1].v;
+  var delta = last - first;
+  if(!first) return {dir: delta>0?'up':(delta<0?'down':'flat'), pct: 0, delta: delta};
+  var pct = (delta / first) * 100;
+  /* Soglia 3%: sotto è "stallo", oltre è trend reale */
+  if(Math.abs(pct) < 3) return {dir:'flat', pct:pct, delta:delta};
+  return {dir: pct > 0 ? 'up' : 'down', pct: pct, delta: delta};
+}
+
+/* === BODY MEASUREMENTS STORAGE ===
+   Archiviazione locale (per ora) delle misure corporee. Persistono su localStorage e
+   compaiono nell'export. Una entry = {id, t (ISO), peso, massaGrassa, massaMagra,
+   vita, fianchi, petto, bicipiteDx/Sx, cosciaDx/Sx, polpaccioDx/Sx, collo, spalle, note}.
+   Tutti i campi sono opzionali — la UI permette di compilare solo quelli che servono. */
+var BMK = 'gymtracker_body_v1';
+function loadBodyLog(){
+  try{
+    var raw = localStorage.getItem(BMK);
+    if(!raw) return [];
+    var arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+function saveBodyLog(arr){
+  try{ localStorage.setItem(BMK, JSON.stringify(arr || [])); }catch(e){}
+}
+function addBodyEntry(entry){
+  var arr = loadBodyLog();
+  var rec = Object.assign({id: uid(), t: new Date().toISOString()}, entry || {});
+  arr.push(rec);
+  saveBodyLog(arr);
+  return arr;
+}
+function delBodyEntry(id){
+  var arr = loadBodyLog().filter(function(x){return x.id !== id;});
+  saveBodyLog(arr);
+  return arr;
+}
+
+/* CSV helper — escapa virgolette e wrappa se contiene separatori/newline */
+function csvCell(v){
+  if(v === null || v === undefined) return '';
+  var s = String(v);
+  if(s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0){
+    return '"' + s.replace(/"/g,'""') + '"';
+  }
+  return s;
+}
+function buildCsv(headers, rows){
+  var head = headers.map(csvCell).join(',');
+  var body = rows.map(function(r){ return r.map(csvCell).join(','); }).join('\n');
+  return head + '\n' + body + '\n';
+}
+function downloadFile(filename, content, mime){
+  try{
+    var blob = new Blob([content], {type: mime || 'text/plain'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); if(a.parentNode) a.parentNode.removeChild(a); }, 100);
+  }catch(e){ alert('Errore download: '+(e.message||e)); }
+}
+
 /* === B9: SYNC CONFLICT RESOLUTION === */
 /* Ogni record (sessione, scheda) ha lastModified. Per merge: tieni quello più recente.
    I record cancellati diventano tombstone (deleted:true, deletedAt) per propagare la cancellazione
@@ -617,7 +709,174 @@ var ACC='var(--acc)',ACC2='var(--acc2)',ACC3='var(--acc3)',ACC5='var(--acc5)',AC
 function applyTheme(t){var r=document.documentElement;r.style.setProperty('--acc',t.hex);r.style.setProperty('--acc2',t.hex+'22');r.style.setProperty('--acc3',t.hex+'33');r.style.setProperty('--acc5',t.hex+'18');r.style.setProperty('--act',t.text);try{localStorage.setItem(TK,t.id);}catch(e){}}
 function loadTheme(){try{var id=localStorage.getItem(TK);return THEMES.find(function(t){return t.id===id;})||THEMES[0];}catch(e){return THEMES[0];}}
 var PESI_ES=['Panca Piana','Panca Inclinata Manubri','Panca Inclinata Bilanciere','Panca Declinata','Croci ai Cavi','Peck Deck','Chest Press','Squat','Leg Press','Hack Squat','Affondi','Bulgarian Split Squat','Leg Extension','Leg Curl','Hip Thrust','Calf Raise','Sumo Squat','Stacco da Terra','Stacco Rumeno','Trazioni','Rematore Bilanciere','Rematore Manubri','Lat Machine','Seated Row','Pull-over','T-Bar Row','Face Pull','Lento Avanti','Arnold Press','Alzate Laterali','Alzate Frontali','Alzate Posteriori','Curl Bilanciere','Curl Manubri','Curl Martello','Curl ai Cavi','French Press','Skull Crusher','Push Down ai Cavi','Dip Tricipiti','Plank','Crunch','Leg Raise','Ab Wheel','Russian Twist','Hyperextension','Treadmill','Cyclette','Rowing Machine','Mobilità Articolare','Stretching Dinamico','Kettlebell Swing'];
-var CAL_ES=['Pull-up','Chin-up','Muscle-up','Dip','Push-up','Pike Push-up','Diamond Push-up','Archer Push-up','Pseudo Planche Push-up','Handstand Push-up','L-sit','Tuck L-sit','V-sit','Dragon Flag','Front Lever','Back Lever','Planche','Human Flag','Pistol Squat','Shrimp Squat','Nordic Curl','Hanging Leg Raise','Toes to Bar','Bar Row','Inverted Row','Ring Dip','Ring Push-up','Skin the Cat','Hollow Hold','Arch Hold','Handstand'];
+var CAL_ES=['Pull-up','Chin-up','Wide Pull-up','Neutral Grip Pull-up','Commando Pull-up','Archer Pull-up','Typewriter Pull-up','L-sit Pull-up','Chest-to-Bar Pull-up','Weighted Pull-up','One Arm Pull-up Progression','Muscle-up','Bar Muscle-up','Ring Muscle-up','Australian Pull-up','Inverted Row','Bar Row','Ring Row','Front Lever Row','Dip','Ring Dip','Korean Dip','Bulgarian Dip','Russian Dip','Weighted Dip','Straight Bar Dip','Impossible Dip','Push-up','Knee Push-up','Wide Push-up','Diamond Push-up','Decline Push-up','Pike Push-up','Archer Push-up','One Arm Push-up Progression','Pseudo Planche Push-up','Planche Lean Push-up','Planche Push-up','Maltese Push-up','Hindu Push-up','Clap Push-up','Typewriter Push-up','Ring Push-up','Handstand Push-up','Wall HSPU','Deficit HSPU','Freestanding HSPU','Pistol Squat','Shrimp Squat','Sissy Squat','Cossack Squat','Jump Squat','Box Jump','Broad Jump','Single Leg Box Jump','Nordic Curl','Reverse Nordic','Glute Ham Raise','Hanging Leg Raise','Hanging Knee Raise','Toes to Bar','Windshield Wiper','L-sit','Tuck L-sit','One Leg L-sit','V-sit','Manna','Dragon Flag','Tuck Dragon Flag','Hollow Body Hold','Arch Hold','Hollow Body Rock','Arch Body Rock','Plank','Side Plank','RKC Plank','Front Lever','Tuck Front Lever','Advanced Tuck Front Lever','Single Leg Front Lever','Straddle Front Lever','Full Front Lever','Front Lever Pull','Front Lever Raise','Back Lever','Tuck Back Lever','Straddle Back Lever','Full Back Lever','Planche','Tuck Planche','Advanced Tuck Planche','Straddle Planche','Half Lay Planche','Full Planche','Planche Lean','Human Flag','Tuck Human Flag','Straddle Human Flag','Full Human Flag','Vertical Flag','Iron Cross','Maltese','Victorian','Handstand','Tuck Handstand','Straddle Handstand','Freestanding Handstand','Wall Handstand','Handstand Walk','One Arm Handstand','Skin the Cat','German Hang','Tuck Skin the Cat','Ring Support Hold','Ring L-sit','Ring Handstand','Bridge','Wrestler Bridge','Stand-to-Bridge','Press to Handstand','Straddle Press Handstand','Pike Press Handstand','Crow Pose','Crane Pose','Side Crow','Headstand','Tripod Headstand','Forearm Stand','Scorpion','Wall Walk','Wall Slides','Cartwheel','Round-off','Front Roll','Back Roll','Hollow Rock','Burpee','Bear Crawl','Crab Walk','Frog Stand','Tuck Sit Hold','Lever Raise','Pelican Curl','Sliding Leg Curl','Ab Wheel Rollout','Standing Ab Wheel','Dragon Squat','Natural Hamstring Curl','Tibialis Raise','Calf Raise Single Leg','Wrist Curl','Reverse Wrist Curl','Finger Pushup','Knuckle Pushup','Pseudo Planche Hold','Tuck Front Lever Hold','Tuck Planche Hold'];
+/* ── catalogo calisthenics esteso: categorie + livelli + hold time-based ── */
+var CAL_CATALOG = [
+  {id:'pull', label:'Trazioni & Pull', emoji:'⬆️', es:[
+    {n:'Australian Pull-up', lvl:1, type:'reps', muscoli:'Schiena, Bicipiti', prog:'Pull-up'},
+    {n:'Inverted Row', lvl:1, type:'reps', muscoli:'Schiena media, Bicipiti', prog:'Pull-up'},
+    {n:'Negative Pull-up', lvl:2, type:'reps', muscoli:'Dorsali, Bicipiti', prog:'Pull-up'},
+    {n:'Pull-up', lvl:3, type:'reps', muscoli:'Dorsali, Bicipiti', prog:'Weighted Pull-up'},
+    {n:'Chin-up', lvl:3, type:'reps', muscoli:'Bicipiti, Dorsali', prog:'Weighted Chin-up'},
+    {n:'Wide Pull-up', lvl:4, type:'reps', muscoli:'Gran dorsale', prog:'Weighted Wide Pull-up'},
+    {n:'Neutral Grip Pull-up', lvl:3, type:'reps', muscoli:'Dorsali, Brachioradiale', prog:'Weighted'},
+    {n:'Commando Pull-up', lvl:4, type:'reps', muscoli:'Dorsali, Core', prog:'Archer Pull-up'},
+    {n:'Archer Pull-up', lvl:5, type:'reps', muscoli:'Dorsali (unilaterale)', prog:'Typewriter'},
+    {n:'Typewriter Pull-up', lvl:5, type:'reps', muscoli:'Dorsali', prog:'One Arm Pull-up'},
+    {n:'L-sit Pull-up', lvl:5, type:'reps', muscoli:'Dorsali, Core', prog:'Bar Muscle-up'},
+    {n:'Chest-to-Bar Pull-up', lvl:4, type:'reps', muscoli:'Dorsali, Romboidi', prog:'Muscle-up'},
+    {n:'Weighted Pull-up', lvl:4, type:'reps', muscoli:'Dorsali', prog:'+ peso progressivo'},
+    {n:'One Arm Pull-up Progression', lvl:6, type:'reps', muscoli:'Dorsali (unilaterale)', prog:'One Arm Pull-up'},
+    {n:'Muscle-up', lvl:5, type:'reps', muscoli:'Full body upper', prog:'Strict Muscle-up'},
+    {n:'Bar Muscle-up', lvl:5, type:'reps', muscoli:'Full body upper', prog:'Ring Muscle-up'},
+    {n:'Ring Muscle-up', lvl:6, type:'reps', muscoli:'Full body upper', prog:'Strict Ring Muscle-up'}
+  ]},
+  {id:'push', label:'Spinta & Dip', emoji:'➡️', es:[
+    {n:'Knee Push-up', lvl:1, type:'reps', muscoli:'Petto, Tricipiti', prog:'Push-up'},
+    {n:'Push-up', lvl:2, type:'reps', muscoli:'Petto, Tricipiti, Spalle', prog:'Diamond Push-up'},
+    {n:'Wide Push-up', lvl:2, type:'reps', muscoli:'Petto', prog:'Archer Push-up'},
+    {n:'Diamond Push-up', lvl:3, type:'reps', muscoli:'Tricipiti, Petto interno', prog:'One Arm Progression'},
+    {n:'Decline Push-up', lvl:3, type:'reps', muscoli:'Petto alto, Spalle', prog:'Pike Push-up'},
+    {n:'Pike Push-up', lvl:3, type:'reps', muscoli:'Spalle, Tricipiti', prog:'Wall HSPU'},
+    {n:'Archer Push-up', lvl:4, type:'reps', muscoli:'Petto (unilaterale)', prog:'One Arm Push-up'},
+    {n:'Hindu Push-up', lvl:3, type:'reps', muscoli:'Spalle, Petto', prog:'Typewriter Push-up'},
+    {n:'Typewriter Push-up', lvl:4, type:'reps', muscoli:'Petto unilaterale', prog:'One Arm Push-up'},
+    {n:'Clap Push-up', lvl:4, type:'reps', muscoli:'Petto esplosivo', prog:'Triple Clap'},
+    {n:'One Arm Push-up Progression', lvl:5, type:'reps', muscoli:'Petto, Tricipiti', prog:'One Arm Push-up'},
+    {n:'Pseudo Planche Push-up', lvl:4, type:'reps', muscoli:'Spalle anteriori, Petto', prog:'Planche Push-up'},
+    {n:'Planche Lean Push-up', lvl:5, type:'reps', muscoli:'Spalle anteriori', prog:'Tuck Planche Push-up'},
+    {n:'Planche Push-up', lvl:6, type:'reps', muscoli:'Spalle, Petto, Core', prog:'Maltese Push-up'},
+    {n:'Ring Push-up', lvl:3, type:'reps', muscoli:'Petto, Stabilizzatori', prog:'Ring Archer'},
+    {n:'Dip', lvl:3, type:'reps', muscoli:'Tricipiti, Petto basso, Spalle', prog:'Weighted Dip'},
+    {n:'Bench Dip', lvl:1, type:'reps', muscoli:'Tricipiti', prog:'Dip'},
+    {n:'Ring Dip', lvl:4, type:'reps', muscoli:'Tricipiti, Stabilizzatori', prog:'Bulgarian Dip'},
+    {n:'Korean Dip', lvl:5, type:'reps', muscoli:'Spalle posteriori, Tricipiti', prog:'Russian Dip'},
+    {n:'Bulgarian Dip', lvl:5, type:'reps', muscoli:'Petto, Spalle', prog:'Russian Dip'},
+    {n:'Russian Dip', lvl:5, type:'reps', muscoli:'Tricipiti', prog:'Impossible Dip'},
+    {n:'Weighted Dip', lvl:4, type:'reps', muscoli:'Tricipiti, Petto', prog:'+ peso progressivo'},
+    {n:'Straight Bar Dip', lvl:4, type:'reps', muscoli:'Petto basso', prog:'Muscle-up'},
+    {n:'Impossible Dip', lvl:6, type:'reps', muscoli:'Tricipiti, Petto', prog:'Ring Iron Cross'},
+    {n:'Wall HSPU', lvl:4, type:'reps', muscoli:'Spalle, Tricipiti', prog:'Freestanding HSPU'},
+    {n:'Deficit HSPU', lvl:5, type:'reps', muscoli:'Spalle, Tricipiti', prog:'Strict HSPU'},
+    {n:'Freestanding HSPU', lvl:6, type:'reps', muscoli:'Spalle, Core', prog:'90° HSPU'}
+  ]},
+  {id:'lever', label:'Lever (statici)', emoji:'🪧', es:[
+    {n:'Skin the Cat', lvl:2, type:'reps', muscoli:'Spalle, Core', prog:'German Hang'},
+    {n:'German Hang', lvl:2, type:'hold', muscoli:'Spalle (allungamento attivo)', prog:'Back Lever'},
+    {n:'Tuck Back Lever', lvl:3, type:'hold', muscoli:'Bicipite lungo, Core', prog:'Straddle Back Lever'},
+    {n:'Advanced Tuck Back Lever', lvl:4, type:'hold', muscoli:'Bicipite lungo, Core', prog:'Straddle BL'},
+    {n:'Straddle Back Lever', lvl:4, type:'hold', muscoli:'Bicipite, Petto, Core', prog:'Full Back Lever'},
+    {n:'Full Back Lever', lvl:5, type:'hold', muscoli:'Bicipite lungo, Petto, Core', prog:'Ice Cream Maker'},
+    {n:'Tuck Front Lever', lvl:3, type:'hold', muscoli:'Dorsali, Core', prog:'Advanced Tuck'},
+    {n:'Advanced Tuck Front Lever', lvl:4, type:'hold', muscoli:'Dorsali, Core', prog:'Single Leg'},
+    {n:'Single Leg Front Lever', lvl:4, type:'hold', muscoli:'Dorsali, Core', prog:'Straddle FL'},
+    {n:'Straddle Front Lever', lvl:5, type:'hold', muscoli:'Dorsali, Core', prog:'Full Front Lever'},
+    {n:'Full Front Lever', lvl:6, type:'hold', muscoli:'Dorsali, Core', prog:'Front Lever Raise'},
+    {n:'Front Lever Raise', lvl:6, type:'reps', muscoli:'Dorsali, Core', prog:'Front Lever Pull'},
+    {n:'Front Lever Pull', lvl:6, type:'reps', muscoli:'Dorsali, Core', prog:'Ice Cream Maker'},
+    {n:'Tuck Planche', lvl:3, type:'hold', muscoli:'Spalle anteriori, Core', prog:'Advanced Tuck Planche'},
+    {n:'Advanced Tuck Planche', lvl:4, type:'hold', muscoli:'Spalle anteriori, Core', prog:'Straddle Planche'},
+    {n:'Straddle Planche', lvl:5, type:'hold', muscoli:'Spalle anteriori, Core', prog:'Half Lay'},
+    {n:'Half Lay Planche', lvl:6, type:'hold', muscoli:'Spalle anteriori, Core', prog:'Full Planche'},
+    {n:'Full Planche', lvl:7, type:'hold', muscoli:'Spalle anteriori, Core', prog:'Planche Push-up'},
+    {n:'Planche Lean', lvl:3, type:'hold', muscoli:'Spalle anteriori', prog:'Tuck Planche'},
+    {n:'Tuck Human Flag', lvl:4, type:'hold', muscoli:'Obliqui, Spalle', prog:'Straddle Flag'},
+    {n:'Straddle Human Flag', lvl:5, type:'hold', muscoli:'Obliqui, Spalle', prog:'Full Flag'},
+    {n:'Full Human Flag', lvl:6, type:'hold', muscoli:'Core laterale, Spalle', prog:'One Arm Flag'},
+    {n:'Vertical Flag', lvl:5, type:'hold', muscoli:'Spalle, Core', prog:'Full Flag'},
+    {n:'Iron Cross', lvl:7, type:'hold', muscoli:'Pettorali, Dorsali', prog:'Maltese'},
+    {n:'Maltese', lvl:7, type:'hold', muscoli:'Petto, Spalle', prog:'Victorian'},
+    {n:'Victorian', lvl:7, type:'hold', muscoli:'Petto, Dorsali', prog:'Endgame'}
+  ]},
+  {id:'core', label:'Core & Compressione', emoji:'🎯', es:[
+    {n:'Plank', lvl:1, type:'hold', muscoli:'Core', prog:'RKC Plank'},
+    {n:'RKC Plank', lvl:2, type:'hold', muscoli:'Core profondo', prog:'Hollow Body'},
+    {n:'Side Plank', lvl:1, type:'hold', muscoli:'Obliqui', prog:'Star Plank'},
+    {n:'Hollow Body Hold', lvl:2, type:'hold', muscoli:'Core anteriore', prog:'V-sit'},
+    {n:'Arch Body Hold', lvl:2, type:'hold', muscoli:'Catena posteriore, Core', prog:'Back Lever'},
+    {n:'Hollow Body Rock', lvl:2, type:'reps', muscoli:'Core', prog:'Hollow Lever'},
+    {n:'Arch Body Rock', lvl:2, type:'reps', muscoli:'Catena posteriore', prog:'Reverse Hyper'},
+    {n:'Crunch', lvl:1, type:'reps', muscoli:'Retto addominale', prog:'V-up'},
+    {n:'V-up', lvl:2, type:'reps', muscoli:'Retto, Core', prog:'V-sit'},
+    {n:'Hanging Knee Raise', lvl:2, type:'reps', muscoli:'Addominali bassi', prog:'Hanging Leg Raise'},
+    {n:'Hanging Leg Raise', lvl:3, type:'reps', muscoli:'Addominali bassi, Flessori', prog:'Toes to Bar'},
+    {n:'Toes to Bar', lvl:4, type:'reps', muscoli:'Core, Flessori', prog:'Front Lever Pull'},
+    {n:'Windshield Wiper', lvl:5, type:'reps', muscoli:'Obliqui, Core', prog:'Front Lever Wiper'},
+    {n:'Tuck L-sit', lvl:2, type:'hold', muscoli:'Core, Tricipiti, Flessori', prog:'One Leg L-sit'},
+    {n:'One Leg L-sit', lvl:3, type:'hold', muscoli:'Core, Tricipiti', prog:'L-sit'},
+    {n:'L-sit', lvl:3, type:'hold', muscoli:'Core, Tricipiti, Flessori', prog:'V-sit'},
+    {n:'V-sit', lvl:5, type:'hold', muscoli:'Core, Tricipiti', prog:'Manna'},
+    {n:'Manna', lvl:7, type:'hold', muscoli:'Core, Spalle', prog:'Endgame'},
+    {n:'Tuck Dragon Flag', lvl:3, type:'reps', muscoli:'Core completo', prog:'Single Leg DF'},
+    {n:'Dragon Flag', lvl:5, type:'reps', muscoli:'Core completo', prog:'Weighted Dragon Flag'},
+    {n:'Ab Wheel Rollout', lvl:3, type:'reps', muscoli:'Core, Dorsali', prog:'Standing Ab Wheel'},
+    {n:'Standing Ab Wheel', lvl:5, type:'reps', muscoli:'Core completo', prog:'One Arm Ab Wheel'}
+  ]},
+  {id:'gambe', label:'Gambe a corpo libero', emoji:'🦵', es:[
+    {n:'Squat a corpo libero', lvl:1, type:'reps', muscoli:'Quadricipiti, Glutei', prog:'Jump Squat'},
+    {n:'Cossack Squat', lvl:2, type:'reps', muscoli:'Adduttori, Quadricipiti', prog:'Pistol Progression'},
+    {n:'Sissy Squat', lvl:3, type:'reps', muscoli:'Quadricipiti', prog:'Full Sissy'},
+    {n:'Bulgarian Split Squat', lvl:2, type:'reps', muscoli:'Quadricipiti, Glutei', prog:'Pistol'},
+    {n:'Shrimp Squat', lvl:4, type:'reps', muscoli:'Quadricipiti unilaterale', prog:'Advanced Shrimp'},
+    {n:'Pistol Squat', lvl:4, type:'reps', muscoli:'Quadricipiti, Equilibrio', prog:'Dragon Squat'},
+    {n:'Dragon Squat', lvl:5, type:'reps', muscoli:'Quadricipiti, Mobilità', prog:'Weighted Pistol'},
+    {n:'Jump Squat', lvl:2, type:'reps', muscoli:'Quadricipiti esplosivi', prog:'Box Jump'},
+    {n:'Box Jump', lvl:2, type:'reps', muscoli:'Catena posteriore, Esplosività', prog:'Single Leg Box Jump'},
+    {n:'Broad Jump', lvl:2, type:'reps', muscoli:'Catena posteriore', prog:'Standing Long Jump'},
+    {n:'Single Leg Box Jump', lvl:3, type:'reps', muscoli:'Quadricipiti, Equilibrio', prog:'Pistol Jump'},
+    {n:'Nordic Curl', lvl:4, type:'reps', muscoli:'Femorali, Glutei', prog:'Full Nordic'},
+    {n:'Reverse Nordic', lvl:3, type:'reps', muscoli:'Quadricipiti', prog:'Sissy Squat'},
+    {n:'Glute Bridge', lvl:1, type:'reps', muscoli:'Glutei', prog:'Single Leg Glute Bridge'},
+    {n:'Single Leg Glute Bridge', lvl:2, type:'reps', muscoli:'Glutei', prog:'Hip Thrust'},
+    {n:'Calf Raise', lvl:1, type:'reps', muscoli:'Polpacci', prog:'Single Leg Calf Raise'},
+    {n:'Single Leg Calf Raise', lvl:2, type:'reps', muscoli:'Polpacci', prog:'Weighted'},
+    {n:'Tibialis Raise', lvl:1, type:'reps', muscoli:'Tibiale anteriore', prog:'Weighted Tibialis'},
+    {n:'Wall Sit', lvl:1, type:'hold', muscoli:'Quadricipiti (isometrico)', prog:'Single Leg Wall Sit'}
+  ]},
+  {id:'handstand', label:'Handstand & Equilibrio', emoji:'🤸', es:[
+    {n:'Frog Stand', lvl:2, type:'hold', muscoli:'Spalle, Polsi, Equilibrio', prog:'Crow Pose'},
+    {n:'Crow Pose', lvl:2, type:'hold', muscoli:'Spalle, Core', prog:'Crane Pose'},
+    {n:'Crane Pose', lvl:3, type:'hold', muscoli:'Spalle, Core', prog:'Side Crow'},
+    {n:'Side Crow', lvl:4, type:'hold', muscoli:'Obliqui, Spalle', prog:'Press Handstand'},
+    {n:'Headstand', lvl:2, type:'hold', muscoli:'Core, Spalle, Equilibrio', prog:'Tripod Headstand'},
+    {n:'Tripod Headstand', lvl:2, type:'hold', muscoli:'Core, Spalle, Equilibrio', prog:'Press to HS'},
+    {n:'Wall Handstand', lvl:3, type:'hold', muscoli:'Spalle, Core', prog:'Freestanding HS'},
+    {n:'Tuck Handstand', lvl:3, type:'hold', muscoli:'Equilibrio', prog:'Straddle HS'},
+    {n:'Straddle Handstand', lvl:4, type:'hold', muscoli:'Equilibrio', prog:'Freestanding HS'},
+    {n:'Freestanding Handstand', lvl:5, type:'hold', muscoli:'Spalle, Core, Equilibrio', prog:'One Arm HS'},
+    {n:'Handstand Walk', lvl:5, type:'reps', muscoli:'Spalle, Equilibrio', prog:'One Arm HS Walk'},
+    {n:'One Arm Handstand', lvl:7, type:'hold', muscoli:'Spalle, Equilibrio', prog:'Endgame'},
+    {n:'Forearm Stand', lvl:3, type:'hold', muscoli:'Spalle, Trapezi', prog:'Forearm Press'},
+    {n:'Wall Walk', lvl:2, type:'reps', muscoli:'Spalle, Core', prog:'Handstand Walk'},
+    {n:'Pike Press Handstand', lvl:5, type:'reps', muscoli:'Spalle, Core', prog:'Straddle Press HS'},
+    {n:'Straddle Press Handstand', lvl:6, type:'reps', muscoli:'Spalle, Core', prog:'L-sit Press to HS'},
+    {n:'Press to Handstand', lvl:6, type:'reps', muscoli:'Spalle, Core, Mobilità', prog:'Manna to HS'}
+  ]},
+  {id:'mobilita', label:'Mobilità & Bridge', emoji:'🧘', es:[
+    {n:'Bridge', lvl:2, type:'hold', muscoli:'Catena posteriore, Spalle', prog:'Wrestler Bridge'},
+    {n:'Wrestler Bridge', lvl:3, type:'hold', muscoli:'Collo, Catena posteriore', prog:'Stand-to-Bridge'},
+    {n:'Stand-to-Bridge', lvl:4, type:'reps', muscoli:'Mobilità completa', prog:'Walkover'},
+    {n:'Scorpion', lvl:3, type:'hold', muscoli:'Mobilità schiena', prog:'Forearm Scorpion'},
+    {n:'Jefferson Curl', lvl:2, type:'reps', muscoli:'Catena posteriore (flessione)', prog:'Weighted'},
+    {n:'Shoulder Dislocate', lvl:1, type:'reps', muscoli:'Mobilità spalle', prog:'Narrow Grip'},
+    {n:'Pancake Stretch', lvl:2, type:'hold', muscoli:'Adduttori, Femorali', prog:'Active Pancake'},
+    {n:'Hollow to Arch', lvl:2, type:'reps', muscoli:'Core, Mobilità', prog:'Skin the Cat'},
+    {n:'Wall Slides', lvl:1, type:'reps', muscoli:'Mobilità scapole', prog:'Cuban Press'}
+  ]}
+];
+function findCalSkill(nome){
+  if(!nome) return null;
+  var n = nome.toLowerCase();
+  for(var i=0;i<CAL_CATALOG.length;i++){
+    var cat = CAL_CATALOG[i];
+    for(var j=0;j<cat.es.length;j++){
+      if(cat.es[j].n.toLowerCase() === n){
+        return Object.assign({}, cat.es[j], {category: cat.label, categoryId: cat.id});
+      }
+    }
+  }
+  return null;
+}
 /* ── catalogo esercizi per gruppo muscolare (inserimento rapido) ── */
 var MUSCLE_GROUPS=[
   {id:'petto',label:'Petto',emoji:'🫁',es:[
@@ -1096,12 +1355,53 @@ function Lbl(p){return h('div',{style:{fontSize:10,color:MUTED,textTransform:'up
 function Btn(p){return h('button',{onClick:p.disabled?undefined:p.onClick,disabled:!!p.disabled,style:Object.assign({width:p.full?'100%':'auto',padding:p.sm?'8px 14px':'13px 22px',borderRadius:10,border:p.sec?'1px solid '+BORD:'none',background:p.sec?'transparent':p.disabled?'rgba(200,255,0,0.4)':ACC,color:p.sec?TEXT:ACT,fontWeight:600,fontSize:p.sm?13:15,cursor:p.disabled?'not-allowed':'pointer',whiteSpace:'nowrap',letterSpacing:p.sec?0:'0.02em',opacity:p.disabled?0.6:1},p.style||{})},p.children);}
 function Back(p){return h('button',{onClick:p.onClick,style:{background:ACC2,border:'1px solid '+ACC3,borderRadius:10,color:ACC,fontSize:13,fontWeight:700,cursor:'pointer',padding:'9px 16px',display:'flex',alignItems:'center',gap:6,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em'}},h(Icon,{n:'back',sz:18,c:'var(--acc)'}),p.label||'INDIETRO');}
 function PageHeader(p){return h('div',{style:{padding:'20px 16px 0'}},h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},p.back&&h(Back,{onClick:p.back})),h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1,marginBottom:p.sub?4:16}},p.title),p.sub&&h('div',{style:{fontSize:13,color:MUTED,marginBottom:16}},p.sub));}
+
+/* ── LastSessionHint: badge "Ultima volta" sopra le serie in live ──
+   Mostra peso/reps dell'ultima sessione che includeva lo stesso esercizio,
+   più la nota di quella sessione (se presente). Risolve il problema di
+   "non mi ricordo come è andata la volta scorsa". */
+function LastSessionHint(p){
+  var info = p.info;
+  if(!info) return null;
+  var done = info.serie || [];
+  if(!done.length) return null;
+  var daysAgo = Math.round((Date.now() - new Date(info.t0).getTime()) / 86400000);
+  var ago = daysAgo <= 0 ? 'oggi' : (daysAgo === 1 ? 'ieri' : (daysAgo + 'g fa'));
+  var summary = done.map(function(s){
+    if(typeof s.durata !== 'undefined' && s.durata) return s.durata + 's';
+    if(s.peso) return s.peso + 'kg×' + s.reps;
+    return s.reps + ' reps';
+  }).join(' · ');
+  return h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:8,padding:'8px 10px',marginBottom:8,fontSize:11,color:TEXT,lineHeight:1.45}},
+    h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:info.note?3:0}},
+      h('span',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',background:ACC2,padding:'2px 6px',borderRadius:4,flexShrink:0}},'Ultima · '+ago),
+      h('div',{style:{flex:1,fontFamily:"'Roboto Mono',monospace",fontSize:11,fontVariantNumeric:'tabular-nums'}},summary)
+    ),
+    info.note && h('div',{style:{fontSize:11,color:MUTED,fontStyle:'italic',paddingLeft:2}}, '“' + (info.note.length > 90 ? info.note.slice(0,90)+'…' : info.note) + '”')
+  );
+}
+
+/* ── TrendBadge: indicatore visuale di trend (up/down/flat) per progressione esercizio ── */
+function TrendBadge(p){
+  var t = p.trend;
+  if(!t) return null;
+  var color, icon, label;
+  if(t.dir === 'up'){ color='var(--success)'; icon='▲'; label='in miglioramento'; }
+  else if(t.dir === 'down'){ color='var(--danger)'; icon='▼'; label='in calo'; }
+  else { color='var(--warning)'; icon='='; label='in stallo'; }
+  return h('span',{style:{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:6,background:'rgba(255,255,255,0.04)',border:'1px solid '+BORD,fontSize:11,color:color,fontFamily:"'Roboto Mono',monospace",fontWeight:700,whiteSpace:'nowrap'}},
+    h('span',null,icon),
+    h('span',null, (t.pct>0?'+':'') + Math.round(t.pct) + '%'),
+    p.showLabel && h('span',{style:{color:MUTED,fontWeight:400,marginLeft:3}}, '· ' + label)
+  );
+}
 </script>
 <script>
 /* ── exercise picker (shared pesi+cal) ── */
 function ExercisePicker(p){
   var visible=p.visible,onClose=p.onClose,onAdd=p.onAdd,baseList=p.baseList,label=p.label;
   var showPosition=p.showPosition,currentLabel=p.currentLabel,totalCount=p.totalCount,curIdx=p.curIdx;
+  var mode = p.mode || 'pesi'; // 'pesi' | 'cal'
   var _s=useState('');var search=_s[0];var setSearch=_s[1];
   var _pos=useState('next');var pos=_pos[0];var setPos=_pos[1];
   var _g=useState(null);var openGroup=_g[0];var setOpenGroup=_g[1];
@@ -1110,8 +1410,10 @@ function ExercisePicker(p){
   var freqMap=getFreq();
   var hasFreq=freqMap&&Object.keys(freqMap).length>0;
   var topUsed=hasFreq?Object.keys(freqMap).sort(function(a,b){return freqMap[b]-freqMap[a];}).slice(0,8):[];
+  /* Gruppi adattati alla modalità: pesi → MUSCLE_GROUPS, cal → CAL_CATALOG */
+  var groups = mode === 'cal' ? CAL_CATALOG.map(function(c){return {id:c.id,label:c.label,emoji:c.emoji,es:c.es.map(function(e){return e.n;})};}) : MUSCLE_GROUPS;
   /* lista visibile alla ricerca: include baseList + esercizi catalogati + frequenti */
-  var allCatalog=MUSCLE_GROUPS.reduce(function(a,g){return a.concat(g.es);},[]);
+  var allCatalog=groups.reduce(function(a,g){return a.concat(g.es);},[]);
   var sugg=getSugg((baseList||[]).concat(allCatalog),search,30);
   /* dedup mantenendo ordine */
   var seen={};sugg=sugg.filter(function(n){if(seen[n])return false;seen[n]=true;return true;});
@@ -1170,8 +1472,10 @@ function ExercisePicker(p){
         ),
         /* MODALITÀ GRUPPO APERTO */
         !search.trim()&&openGroup&&(function(){
-          var g=MUSCLE_GROUPS.find(function(x){return x.id===openGroup;});
+          var g=groups.find(function(x){return x.id===openGroup;});
           if(!g)return null;
+          var calCat = mode==='cal' ? CAL_CATALOG.find(function(x){return x.id===openGroup;}) : null;
+          var lvlColors = ['#94A3B8','#22C55E','#22C55E','#3B82F6','#A855F7','#F59E0B','#EF4444','#EF4444'];
           return h('div',null,
             h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}},
               h('div',{style:{display:'flex',alignItems:'center',gap:8}},
@@ -1181,11 +1485,34 @@ function ExercisePicker(p){
               ),
               h('button',{onClick:function(){setOpenGroup(null);},style:{background:ACC2,border:'1px solid '+ACC3,borderRadius:8,color:ACC,fontSize:11,fontWeight:700,padding:'5px 10px',cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em',textTransform:'uppercase'}},'Indietro')
             ),
-            h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
-              g.es.map(function(n){
-                return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'8px 12px',borderRadius:20,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:13,cursor:'pointer'}},n);
-              })
-            )
+            calCat
+              ? h('div',null,
+                  /* Per la cal, raggruppa per livello (skill ladder) */
+                  [1,2,3,4,5,6,7].map(function(lvl){
+                    var atLvl = calCat.es.filter(function(e){return e.lvl===lvl;});
+                    if(!atLvl.length) return null;
+                    return h('div',{key:lvl,style:{marginBottom:12}},
+                      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:5}},
+                        h('span',{style:{fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',padding:'2px 7px',borderRadius:6,background:'rgba(255,255,255,0.04)',border:'1px solid '+(lvlColors[lvl]||BORD),color:(lvlColors[lvl]||MUTED)}},'LVL '+lvl),
+                        h('span',{style:{fontSize:10,color:MUTED}},lvl===1?'fondamentali':lvl===2?'base':lvl===3?'intermedi':lvl===4?'avanzati':lvl===5?'specialista':lvl===6?'élite':'endgame')
+                      ),
+                      h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
+                        atLvl.map(function(e){
+                          var isHold = e.type==='hold';
+                          return h('button',{key:e.n,onClick:function(){pick(e.n);},title:e.muscoli+(e.prog?' · → '+e.prog:''),style:{padding:'7px 11px',borderRadius:10,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5}},
+                            isHold && h('span',{style:{fontSize:8,padding:'1px 5px',borderRadius:4,background:ACC2,color:ACC,fontWeight:700,letterSpacing:'0.06em'}},'HOLD'),
+                            h('span',null,e.n)
+                          );
+                        })
+                      )
+                    );
+                  })
+                )
+              : h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
+                  g.es.map(function(n){
+                    return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'8px 12px',borderRadius:20,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,fontSize:13,cursor:'pointer'}},n);
+                  })
+                )
           );
         })(),
         /* MODALITÀ HOME (no search, no group) */
@@ -1194,7 +1521,7 @@ function ExercisePicker(p){
             h(Lbl,null,'I tuoi più usati'),
             h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
               topUsed.map(function(n){
-                var grp=muscleGroupOf(n);
+                var grp=mode==='cal' ? (function(){var sk=findCalSkill(n);return sk?CAL_CATALOG.find(function(c){return c.id===sk.categoryId;}):null;})() : muscleGroupOf(n);
                 return h('button',{key:n,onClick:function(){pick(n);},style:{padding:'7px 11px',borderRadius:20,border:'1px solid '+ACC3,background:ACC5,color:ACC,fontSize:13,cursor:'pointer',fontWeight:600,display:'inline-flex',alignItems:'center',gap:6}},
                   grp&&h('span',{style:{fontSize:13,lineHeight:1,filter:'grayscale(0)'}},grp.emoji),
                   h('span',null,n)
@@ -1202,9 +1529,9 @@ function ExercisePicker(p){
               })
             )
           ),
-          h(Lbl,null,'Inserimento rapido per gruppo'),
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:6}},
-            MUSCLE_GROUPS.map(function(g){
+          h(Lbl,null,mode==='cal'?'Categoria di skill':'Inserimento rapido per gruppo'),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat('+(mode==='cal'?2:3)+',1fr)',gap:8,marginBottom:6}},
+            groups.map(function(g){
               return h('button',{key:g.id,onClick:function(){setOpenGroup(g.id);hap(8);},style:{padding:'14px 6px',borderRadius:12,border:'0.5px solid '+BORD,background:SURF2,color:TEXT,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6,transition:'all 0.15s'}},
                 h('span',{style:{fontSize:26,lineHeight:1}},g.emoji),
                 h('span',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}},g.label),
@@ -1212,7 +1539,7 @@ function ExercisePicker(p){
               );
             })
           ),
-          h('div',{style:{fontSize:10,color:MUTED,marginTop:8,lineHeight:1.4,textAlign:'center'}},'Tocca un gruppo per gli esercizi del catalogo, oppure scrivi nella ricerca un nome personalizzato e premi Invio.')
+          h('div',{style:{fontSize:10,color:MUTED,marginTop:8,lineHeight:1.4,textAlign:'center'}},mode==='cal'?'Tocca una categoria per vedere gli esercizi per livello (skill ladder). Scrivi nella ricerca per un nome personalizzato.':'Tocca un gruppo per gli esercizi del catalogo, oppure scrivi nella ricerca un nome personalizzato e premi Invio.')
         )
       )
     )
@@ -1523,7 +1850,7 @@ function Settings(p){
     if(!fbMsg.trim()){ alert('Scrivi qualcosa prima di inviare'); return; }
     setFbSending(true); setFbOk('');
     try{
-      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'1.8.7'});
+      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'1.9.1'});
       if(r.error) throw r.error;
       setFbMsg(''); setFbOk('Grazie! Feedback ricevuto.');
       setTimeout(function(){ setFbOk(''); }, 3500);
@@ -1541,7 +1868,8 @@ function Settings(p){
       sessions:p.sessions||[],
       profile:profile||null,
       theme:loadTheme().id,
-      freq:getFreq()
+      freq:getFreq(),
+      bodyLog: loadBodyLog()
     };
     var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
@@ -1550,6 +1878,132 @@ function Settings(p){
     a.download='gymtracker-backup-'+new Date().toISOString().split('T')[0]+'.json';
     document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(url);if(a.parentNode)a.parentNode.removeChild(a);},100);
+  }
+  /* Export per nutrizionista: report leggibile (CSV + HTML) con misure corporee
+     e riepilogo settimanale degli allenamenti. Pensato per la condivisione. */
+  function handleExportNutrizionista(format){
+    var bodyLog = loadBodyLog().slice().sort(function(a,b){return new Date(a.t)-new Date(b.t);});
+    var allSessions = (p.sessions||[]).slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);});
+
+    /* Aggrega per settimana (ISO week — usa lunedì come inizio settimana) */
+    function weekKey(d){
+      var dt = new Date(d);
+      var day = dt.getDay(); var diff = day===0?6:day-1;
+      dt.setDate(dt.getDate()-diff); dt.setHours(0,0,0,0);
+      return dt.toISOString().slice(0,10);
+    }
+    var weeks = {};
+    allSessions.forEach(function(s){
+      var k = weekKey(s.t0);
+      if(!weeks[k]) weeks[k] = {sessions:0, totMin:0, totTon:0, totReps:0, gruppi:{}, esercizi:{}};
+      weeks[k].sessions += 1;
+      weeks[k].totMin += s.dur||0;
+      (s.es||[]).forEach(function(e){
+        if(e.tipo==='riscaldamento') return;
+        var t = ton([e]);
+        weeks[k].totTon += t;
+        var reps = (e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+(sr.reps||0);},0);
+        weeks[k].totReps += reps;
+        if(e.gr){
+          var grKey = (e.gr==='Bicipiti'||e.gr==='Tricipiti') ? 'Braccia' : e.gr;
+          var sets = (e.serie||[]).filter(function(sr){return sr.ok;}).length;
+          weeks[k].gruppi[grKey] = (weeks[k].gruppi[grKey]||0) + sets;
+        }
+        weeks[k].esercizi[e.nome] = (weeks[k].esercizi[e.nome]||0) + 1;
+      });
+    });
+    var weekKeys = Object.keys(weeks).sort();
+
+    if(format === 'csv'){
+      /* CSV con due sezioni: misure + settimane */
+      var sections = [];
+      sections.push('=== MISURE CORPOREE ===');
+      var bodyHeaders = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['Note']);
+      var bodyRows = bodyLog.map(function(r){
+        return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([r.note||'']);
+      });
+      sections.push(buildCsv(bodyHeaders, bodyRows));
+      sections.push('');
+      sections.push('=== RIEPILOGO SETTIMANALE ALLENAMENTI ===');
+      var wkHeaders = ['Settimana (lun)','Sessioni','Durata totale (min)','Tonnellaggio (kg)','Reps totali','Volume per gruppo (set)'];
+      var wkRows = weekKeys.map(function(k){
+        var w = weeks[k];
+        var grStr = Object.keys(w.gruppi).map(function(g){return g+':'+w.gruppi[g];}).join(' | ');
+        return [k, w.sessions, Math.round(w.totMin), Math.round(w.totTon), w.totReps, grStr];
+      });
+      sections.push(buildCsv(wkHeaders, wkRows));
+      sections.push('');
+      sections.push('=== PROFILO ===');
+      sections.push('Nome,'+csvCell(profile&&profile.nome||''));
+      sections.push('Età,'+(profile&&profile.dataNascita?Math.floor((Date.now()-new Date(profile.dataNascita))/(365.25*86400000)):''));
+      sections.push('Altezza (cm),'+csvCell(profile&&profile.altezza||''));
+      sections.push('Obiettivo,'+csvCell(profile&&profile.obiettivo||''));
+      downloadFile('gymtracker-nutrizionista-'+todayISO()+'.csv', sections.join('\n'), 'text/csv;charset=utf-8');
+      return;
+    }
+
+    /* Formato testo umano leggibile (più facile da inviare alla nutrizionista) */
+    function dateIT(d){ return new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+    var L = [];
+    L.push('REPORT PROGRESSI — '+(profile&&profile.nome||'')+' — '+dateIT(new Date()));
+    L.push('================================================');
+    L.push('');
+    L.push('PROFILO');
+    if(profile){
+      if(profile.dataNascita) L.push('  Età: '+Math.floor((Date.now()-new Date(profile.dataNascita))/(365.25*86400000))+' anni');
+      if(profile.altezza) L.push('  Altezza: '+profile.altezza+' cm');
+      if(profile.obiettivo) L.push('  Obiettivo: '+profile.obiettivo);
+      if(profile.livello) L.push('  Livello: '+profile.livello);
+    }
+    L.push('');
+    if(bodyLog.length){
+      L.push('MISURE CORPOREE ('+bodyLog.length+' rilevazioni)');
+      L.push('------------------------------------------------');
+      bodyLog.forEach(function(r){
+        L.push(dateIT(r.t)+':');
+        BODY_FIELDS.forEach(function(f){
+          if(r[f.k]!==undefined && r[f.k]!==null && r[f.k]!==''){
+            L.push('    '+f.lbl+': '+r[f.k]+' '+f.unit);
+          }
+        });
+        if(r.note) L.push('    Nota: '+r.note);
+        L.push('');
+      });
+      /* Confronto prima/ultima */
+      if(bodyLog.length>=2){
+        var first = bodyLog[0], last = bodyLog[bodyLog.length-1];
+        L.push('VARIAZIONI (prima → ultima)');
+        L.push('------------------------------------------------');
+        BODY_FIELDS.forEach(function(f){
+          if(first[f.k]!==undefined && last[f.k]!==undefined && first[f.k]!=='' && last[f.k]!==''){
+            var d = parseFloat(last[f.k])-parseFloat(first[f.k]);
+            L.push('  '+f.lbl+': '+first[f.k]+' → '+last[f.k]+' '+f.unit+'  ('+(d>=0?'+':'')+(Math.round(d*10)/10)+' '+f.unit+')');
+          }
+        });
+        L.push('');
+      }
+    } else {
+      L.push('(Nessuna misurazione corporea registrata)');
+      L.push('');
+    }
+    if(weekKeys.length){
+      L.push('ALLENAMENTI PER SETTIMANA');
+      L.push('------------------------------------------------');
+      weekKeys.slice(-12).forEach(function(k){
+        var w = weeks[k];
+        L.push('Sett. '+k+' — '+w.sessions+' sessioni · '+Math.round(w.totMin)+' min · '+Math.round(w.totTon)+' kg tonnellaggio');
+        var grs = Object.keys(w.gruppi).sort();
+        if(grs.length) L.push('    Set per gruppo: '+grs.map(function(g){return g+' '+w.gruppi[g];}).join(', '));
+      });
+      L.push('');
+      var totalSess = weekKeys.reduce(function(a,k){return a+weeks[k].sessions;},0);
+      var totalTon = weekKeys.reduce(function(a,k){return a+weeks[k].totTon;},0);
+      L.push('TOTALI: '+totalSess+' sessioni · '+Math.round(totalTon)+' kg tonnellaggio · su '+weekKeys.length+' settimane attive');
+      L.push('');
+    }
+    L.push('================================================');
+    L.push('Generato da GymTracker — '+new Date().toLocaleString('it-IT'));
+    downloadFile('gymtracker-nutrizionista-'+todayISO()+'.txt', L.join('\n'), 'text/plain;charset=utf-8');
   }
   function handleImport(ev){
     var f=ev.target.files[0];if(!f)return;
@@ -1637,6 +2091,17 @@ function Settings(p){
       h('label',{style:{display:'block',width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:10,padding:'9px 14px',color:TEXT,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'center'}},
         h('input',{type:'file',accept:'application/json',onChange:handleImport,style:{display:'none'}}),
         '↑  Scegli file .json'
+      )
+    ),
+    h('div',{style:{height:1,background:BORD,marginBottom:20}}),
+    /* Export per nutrizionista (PT/dietista) */
+    h(Lbl,null,'Condividi con il professionista'),
+    h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
+      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Report per nutrizionista / coach'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10,lineHeight:1.5}},'Scarica un report con misure corporee, riepilogo settimanale degli allenamenti, volume per gruppo muscolare e variazioni nel tempo. Pensato per essere condiviso con dietista, nutrizionista o personal trainer.'),
+      h('div',{style:{display:'flex',gap:6}},
+        h(Btn,{sm:true,full:true,onClick:function(){handleExportNutrizionista('txt');}},'📄 Report (.txt)'),
+        h(Btn,{sm:true,full:true,sec:true,onClick:function(){handleExportNutrizionista('csv');}},'📊 CSV')
       )
     ),
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
@@ -1831,13 +2296,28 @@ function Start(p){
         h(Icon,{n:'next',sz:18,c:ACC})
       )
     ),
-    h(Card,{onClick:function(){go('callive');},style:{cursor:'pointer',border:'0.5px solid '+BORD}},
+    h(Card,{onClick:function(){go('callive');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14}},
         h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h('span',{style:{fontSize:24}},'🤸')),
         h('div',{style:{flex:1}},
           h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Calisthenics'),
           h('div',{style:{fontSize:12,color:MUTED}},'Sessione libera, aggiungi gli esercizi'),
           h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Pull-up · Dip · L-sit · Planche…')
+        ),
+        h(Icon,{n:'next',sz:18,c:ACC})
+      )
+    ),
+    /* Sala pesi libera — sessione senza scheda, esercizi aggiunti mano a mano */
+    h(Card,{onClick:function(){
+      var bl = {id:'pesi-free', nome:'Sala pesi libera', es:[]};
+      go('live',{bl:bl, sId:'pesi-free'});
+    },style:{cursor:'pointer',border:'0.5px solid '+BORD}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:14}},
+        h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h(Icon,{n:'dumbbell',sz:22,c:ACC})),
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Sala pesi libera'),
+          h('div',{style:{fontSize:12,color:MUTED}},'Senza scheda, aggiungi esercizi mano a mano'),
+          h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Peso e reps pre-popolati dall\'ultima volta')
         ),
         h(Icon,{n:'next',sz:18,c:ACC})
       )
@@ -1927,7 +2407,23 @@ function makeAddSerie(setEs){
         if(i!==idx)return ex;
         var last=ex.serie[ex.serie.length-1];
         var ns={n:ex.serie.length+1,peso:last?last.peso:0,reps:last?last.reps:10,ok:false,t:null};
+        if(last && typeof last.durata !== 'undefined') ns.durata = last.durata;
         return Object.assign({},ex,{serie:ex.serie.concat([ns])});
+      });
+    });
+  };
+}
+/* Rimuove la serie all'indice si dell'esercizio idx. Mantiene almeno 1 serie
+   per non lasciare l'esercizio orfano (per cancellarlo del tutto serve il bottone Modifica). */
+function makeRemoveSerie(setEs){
+  return function(idx, si){
+    setEs(function(prev){
+      return prev.map(function(ex,i){
+        if(i!==idx) return ex;
+        if(!ex.serie || ex.serie.length <= 1) return ex;
+        var newSerie = ex.serie.filter(function(_,j){return j!==si;})
+          .map(function(s,k){return Object.assign({},s,{n:k+1});});
+        return Object.assign({},ex,{serie:newSerie});
       });
     });
   };
@@ -1997,9 +2493,25 @@ function Summary(p){
 function PesiLive(p){
   var bl=p.bl,go=p.go,onSave=p.onSave;
   var _1=useState(Date.now());var t0=_1[0];
+  /* Init serie: se l'esercizio è già stato fatto (anche in schede inattive), pre-popola
+     peso e reps con quelli dell'ultima sessione. Così non serve riscrivere ogni volta. */
   var _2=useState(bl.es.map(function(ex){
     if(ex.tipo==='riscaldamento')return Object.assign({},ex,{serie:[],fatto:false});
-    var serie=Array.from({length:typeof ex.serie==='number'?ex.serie:(ex.sets||3)},function(_,i){return {n:i+1,peso:ex.peso||0,reps:parseReps(ex.reps||10),ok:false,t:null};});
+    var nSets = typeof ex.serie==='number' ? ex.serie : (ex.sets||3);
+    var last = findLastExerciseSession(ex.nome, (p.allSessions||[]));
+    var defPeso = ex.peso || 0;
+    var defReps = parseReps(ex.reps || 10);
+    var serie;
+    if(last && last.serie && last.serie.length){
+      serie = Array.from({length:nSets}, function(_, i){
+        var ref = last.serie[i] || last.serie[last.serie.length-1];
+        return {n:i+1, peso:(ref.peso||defPeso), reps:(ref.reps||defReps), ok:false, t:null};
+      });
+    } else {
+      serie = Array.from({length:nSets}, function(_, i){
+        return {n:i+1, peso:defPeso, reps:defReps, ok:false, t:null};
+      });
+    }
     return Object.assign({},ex,{serie:serie});
   }));
   var es=_2[0];var setEs=_2[1];
@@ -2021,7 +2533,7 @@ function PesiLive(p){
   var _fbr=useState(0);var fbRating=_fbr[0];var setFbRating=_fbr[1];
   var _fbt=useState('');var fbText=_fbt[0];var setFbText=_fbt[1];
   var _fbs2=useState('idle');var fbState=_fbs2[0];var setFbState=_fbs2[1];
-  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'1.8.7'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
+  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'1.9.1'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
   function fbDismiss(){setFbState('done');}
   var fbProps=fbEligible?{show:true,state:fbState,rating:fbRating,text:fbText,onRate:setFbRating,onText:setFbText,onSend:fbSend,onDismiss:fbDismiss}:null;
 
@@ -2030,6 +2542,11 @@ function PesiLive(p){
   var curr=es[ex];
   var setSerie=makeSetSerie(setEs);
   var addSerie=makeAddSerie(setEs);
+  var removeSerie=makeRemoveSerie(setEs);
+  var lastForCurr=useMemo(function(){
+    if(!curr || curr.tipo==='riscaldamento') return null;
+    return findLastExerciseSession(curr.nome, (p.allSessions||[]));
+  },[curr&&curr.nome, p.allSessions&&p.allSessions.length]);
   function setOk(idx,si){
     var willCheck = !es[idx].serie[si].ok;
     if(willCheck){
@@ -2091,15 +2608,55 @@ function PesiLive(p){
     onSave(s);go('home');
   }
   function addExercise(nome,where){
-    var newEx={id:uid(),nome:nome,tipo:'standard',sets:3,serie:[{n:1,peso:0,reps:10,ok:false,t:null},{n:2,peso:0,reps:10,ok:false,t:null},{n:3,peso:0,reps:10,ok:false,t:null}],reps:'10',peso:0,recSet:90,recEs:60,rec:90,gr:'',note:''};
-    if(where==='next'){
+    /* Pre-popola dall'ultima sessione (anche da schede inattive) se disponibile */
+    var last = findLastExerciseSession(nome, (p.allSessions||[]));
+    var grp = muscleGroupOf(nome);
+    var defaultSerie;
+    if(last && last.serie && last.serie.length){
+      var n = Math.min(Math.max(last.serie.length, 3), 5);
+      defaultSerie = Array.from({length:n}, function(_, i){
+        var ref = last.serie[i] || last.serie[last.serie.length-1];
+        return {n:i+1, peso:ref.peso||0, reps:ref.reps||10, ok:false, t:null};
+      });
+    } else {
+      defaultSerie = [{n:1,peso:0,reps:10,ok:false,t:null},{n:2,peso:0,reps:10,ok:false,t:null},{n:3,peso:0,reps:10,ok:false,t:null}];
+    }
+    var newEx={id:uid(),nome:nome,tipo:'standard',sets:defaultSerie.length,serie:defaultSerie,reps:'10',peso:(defaultSerie[0]&&defaultSerie[0].peso)||0,recSet:90,recEs:60,rec:90,gr:(grp&&grp.label)||'',note:''};
+    if(where==='next' && ex < es.length){
       setEs(function(prev){var arr=prev.slice();arr.splice(ex+1,0,newEx);return arr;});
+      setEx(ex+1);
     }else{
-      setEs(function(prev){return prev.concat([newEx]);});
+      setEs(function(prev){
+        var arr = prev.concat([newEx]);
+        if(prev.length === 0) setTimeout(function(){ setEx(0); }, 0);
+        return arr;
+      });
     }
     setPicker(false);
   }
 
+  /* Empty state: la sessione parte senza esercizi (sala pesi libera).
+     Mostra un placeholder + bottone Aggiungi che apre il picker. */
+  if(es.length === 0){
+    return h('div',{style:{display:'flex',flexDirection:'column',height:'100vh',height:'100dvh'}},
+      h('div',{style:{padding:'14px 16px',background:SURF,borderBottom:'1px solid '+BORD,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+        h('div',null,
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em'}}, bl.nome || 'Sessione libera'),
+          h('div',{style:{fontSize:11,color:MUTED}}, '0 esercizi · '+Math.round((Date.now()-t0)/60000)+'min')
+        ),
+        h('button',{onClick:function(){go('start');},style:{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontWeight:700,cursor:'pointer',padding:'7px 12px',borderRadius:8,fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em'}},'TERMINA')
+      ),
+      h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 24px',color:MUTED,textAlign:'center'}},
+        h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'🏋️'),
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Sessione libera'),
+        h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18,maxWidth:280}},'Aggiungi gli esercizi che vuoi fare oggi. Per ognuno verranno pre-popolati peso e reps dell\'ultima volta.')
+      ),
+      h('div',{style:{padding:'12px 16px 32px',background:SURF,borderTop:'1px solid '+BORD}},
+        h(Btn,{full:true,onClick:function(){setPicker(true);}},'+ Aggiungi primo esercizio')
+      ),
+      picker && h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:PESI_ES,label:'Aggiungi esercizio'})
+    );
+  }
   if(done){
     var fatte=es.filter(function(e){return e.tipo!=='riscaldamento';}).reduce(function(a,e){return a+e.serie.filter(function(s){return s.ok;}).length;},0);
     return h(Summary,{
@@ -2150,9 +2707,11 @@ function PesiLive(p){
           h('div',{style:{fontSize:11,color:MUTED}},'Progressione su '+(curr.progressione?curr.progressione.length:0)+' settimane')
         ),
         (curr.note&&!TIPS[curr.nome])&&h('div',{style:{background:SURF2,borderRadius:10,padding:'10px 12px',marginBottom:14,fontSize:13,color:TEXT,lineHeight:1.5,borderLeft:'3px solid '+ACC}},curr.note),
+        lastForCurr && h(LastSessionHint,{info:lastForCurr}),
         curr.serie.map(function(s,si){
-          return h('div',{key:si,style:{background:s.ok?ACC5:SURF,border:'1px solid '+(s.ok?ACC3:BORD),borderRadius:10,padding:10,marginBottom:6,display:'flex',alignItems:'center',gap:8,transition:'all 0.2s'}},
-            h('div',{style:{minWidth:32,fontFamily:"'Bebas Neue',cursive",fontSize:18,color:s.ok?ACC:TEXT}},'#'+s.n),
+          var canRemove = curr.serie.length > 1;
+          return h('div',{key:si,style:{background:s.ok?ACC5:SURF,border:'1px solid '+(s.ok?ACC3:BORD),borderRadius:10,padding:10,marginBottom:6,display:'flex',alignItems:'center',gap:6,transition:'all 0.2s'}},
+            h('div',{style:{minWidth:26,fontFamily:"'Bebas Neue',cursive",fontSize:18,color:s.ok?ACC:TEXT}},'#'+s.n),
             h('div',{style:{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
               h('div',null,
                 h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em',marginBottom:1}},'KG'),
@@ -2182,7 +2741,12 @@ function PesiLive(p){
                 })
               )
             ),
-            h('button',{onClick:function(){setOk(ex,si);},'aria-label':s.ok?'Annulla serie':'Completa serie',style:{width:44,height:44,borderRadius:'50%',background:s.ok?ACC:'transparent',border:'2px solid '+(s.ok?ACC:BORD),color:s.ok?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},s.ok?h(Icon,{n:'check',sz:18,c:'var(--act)'}):'')
+            h('button',{onClick:function(){setOk(ex,si);},'aria-label':s.ok?'Annulla serie':'Completa serie',style:{width:44,height:44,borderRadius:'50%',background:s.ok?ACC:'transparent',border:'2px solid '+(s.ok?ACC:BORD),color:s.ok?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},s.ok?h(Icon,{n:'check',sz:18,c:'var(--act)'}):''),
+            canRemove && h('button',{
+              onClick:function(){hap(8);removeSerie(ex,si);},
+              'aria-label':'Rimuovi serie '+(si+1),
+              style:{width:32,height:44,background:'transparent',border:'none',color:'rgba(239,68,68,0.55)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,padding:0}
+            }, h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.55)'}))
           );
         }),
         h('button',{onClick:function(){addSerie(ex);},style:{width:'100%',padding:10,borderRadius:8,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:12,cursor:'pointer',marginTop:4}},'+ Aggiungi serie')
@@ -2231,7 +2795,7 @@ function CalLive(p){
   var _cfbr=useState(0);var calFbRating=_cfbr[0];var setCalFbRating=_cfbr[1];
   var _cfbt=useState('');var calFbText=_cfbt[0];var setCalFbText=_cfbt[1];
   var _cfbs=useState('idle');var calFbState=_cfbs[0];var setCalFbState=_cfbs[1];
-  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'1.8.7'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
+  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'1.9.1'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
   function calFbDismiss(){setCalFbState('done');}
   var calFbProps=calFbEligible?{show:true,state:calFbState,rating:calFbRating,text:calFbText,onRate:setCalFbRating,onText:setCalFbText,onSend:calFbSend,onDismiss:calFbDismiss}:null;
 
@@ -2239,8 +2803,39 @@ function CalLive(p){
 
   var setSerie=makeSetSerie(setEs);
   var addSerie=makeAddSerie(setEs);
+  var removeSerie=makeRemoveSerie(setEs);
   function addExercise(nome){
-    var newEx={id:uid(),nome:nome,tipo:'standard',serie:[{n:1,peso:0,reps:5,ok:false,t:null},{n:2,peso:0,reps:5,ok:false,t:null},{n:3,peso:0,reps:5,ok:false,t:null}]};
+    var skill = findCalSkill(nome);
+    var isHold = !!(skill && skill.type === 'hold');
+    /* Pre-popola dall'ultima sessione (reps, peso e durata) per ogni serie */
+    var last = findLastExerciseSession(nome, (p.allSessions||[]));
+    var baseSerie;
+    if(last && last.serie && last.serie.length){
+      var n = Math.min(Math.max(last.serie.length, 3), 5);
+      baseSerie = Array.from({length:n}, function(_, i){
+        var ref = last.serie[i] || last.serie[last.serie.length-1];
+        return {
+          n: i+1,
+          peso: ref.peso || 0,
+          reps: isHold ? 0 : (ref.reps || 5),
+          durata: isHold ? (ref.durata || 20) : (ref.durata || 0),
+          ok: false, t: null
+        };
+      });
+    } else {
+      baseSerie = isHold
+        ? [{n:1,peso:0,reps:0,durata:20,ok:false,t:null},{n:2,peso:0,reps:0,durata:20,ok:false,t:null},{n:3,peso:0,reps:0,durata:20,ok:false,t:null}]
+        : [{n:1,peso:0,reps:5,ok:false,t:null},{n:2,peso:0,reps:5,ok:false,t:null},{n:3,peso:0,reps:5,ok:false,t:null}];
+    }
+    var newEx={
+      id:uid(), nome:nome, tipo:'standard',
+      modalita: isHold ? 'hold' : 'reps',
+      livello: skill ? skill.lvl : null,
+      categoria: skill ? skill.categoryId : null,
+      muscoli: skill ? skill.muscoli : null,
+      progressioneA: skill ? skill.prog : null,
+      serie: baseSerie
+    };
     setEs(function(prev){return prev.concat([newEx]);});
     setPicker(false);
   }
@@ -2280,13 +2875,38 @@ function CalLive(p){
     h('div',{style:{flex:1,overflowY:'auto',padding:16}},
       es.length===0&&h('div',{style:{textAlign:'center',padding:'40px 20px',color:MUTED}},h('div',{style:{fontSize:48,marginBottom:12}},'🤸'),h('div',null,'Aggiungi il primo esercizio')),
       es.map(function(e,ei){
+        var isHold = e.modalita === 'hold';
+        var last = findLastExerciseSession(e.nome, (p.allSessions||[]));
+        var lvlColors = ['#94A3B8','#22C55E','#22C55E','#3B82F6','#A855F7','#F59E0B','#EF4444','#EF4444'];
         return h('div',{key:e.id,style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:12,marginBottom:8}},
-          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:'0.02em',marginBottom:8}},e.nome),
+          h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:e.muscoli?2:8}},
+            h('div',{style:{flex:1,minWidth:0}},
+              h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}},
+                h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:'0.02em'}},e.nome),
+                e.livello && h('span',{title:'Livello '+e.livello+'/7',style:{fontSize:9,padding:'2px 7px',borderRadius:20,background:'rgba(255,255,255,0.05)',border:'1px solid '+(lvlColors[e.livello]||BORD),color:(lvlColors[e.livello]||MUTED),fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},'LVL '+e.livello),
+                isHold && h('span',{style:{fontSize:9,padding:'2px 7px',borderRadius:20,background:ACC5,border:'1px solid '+ACC3,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},'HOLD')
+              ),
+              e.muscoli && h('div',{style:{fontSize:10,color:MUTED,marginTop:3}}, e.muscoli),
+              e.progressioneA && h('div',{style:{fontSize:10,color:'var(--muted-2)',marginTop:2}},'→ prossimo: '+e.progressioneA)
+            )
+          ),
+          last && h(LastSessionHint,{info:last}),
           e.serie.map(function(s,si){
-            return h('div',{key:si,style:{background:s.ok?ACC5:SURF2,border:'1px solid '+(s.ok?ACC3:BORD),borderRadius:8,padding:8,marginBottom:5,display:'flex',alignItems:'center',gap:8}},
-              h('div',{style:{minWidth:28,fontFamily:"'Bebas Neue',cursive",fontSize:16}},'#'+s.n),
+            var canRemove = e.serie.length > 1;
+            return h('div',{key:si,style:{background:s.ok?ACC5:SURF2,border:'1px solid '+(s.ok?ACC3:BORD),borderRadius:8,padding:8,marginBottom:5,display:'flex',alignItems:'center',gap:6}},
+              h('div',{style:{minWidth:24,fontFamily:"'Bebas Neue',cursive",fontSize:16}},'#'+s.n),
               h('div',{style:{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
-                h('div',null,
+                isHold ? h('div',null,
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'SEC'),
+                  h('input',{
+                    type:'text', inputMode:'numeric', pattern:'[0-9]*',
+                    value:(s.durata===0||s.durata==null)?'':String(s.durata),
+                    placeholder:'0',
+                    onFocus:function(e){ e.target.select(); },
+                    onChange:function(ev){setSerie(ei,si,'durata',ev.target.value);},
+                    style:{width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'6px 6px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:14,textAlign:'center',fontVariantNumeric:'tabular-nums'}
+                  })
+                ) : h('div',null,
                   h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'REPS'),
                   h('input',{
                     type:'text', inputMode:'numeric', pattern:'[0-9]*',
@@ -2298,7 +2918,7 @@ function CalLive(p){
                   })
                 ),
                 h('div',null,
-                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'KG (opz)'),
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},isHold?'+ KG (opz)':'KG (opz)'),
                   h('input',{
                     type:'text', inputMode:'decimal', pattern:'[0-9]*[.,]?[0-9]*',
                     value:(s.peso===0||s.peso==null)?'':String(s.peso).replace('.',','),
@@ -2309,7 +2929,12 @@ function CalLive(p){
                   })
                 )
               ),
-              h('button',{onClick:function(){hap(15);setOk(ei,si);},'aria-label':s.ok?'Annulla serie':'Completa serie',style:{width:44,height:44,borderRadius:'50%',background:s.ok?ACC:'transparent',border:'2px solid '+(s.ok?ACC:BORD),color:s.ok?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},s.ok?h(Icon,{n:'check',sz:16,c:'var(--act)'}):'')
+              h('button',{onClick:function(){hap(15);setOk(ei,si);},'aria-label':s.ok?'Annulla serie':'Completa serie',style:{width:44,height:44,borderRadius:'50%',background:s.ok?ACC:'transparent',border:'2px solid '+(s.ok?ACC:BORD),color:s.ok?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},s.ok?h(Icon,{n:'check',sz:16,c:'var(--act)'}):''),
+              canRemove && h('button',{
+                onClick:function(){hap(8);removeSerie(ei,si);},
+                'aria-label':'Rimuovi serie '+(si+1),
+                style:{width:28,height:44,background:'transparent',border:'none',color:'rgba(239,68,68,0.55)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,padding:0}
+              }, h(Icon,{n:'trash',sz:13,c:'rgba(239,68,68,0.55)'}))
             );
           }),
           h('button',{onClick:function(){addSerie(ei);},style:{width:'100%',padding:7,borderRadius:6,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:11,cursor:'pointer',marginTop:4}},'+ Serie')
@@ -2320,7 +2945,7 @@ function CalLive(p){
     h('div',{style:{padding:'12px 16px 32px',background:SURF,borderTop:'1px solid '+BORD}},
       h(Btn,{full:true,onClick:function(){setPicker(true);}},'+ Aggiungi esercizio')
     ),
-    picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:CAL_ES,label:'Aggiungi esercizio calisthenics'})
+    picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:CAL_ES,label:'Aggiungi esercizio calisthenics',mode:'cal'})
   );
 }
 
@@ -2503,9 +3128,20 @@ function Det(p){
 /* ── stats ── */
 function Stats(p){
   var sessions=p.sessions,go=p.go;
+  var _tab=useState('train');var tab=_tab[0];var setTab=_tab[1];
   var _1=useState(7);var range=_1[0];var setRange=_1[1];
   var _2=useState(null);var sel=_2[0];var setSel=_2[1];
   var ranges=[[7,'7g'],[30,'30g'],[90,'90g'],[365,'1a']];
+  /* Misure corporee (per il pannello "Corpo") */
+  var _bm=useState(loadBodyLog());var bodyLog=_bm[0];var setBodyLog=_bm[1];
+
+  if(tab==='body'){
+    return h('div',{style:{padding:'24px 16px 100px'}},
+      h(PageHeader,{title:'Statistiche'}),
+      h(StatsTabs,{tab:tab,setTab:setTab}),
+      h(BodyView,{log:bodyLog,setLog:setBodyLog,profile:p.profile})
+    );
+  }
   var cutoff=new Date(Date.now()-range*86400000);
   var prevCutoff=new Date(Date.now()-range*2*86400000);
   var data=sessions.filter(function(s){return new Date(s.t0)>=cutoff;});
@@ -2568,6 +3204,7 @@ function Stats(p){
 
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(PageHeader,{title:'Statistiche'}),
+    h(StatsTabs,{tab:tab,setTab:setTab}),
     h('div',{style:{display:'flex',gap:6,marginBottom:16}},
       ranges.map(function(r){return h('button',{key:r[0],onClick:function(){hap(8);setRange(r[0]);},style:{padding:'8px 14px',borderRadius:20,border:'1px solid '+(range===r[0]?ACC:BORD),background:range===r[0]?ACC2:'transparent',color:range===r[0]?ACC:MUTED,fontSize:13,cursor:'pointer',fontWeight:range===r[0]?700:400}},r[1]);})
     ),
@@ -2681,23 +3318,54 @@ function Stats(p){
       ),
 
       topExs.length>0&&h('div',null,
-        h(Lbl,null,'Top esercizi sala pesi · tonnellaggio'),
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}},
+          h(Lbl,null,'Top esercizi · tonnellaggio + andamento'),
+          h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},'tocca per dettaglio')
+        ),
         topExs.map(function(e){
-          return h('div',{key:e[0],onClick:function(){setSel({nome:e[0],sessions:sessions});},style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'12px 14px',marginBottom:8,cursor:'pointer'}},
-            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}},
-              h('div',{style:{fontSize:13,fontWeight:500}},e[0]),
-              h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700,fontVariantNumeric:'tabular-nums'}},Math.round(e[1])+'kg')
+          /* Trend per esercizio: confronta tonnellaggio medio per sessione tra prima metà e seconda metà del range */
+          var ptsForEx = [];
+          sessions.slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);}).forEach(function(s){
+            (s.es||[]).forEach(function(ex){
+              if(ex.nome !== e[0]) return;
+              var t = ton([ex]);
+              if(t>0) ptsForEx.push({t0:s.t0, v:t});
+            });
+          });
+          var trend = computeTrend(ptsForEx);
+          var volPerSess = ptsForEx.length ? Math.round(ptsForEx.reduce(function(a,p){return a+p.v;},0) / ptsForEx.length) : 0;
+          return h('div',{key:e[0],onClick:function(){hap(8);setSel({nome:e[0],sessions:sessions});},style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'12px 14px',marginBottom:8,cursor:'pointer'}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6,gap:8}},
+              h('div',{style:{fontSize:13,fontWeight:500,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},e[0]),
+              h('div',{style:{display:'flex',alignItems:'center',gap:6,flexShrink:0}},
+                ptsForEx.length>=2 && h(TrendBadge,{trend:trend}),
+                h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700,fontVariantNumeric:'tabular-nums'}},Math.round(e[1])+'kg')
+              )
             ),
-            h('div',{style:{height:6,background:BORD,borderRadius:3}},h('div',{style:{height:'100%',background:ACC,borderRadius:3,width:(e[1]/maxT*100)+'%'}}))
+            h('div',{style:{height:6,background:BORD,borderRadius:3,marginBottom:5}},h('div',{style:{height:'100%',background:ACC,borderRadius:3,width:(e[1]/maxT*100)+'%'}})),
+            h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},ptsForEx.length+' sessioni · media '+volPerSess+'kg/sessione')
           );
         })
       ),
       Object.keys(calByEx).length>0&&h('div',{style:{marginTop:18}},
-        h(Lbl,null,'Calisthenics · ripetizioni totali'),
+        h(Lbl,null,'Calisthenics · ripetizioni totali + andamento'),
         Object.entries(calByEx).sort(function(a,b){return b[1]-a[1];}).slice(0,5).map(function(e){
-          return h('div',{key:e[0],style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'10px 14px',marginBottom:6,display:'flex',justifyContent:'space-between'}},
-            h('div',{style:{fontSize:13}},e[0]),
-            h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700,fontVariantNumeric:'tabular-nums'}},e[1]+' reps')
+          /* Per la cal, trend è sulle reps totali per sessione */
+          var ptsForEx = [];
+          sessions.slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);}).forEach(function(s){
+            (s.es||[]).forEach(function(ex){
+              if(ex.nome !== e[0]) return;
+              var reps = (ex.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+(sr.reps||0)+ (sr.durata||0);},0);
+              if(reps>0) ptsForEx.push({t0:s.t0, v:reps});
+            });
+          });
+          var trend = computeTrend(ptsForEx);
+          return h('div',{key:e[0],onClick:function(){hap(8);setSel({nome:e[0],sessions:sessions});},style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'10px 14px',marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,cursor:'pointer'}},
+            h('div',{style:{fontSize:13,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},e[0]),
+            h('div',{style:{display:'flex',alignItems:'center',gap:6,flexShrink:0}},
+              ptsForEx.length>=2 && h(TrendBadge,{trend:trend}),
+              h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontSize:13,fontWeight:700,fontVariantNumeric:'tabular-nums'}},e[1]+' reps')
+            )
           );
         })
       )
@@ -2727,31 +3395,311 @@ function Chart(p){
 function EsDetail(p){
   var nome=p.nome,sessions=p.sessions,onClose=p.onClose;
   var hist=[];
+  var isCalEx = false;
   sessions.slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);}).forEach(function(s){
-    s.es.forEach(function(e){if(e.nome===nome){var f=e.serie.filter(function(sr){return sr.ok;});if(f.length){var t=f.reduce(function(a,sr){return a+sr.peso*sr.reps;},0);var mx=Math.max.apply(null,f.map(function(sr){return rm1(sr.peso,sr.reps);}));hist.push({t0:s.t0,v:t,mx:mx,sets:f.length});}}});
+    s.es.forEach(function(e){
+      if(e.nome!==nome) return;
+      if(s.tipo==='cal' || e.modalita==='hold') isCalEx = true;
+      var f=e.serie.filter(function(sr){return sr.ok;});
+      if(!f.length) return;
+      var t = f.reduce(function(a,sr){return a+(sr.peso||0)*(sr.reps||0);},0);
+      var mx = f.length ? Math.max.apply(null,f.map(function(sr){return rm1(sr.peso||0,sr.reps||0);})) : 0;
+      var reps = f.reduce(function(a,sr){return a+(sr.reps||0);},0);
+      var dur = f.reduce(function(a,sr){return a+(sr.durata||0);},0);
+      hist.push({t0:s.t0, v:t, mx:mx, sets:f.length, reps:reps, dur:dur, note:s.nota||''});
+    });
   });
   var rev=hist.slice().reverse();
+  /* Metrica principale: tonnellaggio per pesi, reps totali per cal, secondi per hold */
+  var primary = hist.map(function(x){
+    if(x.dur > 0) return {v: x.dur};
+    if(x.v > 0) return {v: x.v};
+    return {v: x.reps};
+  });
+  var trend = computeTrend(primary);
+  var primaryLabel = isCalEx ? (hist.some(function(x){return x.dur>0;}) ? 'Secondi totali (hold)' : 'Ripetizioni totali') : 'Tonnellaggio (kg)';
+  var first = primary.length ? primary[0].v : 0;
+  var last = primary.length ? primary[primary.length-1].v : 0;
   return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:200,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)onClose();}},
     h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'18px 16px 36px',maxHeight:'90vh',overflowY:'auto'}},
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}},
-        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,letterSpacing:'0.02em'}},nome),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14,gap:8}},
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,letterSpacing:'0.02em',lineHeight:1.1,marginBottom:hist.length>=2?4:0}},nome),
+          hist.length>=2 && h('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
+            h(TrendBadge,{trend:trend,showLabel:true}),
+            h('span',{style:{fontSize:11,color:MUTED}}, 'da ' + Math.round(first) + ' a ' + Math.round(last))
+          )
+        ),
         h('button',{onClick:onClose,style:{background:'none',border:'none',color:MUTED,cursor:'pointer'}},h(Icon,{n:'close',sz:20,c:MUTED}))
       ),
       hist.length>=2?h('div',null,
-        h(Lbl,null,'Tonnellaggio nel tempo'),
-        h(Chart,{data:hist}),
-        h('div',{style:{height:14}}),
-        h(Lbl,null,'1RM stimato (top)'),
-        h(Chart,{data:hist.map(function(x){return {v:x.mx};})})
-      ):h('div',{style:{textAlign:'center',padding:20,color:MUTED,fontSize:13}},'Servono almeno 2 sessioni'),
+        h(Lbl,null,primaryLabel+' nel tempo'),
+        h(Chart,{data:primary}),
+        h('div',{style:{fontSize:11,color:MUTED,marginTop:4,marginBottom:14,textAlign:'center'}},
+          trend.dir==='up'?'📈 Stai migliorando — continua così.':
+          trend.dir==='down'?'📉 Calo: rivedi recupero, sonno o riduci volume per 1 settimana.':
+          '➡️ Stallo: cambia stimolo (più volume, RPE, tecnica, oppure deload).'
+        ),
+        !isCalEx && h(Lbl,null,'1RM stimato (top)'),
+        !isCalEx && h(Chart,{data:hist.map(function(x){return {v:x.mx};})})
+      ):h('div',{style:{textAlign:'center',padding:20,color:MUTED,fontSize:13}},'Servono almeno 2 sessioni per vedere il trend.'),
       h('div',{style:{height:14}}),
-      h(Lbl,null,'Cronologia'),
+      h(Lbl,null,'Cronologia ('+rev.length+')'),
       rev.map(function(x,i){
-        return h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'0.5px solid '+BORD}},
-          h('div',{style:{fontSize:13}},fmtD(x.t0)),
-          h('div',{style:{fontSize:12,color:MUTED}},Math.round(x.v)+'kg · '+x.sets+' set · 1RM ~'+x.mx+'kg')
+        var dispVol = x.dur>0 ? (x.dur+'s · hold') : (x.v>0 ? Math.round(x.v)+'kg · 1RM ~'+x.mx+'kg' : x.reps+' reps');
+        return h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'0.5px solid '+BORD,gap:8}},
+          h('div',{style:{fontSize:13,flexShrink:0}},fmtD(x.t0)),
+          h('div',{style:{fontSize:12,color:MUTED,textAlign:'right'}},dispVol+' · '+x.sets+' set')
         );
       })
+    )
+  );
+}
+
+/* ── StatsTabs: switcher Allenamenti / Corpo ── */
+function StatsTabs(p){
+  var tab = p.tab, setTab = p.setTab;
+  var items = [['train','💪 Allenamenti'],['body','📏 Corpo & misure']];
+  return h('div',{style:{display:'flex',gap:4,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:4,marginBottom:14}},
+    items.map(function(it){
+      var on = tab === it[0];
+      return h('button',{key:it[0],onClick:function(){hap(8);setTab(it[0]);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:7,border:'none',background:on?ACC:'transparent',color:on?ACT:MUTED,fontSize:12,fontWeight:on?700:500,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em',textTransform:'uppercase'}},it[1]);
+    })
+  );
+}
+
+/* ── BodyView: misure corporee + grafici trend + export ──
+   Gestisce: registrazione entry (peso, %BF, %LBM, circonferenze), storico,
+   grafici trend per ogni metrica, export CSV per nutrizionista. */
+var BODY_FIELDS = [
+  {k:'peso',          lbl:'Peso',           unit:'kg', group:'comp'},
+  {k:'massaGrassa',   lbl:'Massa grassa',   unit:'%',  group:'comp'},
+  {k:'massaMagra',    lbl:'Massa magra',    unit:'kg', group:'comp'},
+  {k:'acquaCorporea', lbl:'Acqua corporea', unit:'%',  group:'comp'},
+  {k:'collo',     lbl:'Collo',     unit:'cm', group:'circ'},
+  {k:'spalle',    lbl:'Spalle',    unit:'cm', group:'circ'},
+  {k:'petto',     lbl:'Petto',     unit:'cm', group:'circ'},
+  {k:'vita',      lbl:'Vita',      unit:'cm', group:'circ'},
+  {k:'fianchi',   lbl:'Fianchi',   unit:'cm', group:'circ'},
+  {k:'bicipiteDx',lbl:'Bicipite dx',unit:'cm',group:'circ'},
+  {k:'bicipiteSx',lbl:'Bicipite sx',unit:'cm',group:'circ'},
+  {k:'avambraccioDx',lbl:'Avambraccio dx',unit:'cm',group:'circ'},
+  {k:'avambraccioSx',lbl:'Avambraccio sx',unit:'cm',group:'circ'},
+  {k:'cosciaDx',  lbl:'Coscia dx',  unit:'cm', group:'circ'},
+  {k:'cosciaSx',  lbl:'Coscia sx',  unit:'cm', group:'circ'},
+  {k:'polpaccioDx',lbl:'Polpaccio dx',unit:'cm',group:'circ'},
+  {k:'polpaccioSx',lbl:'Polpaccio sx',unit:'cm',group:'circ'}
+];
+function BodyView(p){
+  var log = p.log || [];
+  var setLog = p.setLog;
+  var profile = p.profile;
+  var _f = useState(false); var formOpen = _f[0]; var setFormOpen = _f[1];
+  var _ed = useState(null); var editing = _ed[0]; var setEditing = _ed[1];
+  var _sel = useState('peso'); var selMetric = _sel[0]; var setSelMetric = _sel[1];
+
+  var sorted = log.slice().sort(function(a,b){return new Date(a.t) - new Date(b.t);});
+  var hasData = sorted.length > 0;
+  var last = sorted.length ? sorted[sorted.length-1] : null;
+  var first = sorted.length ? sorted[0] : null;
+
+  function pointsFor(key){
+    return sorted.map(function(r){
+      var v = r[key];
+      if(v === undefined || v === null || v === '') return null;
+      var n = parseFloat(String(v).replace(',','.'));
+      if(isNaN(n)) return null;
+      return {t0: r.t, v: n};
+    }).filter(Boolean);
+  }
+  function trendFor(key){ return computeTrend(pointsFor(key)); }
+
+  function saveEntry(entry){
+    var arr;
+    if(editing && editing.id){
+      arr = log.map(function(x){return x.id===editing.id ? Object.assign({}, x, entry, {lastModified:Date.now()}) : x;});
+      saveBodyLog(arr);
+    } else {
+      arr = addBodyEntry(entry);
+    }
+    setLog(arr);
+    setFormOpen(false);
+    setEditing(null);
+  }
+  function deleteEntry(id){
+    if(!confirm('Eliminare questa misurazione?')) return;
+    setLog(delBodyEntry(id));
+  }
+
+  function exportCsv(){
+    var rows = sorted.map(function(r){
+      return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([r.note||'']);
+    });
+    var headers = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['Note']);
+    var csv = buildCsv(headers, rows);
+    downloadFile('gymtracker-misure-'+todayISO()+'.csv', csv, 'text/csv;charset=utf-8');
+  }
+
+  /* Selected metric chart */
+  var selPts = pointsFor(selMetric);
+  var selField = BODY_FIELDS.find(function(f){return f.k===selMetric;}) || BODY_FIELDS[0];
+  var selTrend = computeTrend(selPts);
+  var availableMetrics = BODY_FIELDS.filter(function(f){return pointsFor(f.k).length >= 1;});
+
+  return h('div',null,
+    /* KPI cards */
+    !hasData && h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
+      h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📏'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessuna misura ancora'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Aggiungi peso, percentuale grassa,',h('br'),'circonferenze e tieni traccia della composizione corporea.'),
+      h('button',{onClick:function(){setFormOpen(true);setEditing(null);},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'+ Prima misurazione')
+    ),
+    hasData && h('div',null,
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:10}},
+        h(Lbl,null,'Ultima misurazione'),
+        h('div',{style:{fontSize:11,color:MUTED}}, fmtD(last.t))
+      ),
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:14}},
+        ['peso','massaGrassa','massaMagra','vita'].map(function(k){
+          var fld = BODY_FIELDS.find(function(f){return f.k===k;});
+          var v = last[k];
+          if(v===undefined||v===null||v==='') return null;
+          var t = trendFor(k);
+          var firstV = first[k];
+          var dispDelta = null;
+          if(firstV && firstV !== v){
+            var dn = parseFloat(String(v).replace(',','.')) - parseFloat(String(firstV).replace(',','.'));
+            dispDelta = (dn>=0?'+':'') + (Math.round(dn*10)/10) + fld.unit;
+          }
+          /* Per il peso: il senso del "miglioramento" dipende dall'obiettivo (definizione: scendere; ipertrofia: salire) */
+          var inverseTrend = (k==='massaGrassa' || k==='vita' || (k==='peso' && profile && profile.obiettivo==='Definizione'));
+          var trendDispl = inverseTrend ? {dir: t.dir==='up'?'down':(t.dir==='down'?'up':'flat'), pct: -t.pct, delta:-t.delta} : t;
+          return h('div',{key:k,onClick:function(){setSelMetric(k);},style:{background:SURF2,border:'0.5px solid '+(selMetric===k?ACC:BORD),borderRadius:12,padding:'12px 10px',textAlign:'center',cursor:'pointer'}},
+            h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3}}, fld.lbl),
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,letterSpacing:'0.02em',color:ACC,lineHeight:1}}, v+fld.unit),
+            dispDelta && h('div',{style:{fontSize:10,marginTop:4,color: (trendDispl.dir==='up' ? 'var(--success)' : (trendDispl.dir==='down' ? 'var(--danger)' : MUTED)),fontFamily:"'Roboto Mono',monospace",fontWeight:700}}, dispDelta + ' dal 1°')
+          );
+        })
+      ),
+      /* Selector metrica per il grafico */
+      availableMetrics.length > 1 && h('div',null,
+        h(Lbl,null,'Trend per metrica'),
+        h('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}},
+          availableMetrics.map(function(f){
+            var on = selMetric === f.k;
+            return h('button',{key:f.k,onClick:function(){setSelMetric(f.k);},style:{padding:'5px 10px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:11,cursor:'pointer',fontWeight:on?700:400}}, f.lbl);
+          })
+        )
+      ),
+      selPts.length >= 2 && h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:14,marginBottom:14}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+          h('div',{style:{fontSize:13,fontWeight:500}}, selField.lbl + ' ('+selField.unit+')'),
+          h(TrendBadge,{trend:selTrend})
+        ),
+        h(Chart,{data:selPts}),
+        h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginTop:4}}, selPts.length+' misurazioni · da '+fmtD(selPts[0].t0)+' a '+fmtD(selPts[selPts.length-1].t0))
+      ),
+      selPts.length < 2 && selPts.length > 0 && h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:14,marginBottom:14,textAlign:'center',color:MUTED,fontSize:12}}, 'Serve almeno una seconda misurazione di "'+selField.lbl+'" per vedere il grafico.')
+    ),
+    /* CTA */
+    h('div',{style:{display:'flex',gap:8,marginBottom:18}},
+      h(Btn,{full:true,onClick:function(){setFormOpen(true);setEditing(null);}},'+ Nuova misurazione'),
+      hasData && h(Btn,{sec:true,onClick:exportCsv},'⬇  CSV')
+    ),
+    /* Storico cronologico */
+    hasData && h('div',null,
+      h(Lbl,null,'Storico'),
+      sorted.slice().reverse().map(function(r){
+        var summary = ['peso','massaGrassa','vita'].map(function(k){
+          var fld = BODY_FIELDS.find(function(f){return f.k===k;});
+          var v = r[k];
+          return (v!==undefined && v!==null && v!=='') ? fld.lbl.slice(0,3)+': '+v+fld.unit : null;
+        }).filter(Boolean).join(' · ');
+        return h('div',{key:r.id,style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:10,padding:'10px 12px',marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}},
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{fontSize:13,fontWeight:500,marginBottom:2}},fmtD(r.t)),
+            h('div',{style:{fontSize:11,color:MUTED,lineHeight:1.4}}, summary || 'Misurazione'),
+            r.note && h('div',{style:{fontSize:11,color:MUTED,fontStyle:'italic',marginTop:3}}, '“'+r.note+'”')
+          ),
+          h('div',{style:{display:'flex',gap:4,flexShrink:0}},
+            h('button',{onClick:function(){setEditing(r);setFormOpen(true);},style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:8,padding:'5px 9px',cursor:'pointer',color:MUTED,fontSize:11}},'Modifica'),
+            h('button',{onClick:function(){deleteEntry(r.id);},'aria-label':'Elimina',style:{background:'transparent',border:'none',cursor:'pointer',padding:'5px 4px',color:'rgba(239,68,68,0.6)'}}, h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.6)'}))
+          )
+        );
+      })
+    ),
+    formOpen && h(BodyEntryForm,{
+      initial: editing,
+      onClose: function(){setFormOpen(false); setEditing(null);},
+      onSave: saveEntry
+    })
+  );
+}
+
+/* ── BodyEntryForm: modale per aggiungere/modificare una misurazione ── */
+function BodyEntryForm(p){
+  var initial = p.initial || {};
+  var _f = useState(Object.assign({}, initial, {date: initial.t ? initial.t.slice(0,10) : todayISO()}));
+  var form = _f[0]; var setForm = _f[1];
+  useEffect(function(){lockScroll();return unlockScroll;},[]);
+  function set(k, v){ setForm(function(prev){var u=Object.assign({},prev);u[k]=v;return u;}); }
+  var inp = {width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'7px 8px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:13,textAlign:'right',fontVariantNumeric:'tabular-nums'};
+
+  function submit(){
+    var entry = {};
+    BODY_FIELDS.forEach(function(f){
+      var v = form[f.k];
+      if(v !== undefined && v !== null && v !== ''){
+        var n = parseFloat(String(v).replace(',','.'));
+        if(!isNaN(n)) entry[f.k] = n;
+      }
+    });
+    if(form.note && form.note.trim()) entry.note = form.note.trim();
+    if(form.date){
+      var d = new Date(form.date + 'T12:00:00');
+      if(!isNaN(d.getTime())) entry.t = d.toISOString();
+    }
+    if(Object.keys(entry).length === 0){ alert('Inserisci almeno un valore.'); return; }
+    p.onSave(entry);
+  }
+  function field(f){
+    return h('div',{key:f.k,style:{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'0.5px solid '+BORD}},
+      h('div',{style:{flex:1,fontSize:13}}, f.lbl),
+      h('input',{
+        type:'text', inputMode:'decimal', pattern:'[0-9]*[.,]?[0-9]*',
+        value: form[f.k]!==undefined && form[f.k]!==null ? String(form[f.k]).replace('.',',') : '',
+        placeholder:'—',
+        onFocus:function(e){e.target.select();},
+        onChange:function(e){set(f.k, e.target.value.replace(',','.'));},
+        style:Object.assign({},inp,{maxWidth:90})
+      }),
+      h('div',{style:{minWidth:24,fontSize:11,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}}, f.unit)
+    );
+  }
+
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:300,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)p.onClose();}},
+    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'18px 16px 28px',maxHeight:'92vh',overflowY:'auto'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em'}}, initial && initial.id ? 'Modifica misurazione' : 'Nuova misurazione'),
+        h('button',{onClick:p.onClose,'aria-label':'Chiudi',style:{background:'none',border:'none',color:MUTED,cursor:'pointer'}}, h(Icon,{n:'close',sz:20,c:MUTED}))
+      ),
+      h('div',{style:{fontSize:12,color:MUTED,marginBottom:14,lineHeight:1.45}}, 'Compila solo i campi che ti servono. Tutto opzionale tranne la data.'),
+      h(Lbl,null,'Data'),
+      h('input',{type:'date',value:form.date||todayISO(),onChange:function(e){set('date',e.target.value);},style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'9px 12px',color:TEXT,fontSize:14,marginBottom:14}}),
+      h(Lbl,null,'Composizione corporea'),
+      h('div',{style:{background:SURF2,borderRadius:10,padding:'2px 10px',marginBottom:14}},
+        BODY_FIELDS.filter(function(f){return f.group==='comp';}).map(field)
+      ),
+      h(Lbl,null,'Circonferenze (cm)'),
+      h('div',{style:{background:SURF2,borderRadius:10,padding:'2px 10px',marginBottom:14}},
+        BODY_FIELDS.filter(function(f){return f.group==='circ';}).map(field)
+      ),
+      h(Lbl,null,'Nota (opzionale)'),
+      h('textarea',{value:form.note||'',onChange:function(e){set('note',e.target.value);},rows:2,placeholder:'Sensazioni, condizioni, dieta…',style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'9px 12px',color:TEXT,fontSize:13,marginBottom:14,resize:'vertical',fontFamily:'inherit'}}),
+      h('div',{style:{display:'flex',gap:8}},
+        h(Btn,{full:true,onClick:submit}, initial && initial.id ? 'Salva modifiche' : 'Salva misurazione'),
+        h(Btn,{sec:true,onClick:p.onClose}, 'Annulla')
+      )
     )
   );
 }
@@ -3613,7 +4561,7 @@ function App(){
     view==='callive'&&h(CalLive,{go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
     view==='log'&&h(Log,{sessions:liveSessions,schede:liveSchede,go:go}),
     view==='det'&&h(Det,{s:args.s,schede:liveSchede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');}}),
-    view==='stats'&&h(Stats,{sessions:liveSessions,go:go}),
+    view==='stats'&&h(Stats,{sessions:liveSessions,go:go,profile:profile}),
     view==='scheda'&&h(SchedaV,{schede:liveSchede,setSchede:function(updater){
       setSchede(function(prev){
         var next = typeof updater === 'function' ? updater(prev) : updater;

@@ -1,10 +1,92 @@
-# GymTracker — Miglioramenti applicati (v1.5.1)
+# GymTracker — Miglioramenti applicati (v1.9.1)
 
 Documento di riferimento delle modifiche applicate all'app GymTracker. Le sezioni sono divise in **Fatte** (già nel codice) e **Da fare** (rimane lavoro manuale o decisioni da prendere).
 
 ---
 
-## 🟢 Cosa è stato fatto
+## 🚀 Novità v1.9.1 — Last-session pre-fill, sala pesi libera, offline robusto
+
+### 1. Pre-popolamento da ultima sessione
+- All'apertura di un esercizio in **PesiLive** (init state), peso e reps di ogni serie sono presi dall'ultima sessione in cui quell'esercizio è stato eseguito — anche da schede ora inattive.
+- Stesso pre-fill quando si aggiunge un esercizio mid-session (`addExercise(nome,where)`).
+- Stesso pre-fill anche in **CalLive** per reps, peso e durata (per gli hold).
+- Il numero di serie pre-popolate è clampato fra 3 e 5 (non vogliamo 10 serie ereditate da uno scherzo passato).
+
+### 2. Sala pesi libera (senza scheda)
+- Nuova card "**Sala pesi libera**" in Start (terza opzione, dopo "Sala pesi" e "Calisthenics").
+- Avvia `PesiLive` con `bl = {id:'pesi-free', nome:'Sala pesi libera', es:[]}`.
+- `PesiLive` ora gestisce `es.length === 0` con un empty state dedicato: titolo, emoji, descrizione, bottone "+ Aggiungi primo esercizio".
+- L'inserimento mano a mano funziona come in calisthenics; ogni esercizio si aggancia automaticamente al pre-fill dell'ultima sessione.
+
+### 3. Offline robusto
+- SW v1.9.1: l'install prova a precachare anche React, ReactDOM e Supabase JS dai CDN (best-effort, fallisce silente se uno è giù).
+- Risultato: dopo l'install, anche se l'utente riapre l'app **offline al primo riavvio**, il boot funziona senza scaricare nulla dalla rete.
+- Confermato: tutte le sessioni live, le misure corporee, il timer, le notifiche, gli export funzionano offline. Solo login Supabase e sync cloud richiedono connessione (la sync riprende automatica appena si torna online via `lastModified`).
+
+---
+
+## 🚀 Novità v1.9.0 — Progressi: corpo, allenamenti, calisthenics
+
+### 1. Tracking corporeo dentro Stats
+- Nuova tab **"📏 Corpo & misure"** dentro la schermata Statistiche (tab switcher in alto).
+- Form per registrare misurazioni: **peso, massa grassa %, massa magra, acqua corporea %, circonferenze** (collo, spalle, petto, vita, fianchi, bicipiti dx/sx, avambracci, cosce, polpacci).
+- KPI card con valore corrente + delta rispetto alla prima misurazione (colore success/danger in base all'obiettivo: per "Definizione" il calo del peso è verde; per "Ipertrofia" l'aumento).
+- **Grafico trend per ogni metrica** con `TrendBadge` (▲ +5% / ▼ -3% / = stallo).
+- Storico cronologico con possibilità di modificare/eliminare ogni rilevazione.
+- Persistenza in localStorage (`gymtracker_body_v1`) — verrà esteso al cloud in v1.10.
+- Pulsante "⬇ CSV" per esportare tutte le misure.
+
+### 2. "Ultima volta" — peso e nota della sessione scorsa
+- Hook `findLastExerciseSession(esNome, allSessions)` cerca su **tutte le sessioni** (anche schede ora inattive).
+- Sopra le serie in PesiLive e CalLive: **badge lime** con "Ultima · 3g fa" + summary "80kg×8 · 80kg×8 · 75kg×6" + nota della sessione scorsa fra virgolette.
+- Risolve il problema: "non mi ricordo come è andata l'ultima volta su questo esercizio".
+
+### 3. Rimozione serie su PesiLive e CalLive
+- Aggiunto helper `makeRemoveSerie(setEs)` (parallelo a `makeAddSerie`).
+- **Bottone cestino rosso** accanto al checkmark di ogni serie. Renumera automaticamente le serie restanti (#1, #2, #3…).
+- Mantiene sempre almeno 1 serie (per cancellare l'esercizio servono le opzioni di modifica).
+- Prima si potevano solo **aggiungere**, ora si possono anche **rimuovere** quelle di default.
+
+### 4. Andamento per esercizio in Stats
+- Top esercizi sala pesi: per ogni voce mostra `TrendBadge` con % di variazione fra prima e ultima sessione.
+- Calisthenics: stessa logica su reps totali (o secondi per gli hold).
+- Click su esercizio → **EsDetail modale** con:
+  - Banner trend con direzione + valore primo → ultimo.
+  - Grafico tonnellaggio/reps/secondi nel tempo + suggerimento ("📈 stai migliorando", "📉 calo: rivedi recupero", "➡️ stallo: cambia stimolo o deload").
+  - Grafico 1RM stimato (solo pesi).
+  - Cronologia completa con set/reps/peso per data.
+
+### 5. Calisthenics completamente ridisegnato
+- Nuovo catalogo `CAL_CATALOG` con **7 categorie**:
+  - **⬆️ Pull** — 17 esercizi (Australian → Pull-up → Archer → One Arm)
+  - **➡️ Push & Dip** — 27 esercizi (Knee Push-up → Planche Push-up, Bench Dip → Impossible Dip)
+  - **🪧 Lever (statici)** — 25 esercizi (Skin the Cat, Front/Back Lever, Planche, Human Flag, Iron Cross, Maltese, Victorian)
+  - **🎯 Core & Compressione** — 22 esercizi (Plank, L-sit, Dragon Flag, Manna, Ab Wheel)
+  - **🦵 Gambe a corpo libero** — 19 esercizi (Pistol, Shrimp, Nordic, Sissy)
+  - **🤸 Handstand & Equilibrio** — 17 esercizi (Frog Stand → One Arm HS)
+  - **🧘 Mobilità & Bridge** — 9 esercizi
+- Ogni esercizio ha **livello 1-7** (skill ladder, codificato a colori: grigio → verde → blu → viola → arancione → rosso).
+- Ogni esercizio ha campo `type: 'reps' | 'hold'`. Gli **hold** mostrano input SEC invece di REPS.
+- Ogni esercizio ha campo `prog` (next skill suggerita).
+- Picker calisthenics raggruppa per categoria e poi per livello.
+- In CalLive, ogni esercizio mostra: badge LVL, badge HOLD (se applicabile), muscoli coinvolti, "→ prossimo".
+
+### 6. Export per nutrizionista / coach
+- Bottone "📄 Report (.txt)" in Settings: genera report umano-leggibile con:
+  - Profilo (età, altezza, obiettivo, livello).
+  - Tutte le misurazioni corporee con data.
+  - Variazioni prima → ultima per ogni metrica.
+  - Riepilogo per settimana: sessioni, durata, tonnellaggio, reps, set per gruppo muscolare.
+  - Totali su tutto il periodo attivo.
+- Bottone "📊 CSV": dump strutturato (sezione misure + sezione settimanale + sezione profilo).
+- Nome file: `gymtracker-nutrizionista-YYYY-MM-DD.txt/csv`.
+
+### 7. Backup esteso
+- L'export JSON di backup ora include anche `bodyLog`.
+
+---
+
+## 🟢 Cosa è stato fatto (versioni precedenti)
 
 ### A. Fix critici (qualità tecnica) — v1.5.1
 
