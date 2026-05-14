@@ -32,11 +32,26 @@
  *   - v1.8.3: scroll lock iOS modali, anti-double-click save, badge sync offline/errore
  *             tappabile, avviso localStorage pieno, fallback SW registration failure.
  *   - v1.8.4: log diagnostico in-memory con export, UI in Settings per copia/invio email.
+ *   - v1.8.5: fix cross-user contamination — al primo login chiediamo conferma prima
+ *             di migrare i dati localStorage sul nuovo account cloud (evita che chi
+ *             si registra su un device già usato erediti le schede di un altro).
+ *   - v1.8.6: rimozione completa del livello localStorage per i dati utente.
+ *             Il cloud Supabase è ora l'unica sorgente di verità: niente più
+ *             migrazione, niente Gist legacy, niente snapshot locali, niente
+ *             persistenza React→localStorage. Sopravvivono solo tema (TK) e
+ *             frequenza esercizi (FK) come preferenze di device. One-shot
+ *             cleanup all'avvio rimuove chiavi residue da installazioni vecchie.
+ *   - v1.8.7: design refresh — Login con claim "ALLENA · TRACCIA · CRESCI" e
+ *             logo che respira; Home empty state più motivazionale; stats Home
+ *             con streak 🔥, trend vs settimana scorsa e tooltip esplicativi;
+ *             pill sync più visibile; scheda attiva con badge "IN USO" e glow;
+ *             Stats con explainer MEV/MAV/MRV plain-Italian; "Log" → "Storico"
+ *             in nav, "Log diagnostico" → "Segnala un problema" in Settings.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.8.4';
+const CACHE_VERSION = 'gymtracker-v1.8.7';
 const CACHE_RUNTIME = 'gymtracker-runtime-v3';
 
 /* HTML escluso dalla precache: viene preso network-first. */
@@ -58,8 +73,6 @@ function isHtmlRequest(url, req){
 }
 
 const BYPASS_HOSTS = [
-  'api.github.com',
-  'gist.githubusercontent.com',
   /* Supabase: auth + REST API + realtime — sempre fresco, mai in cache */
   '.supabase.co',
   '.supabase.in'
