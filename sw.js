@@ -25,11 +25,18 @@
  *             RLS policy DB-side (la vera barriera di sicurezza).
  *   - v1.8.1: Admin write/delete — edit profilo utenti, soft-delete schede/sessioni,
  *             delete feedback, delete account completo via Edge Function admin-delete-user.
+ *   - v1.8.2: CSP meta tag, font preload, fix versione feedback, fix Stats MEV/MAV/MRV,
+ *             accessibilità (aria-label, nav semantico, aria-pressed mood),
+ *             fix wake lock memory leak, TimerBar floating overlay (C6),
+ *             fix flash ProfileSetup al login (attende cloud load prima di mostrarlo).
+ *   - v1.8.3: scroll lock iOS modali, anti-double-click save, badge sync offline/errore
+ *             tappabile, avviso localStorage pieno, fallback SW registration failure.
+ *   - v1.8.4: log diagnostico in-memory con export, UI in Settings per copia/invio email.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.8.1';
+const CACHE_VERSION = 'gymtracker-v1.8.4';
 const CACHE_RUNTIME = 'gymtracker-runtime-v3';
 
 /* HTML escluso dalla precache: viene preso network-first. */
