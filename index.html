@@ -358,7 +358,7 @@ function gtLogExport(){
   var online = navigator.onLine ? 'online' : 'offline';
   var swOk = 'serviceWorker' in navigator && navigator.serviceWorker.controller ? 'attivo' : 'no';
   var header = '=== GymTracker Diagnostic Log ===\n' +
-    'Versione: v1.9.1\n' +
+    'Versione: v1.9.2\n' +
     'Data export: ' + new Date().toISOString() + '\n' +
     'User-Agent: ' + ua + '\n' +
     'Schermo: ' + screen + ' @ ' + (window.devicePixelRatio||1) + 'x\n' +
@@ -1850,7 +1850,7 @@ function Settings(p){
     if(!fbMsg.trim()){ alert('Scrivi qualcosa prima di inviare'); return; }
     setFbSending(true); setFbOk('');
     try{
-      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'1.9.1'});
+      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'1.9.2'});
       if(r.error) throw r.error;
       setFbMsg(''); setFbOk('Grazie! Feedback ricevuto.');
       setTimeout(function(){ setFbOk(''); }, 3500);
@@ -1914,13 +1914,16 @@ function Settings(p){
     });
     var weekKeys = Object.keys(weeks).sort();
 
+    var altezzaCmExp = profile && profile.altezza ? parseFloat(String(profile.altezza).replace(',','.')) : null;
+
     if(format === 'csv'){
       /* CSV con due sezioni: misure + settimane */
       var sections = [];
       sections.push('=== MISURE CORPOREE ===');
-      var bodyHeaders = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['Note']);
+      var bodyHeaders = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['BMI (kg/m²)','Note']);
       var bodyRows = bodyLog.map(function(r){
-        return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([r.note||'']);
+        var bmi = calcBmi(r.peso, altezzaCmExp);
+        return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([bmi!=null?bmi:'', r.note||'']);
       });
       sections.push(buildCsv(bodyHeaders, bodyRows));
       sections.push('');
@@ -1966,6 +1969,11 @@ function Settings(p){
             L.push('    '+f.lbl+': '+r[f.k]+' '+f.unit);
           }
         });
+        var bmiR = calcBmi(r.peso, altezzaCmExp);
+        if(bmiR != null){
+          var cat = bmiCategory(bmiR);
+          L.push('    BMI: '+bmiR+' kg/m²' + (cat?' ('+cat.label+')':''));
+        }
         if(r.note) L.push('    Nota: '+r.note);
         L.push('');
       });
@@ -1980,6 +1988,11 @@ function Settings(p){
             L.push('  '+f.lbl+': '+first[f.k]+' → '+last[f.k]+' '+f.unit+'  ('+(d>=0?'+':'')+(Math.round(d*10)/10)+' '+f.unit+')');
           }
         });
+        var bmiF = calcBmi(first.peso, altezzaCmExp), bmiL = calcBmi(last.peso, altezzaCmExp);
+        if(bmiF != null && bmiL != null){
+          var dBmi = bmiL - bmiF;
+          L.push('  BMI: '+bmiF+' → '+bmiL+' kg/m²  ('+(dBmi>=0?'+':'')+(Math.round(dBmi*10)/10)+' kg/m²)');
+        }
         L.push('');
       }
     } else {
@@ -2533,7 +2546,7 @@ function PesiLive(p){
   var _fbr=useState(0);var fbRating=_fbr[0];var setFbRating=_fbr[1];
   var _fbt=useState('');var fbText=_fbt[0];var setFbText=_fbt[1];
   var _fbs2=useState('idle');var fbState=_fbs2[0];var setFbState=_fbs2[1];
-  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'1.9.1'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
+  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'1.9.2'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
   function fbDismiss(){setFbState('done');}
   var fbProps=fbEligible?{show:true,state:fbState,rating:fbRating,text:fbText,onRate:setFbRating,onText:setFbText,onSend:fbSend,onDismiss:fbDismiss}:null;
 
@@ -2795,7 +2808,7 @@ function CalLive(p){
   var _cfbr=useState(0);var calFbRating=_cfbr[0];var setCalFbRating=_cfbr[1];
   var _cfbt=useState('');var calFbText=_cfbt[0];var setCalFbText=_cfbt[1];
   var _cfbs=useState('idle');var calFbState=_cfbs[0];var setCalFbState=_cfbs[1];
-  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'1.9.1'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
+  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'1.9.2'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
   function calFbDismiss(){setCalFbState('done');}
   var calFbProps=calFbEligible?{show:true,state:calFbState,rating:calFbRating,text:calFbText,onRate:setCalFbRating,onText:setCalFbText,onSend:calFbSend,onDismiss:calFbDismiss}:null;
 
@@ -3472,28 +3485,42 @@ function StatsTabs(p){
    Gestisce: registrazione entry (peso, %BF, %LBM, circonferenze), storico,
    grafici trend per ogni metrica, export CSV per nutrizionista. */
 var BODY_FIELDS = [
-  {k:'peso',          lbl:'Peso',           unit:'kg', group:'comp'},
-  {k:'massaGrassa',   lbl:'Massa grassa',   unit:'%',  group:'comp'},
-  {k:'massaMagra',    lbl:'Massa magra',    unit:'kg', group:'comp'},
-  {k:'acquaCorporea', lbl:'Acqua corporea', unit:'%',  group:'comp'},
-  {k:'collo',     lbl:'Collo',     unit:'cm', group:'circ'},
-  {k:'spalle',    lbl:'Spalle',    unit:'cm', group:'circ'},
-  {k:'petto',     lbl:'Petto',     unit:'cm', group:'circ'},
-  {k:'vita',      lbl:'Vita',      unit:'cm', group:'circ'},
-  {k:'fianchi',   lbl:'Fianchi',   unit:'cm', group:'circ'},
-  {k:'bicipiteDx',lbl:'Bicipite dx',unit:'cm',group:'circ'},
-  {k:'bicipiteSx',lbl:'Bicipite sx',unit:'cm',group:'circ'},
-  {k:'avambraccioDx',lbl:'Avambraccio dx',unit:'cm',group:'circ'},
-  {k:'avambraccioSx',lbl:'Avambraccio sx',unit:'cm',group:'circ'},
-  {k:'cosciaDx',  lbl:'Coscia dx',  unit:'cm', group:'circ'},
-  {k:'cosciaSx',  lbl:'Coscia sx',  unit:'cm', group:'circ'},
-  {k:'polpaccioDx',lbl:'Polpaccio dx',unit:'cm',group:'circ'},
-  {k:'polpaccioSx',lbl:'Polpaccio sx',unit:'cm',group:'circ'}
+  /* Composizione — peso si pre-popola dal profilo, BMI è auto-calcolato (non field) */
+  {k:'peso',           lbl:'Peso',            unit:'kg', group:'comp'},
+  {k:'massaGrassaKg',  lbl:'Massa grassa',    unit:'kg', group:'comp'},
+  {k:'massaMagraKg',   lbl:'Massa magra',     unit:'kg', group:'comp'},
+  /* Idratazione */
+  {k:'acquaTotale',    lbl:'Acqua totale',          unit:'L', group:'idro'},
+  {k:'acquaExtra',     lbl:'Acqua extracellulare',  unit:'L', group:'idro'},
+  {k:'acquaIntra',     lbl:'Acqua intracellulare',  unit:'L', group:'idro'},
+  /* Circonferenze (4 punti chiave) */
+  {k:'vita',     lbl:'Vita',    unit:'cm', group:'circ'},
+  {k:'fianchi',  lbl:'Fianchi', unit:'cm', group:'circ'},
+  {k:'addome',   lbl:'Addome',  unit:'cm', group:'circ'},
+  {k:'coscia',   lbl:'Coscia',  unit:'cm', group:'circ'}
 ];
+/* Field "virtuale" calcolato: BMI = peso / (altezza_m)^2.
+   Non si inserisce manualmente, ma viene incluso nei grafici trend e nelle KPI.
+   Categoria OMS: <18.5 sottopeso · 18.5-24.9 normo · 25-29.9 sovrappeso · ≥30 obeso. */
+function calcBmi(peso, altezzaCm){
+  var p = parseFloat(String(peso).replace(',','.'));
+  var a = parseFloat(String(altezzaCm).replace(',','.'));
+  if(!p || !a || a <= 0) return null;
+  var m = a / 100;
+  return Math.round((p / (m*m)) * 10) / 10;
+}
+function bmiCategory(bmi){
+  if(bmi == null) return null;
+  if(bmi < 18.5) return {label:'sottopeso', color:'#3B82F6'};
+  if(bmi < 25)   return {label:'normopeso', color:'var(--success)'};
+  if(bmi < 30)   return {label:'sovrappeso', color:'var(--warning)'};
+  return {label:'obesità', color:'var(--danger)'};
+}
 function BodyView(p){
   var log = p.log || [];
   var setLog = p.setLog;
   var profile = p.profile;
+  var altezzaCm = profile && profile.altezza ? parseFloat(String(profile.altezza).replace(',','.')) : null;
   var _f = useState(false); var formOpen = _f[0]; var setFormOpen = _f[1];
   var _ed = useState(null); var editing = _ed[0]; var setEditing = _ed[1];
   var _sel = useState('peso'); var selMetric = _sel[0]; var setSelMetric = _sel[1];
@@ -3505,7 +3532,12 @@ function BodyView(p){
 
   function pointsFor(key){
     return sorted.map(function(r){
-      var v = r[key];
+      var v;
+      if(key === 'bmi'){
+        v = calcBmi(r.peso, altezzaCm);
+      } else {
+        v = r[key];
+      }
       if(v === undefined || v === null || v === '') return null;
       var n = parseFloat(String(v).replace(',','.'));
       if(isNaN(n)) return null;
@@ -3513,6 +3545,11 @@ function BodyView(p){
     }).filter(Boolean);
   }
   function trendFor(key){ return computeTrend(pointsFor(key)); }
+  function valueFor(rec, key){
+    if(!rec) return null;
+    if(key === 'bmi') return calcBmi(rec.peso, altezzaCm);
+    return (rec[key]!==undefined && rec[key]!==null && rec[key]!=='') ? rec[key] : null;
+  }
 
   function saveEntry(entry){
     var arr;
@@ -3533,25 +3570,36 @@ function BodyView(p){
 
   function exportCsv(){
     var rows = sorted.map(function(r){
-      return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([r.note||'']);
+      var bmi = calcBmi(r.peso, altezzaCm);
+      return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([bmi!=null?bmi:'', r.note||'']);
     });
-    var headers = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['Note']);
+    var headers = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['BMI (kg/m²)','Note']);
     var csv = buildCsv(headers, rows);
     downloadFile('gymtracker-misure-'+todayISO()+'.csv', csv, 'text/csv;charset=utf-8');
   }
 
-  /* Selected metric chart */
+  /* Metriche disponibili per il grafico: include BMI come pseudo-field calcolato */
+  var BMI_FIELD = {k:'bmi', lbl:'BMI', unit:'kg/m²'};
+  var allFields = BODY_FIELDS.concat([BMI_FIELD]);
   var selPts = pointsFor(selMetric);
-  var selField = BODY_FIELDS.find(function(f){return f.k===selMetric;}) || BODY_FIELDS[0];
+  var selField = allFields.find(function(f){return f.k===selMetric;}) || BODY_FIELDS[0];
   var selTrend = computeTrend(selPts);
-  var availableMetrics = BODY_FIELDS.filter(function(f){return pointsFor(f.k).length >= 1;});
+  var availableMetrics = allFields.filter(function(f){return pointsFor(f.k).length >= 1;});
+
+  /* Per il KPI BMI dell'ultima misurazione */
+  var lastBmi = last ? calcBmi(last.peso, altezzaCm) : null;
+  var lastBmiCat = bmiCategory(lastBmi);
 
   return h('div',null,
-    /* KPI cards */
+    /* Riga info altezza/profilo se manca per BMI */
+    hasData && !altezzaCm && h('div',{style:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:10,padding:'10px 12px',marginBottom:12,fontSize:11,color:TEXT,lineHeight:1.5}},
+      '⚠️ Aggiungi l\'altezza in Impostazioni → Profilo per calcolare il BMI.'
+    ),
+    /* Empty state */
     !hasData && h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
       h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📏'),
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessuna misura ancora'),
-      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Aggiungi peso, percentuale grassa,',h('br'),'circonferenze e tieni traccia della composizione corporea.'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Aggiungi peso, massa grassa/magra,',h('br'),'idratazione e circonferenze: vedrai i trend nel tempo.'),
       h('button',{onClick:function(){setFormOpen(true);setEditing(null);},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'+ Prima misurazione')
     ),
     hasData && h('div',null,
@@ -3559,24 +3607,31 @@ function BodyView(p){
         h(Lbl,null,'Ultima misurazione'),
         h('div',{style:{fontSize:11,color:MUTED}}, fmtD(last.t))
       ),
+      /* KPI grid: peso, BMI, massa grassa, vita — sempre 4 card; se manca un valore mostra "—" */
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:14}},
-        ['peso','massaGrassa','massaMagra','vita'].map(function(k){
-          var fld = BODY_FIELDS.find(function(f){return f.k===k;});
-          var v = last[k];
-          if(v===undefined||v===null||v==='') return null;
-          var t = trendFor(k);
-          var firstV = first[k];
+        [
+          {k:'peso',          lbl:'Peso',         unit:'kg',    inverse:(profile&&profile.obiettivo==='Definizione')},
+          {k:'bmi',           lbl:'BMI',          unit:'kg/m²', inverse:false, extra:lastBmiCat?lastBmiCat.label:null, extraColor:lastBmiCat?lastBmiCat.color:null},
+          {k:'massaGrassaKg', lbl:'Massa grassa', unit:'kg',    inverse:true},
+          {k:'vita',          lbl:'Vita',         unit:'cm',    inverse:true}
+        ].map(function(c){
+          var v = valueFor(last, c.k);
+          var firstV = valueFor(first, c.k);
+          var t = trendFor(c.k);
           var dispDelta = null;
-          if(firstV && firstV !== v){
+          if(v!=null && firstV!=null && firstV !== v){
             var dn = parseFloat(String(v).replace(',','.')) - parseFloat(String(firstV).replace(',','.'));
-            dispDelta = (dn>=0?'+':'') + (Math.round(dn*10)/10) + fld.unit;
+            if(Math.abs(dn) >= 0.1){
+              dispDelta = (dn>=0?'+':'') + (Math.round(dn*10)/10) + c.unit;
+            }
           }
-          /* Per il peso: il senso del "miglioramento" dipende dall'obiettivo (definizione: scendere; ipertrofia: salire) */
-          var inverseTrend = (k==='massaGrassa' || k==='vita' || (k==='peso' && profile && profile.obiettivo==='Definizione'));
-          var trendDispl = inverseTrend ? {dir: t.dir==='up'?'down':(t.dir==='down'?'up':'flat'), pct: -t.pct, delta:-t.delta} : t;
-          return h('div',{key:k,onClick:function(){setSelMetric(k);},style:{background:SURF2,border:'0.5px solid '+(selMetric===k?ACC:BORD),borderRadius:12,padding:'12px 10px',textAlign:'center',cursor:'pointer'}},
-            h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3}}, fld.lbl),
-            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,letterSpacing:'0.02em',color:ACC,lineHeight:1}}, v+fld.unit),
+          var trendDispl = c.inverse ? {dir: t.dir==='up'?'down':(t.dir==='down'?'up':'flat'), pct: -t.pct, delta:-t.delta} : t;
+          var displayValue = v != null ? (String(v).replace('.',',') + c.unit) : '—';
+          var key = c.k;
+          return h('div',{key:key,onClick:function(){setSelMetric(key);},style:{background:SURF2,border:'0.5px solid '+(selMetric===key?ACC:BORD),borderRadius:12,padding:'12px 10px',textAlign:'center',cursor:'pointer',opacity:v!=null?1:0.55}},
+            h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3}}, c.lbl),
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,letterSpacing:'0.02em',color:v!=null?ACC:MUTED,lineHeight:1}}, displayValue),
+            c.extra && v!=null && h('div',{style:{fontSize:10,marginTop:3,color:c.extraColor||MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase'}}, c.extra),
             dispDelta && h('div',{style:{fontSize:10,marginTop:4,color: (trendDispl.dir==='up' ? 'var(--success)' : (trendDispl.dir==='down' ? 'var(--danger)' : MUTED)),fontFamily:"'Roboto Mono',monospace",fontWeight:700}}, dispDelta + ' dal 1°')
           );
         })
@@ -3610,11 +3665,12 @@ function BodyView(p){
     hasData && h('div',null,
       h(Lbl,null,'Storico'),
       sorted.slice().reverse().map(function(r){
-        var summary = ['peso','massaGrassa','vita'].map(function(k){
+        var bmiR = calcBmi(r.peso, altezzaCm);
+        var summary = ['peso','massaGrassaKg','vita'].map(function(k){
           var fld = BODY_FIELDS.find(function(f){return f.k===k;});
           var v = r[k];
           return (v!==undefined && v!==null && v!=='') ? fld.lbl.slice(0,3)+': '+v+fld.unit : null;
-        }).filter(Boolean).join(' · ');
+        }).filter(Boolean).concat(bmiR!=null?['BMI '+bmiR]:[]).join(' · ');
         return h('div',{key:r.id,style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:10,padding:'10px 12px',marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}},
           h('div',{style:{flex:1,minWidth:0}},
             h('div',{style:{fontSize:13,fontWeight:500,marginBottom:2}},fmtD(r.t)),
@@ -3630,20 +3686,35 @@ function BodyView(p){
     ),
     formOpen && h(BodyEntryForm,{
       initial: editing,
+      profile: profile,
       onClose: function(){setFormOpen(false); setEditing(null);},
       onSave: saveEntry
     })
   );
 }
 
-/* ── BodyEntryForm: modale per aggiungere/modificare una misurazione ── */
+/* ── BodyEntryForm: modale per aggiungere/modificare una misurazione ──
+   Peso pre-popolato dal profilo (in modo che non si debba riscrivere).
+   Altezza presa dal profilo (per BMI calcolato live). BMI mostrato in alto come anteprima. */
 function BodyEntryForm(p){
   var initial = p.initial || {};
-  var _f = useState(Object.assign({}, initial, {date: initial.t ? initial.t.slice(0,10) : todayISO()}));
+  var profile = p.profile || null;
+  var altezzaCm = profile && profile.altezza ? parseFloat(String(profile.altezza).replace(',','.')) : null;
+  /* Se è una nuova misurazione, pre-popola peso da profilo */
+  var defaults = {date: initial.t ? initial.t.slice(0,10) : todayISO()};
+  if(!initial.id && profile && profile.peso && (initial.peso === undefined || initial.peso === null || initial.peso === '')){
+    var pesoProf = parseFloat(String(profile.peso).replace(',','.'));
+    if(!isNaN(pesoProf) && pesoProf > 0) defaults.peso = pesoProf;
+  }
+  var _f = useState(Object.assign({}, initial, defaults));
   var form = _f[0]; var setForm = _f[1];
   useEffect(function(){lockScroll();return unlockScroll;},[]);
   function set(k, v){ setForm(function(prev){var u=Object.assign({},prev);u[k]=v;return u;}); }
   var inp = {width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'7px 8px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:13,textAlign:'right',fontVariantNumeric:'tabular-nums'};
+
+  /* BMI live: si aggiorna mentre digiti il peso */
+  var liveBmi = calcBmi(form.peso, altezzaCm);
+  var liveBmiCat = bmiCategory(liveBmi);
 
   function submit(){
     var entry = {};
@@ -3671,9 +3742,9 @@ function BodyEntryForm(p){
         placeholder:'—',
         onFocus:function(e){e.target.select();},
         onChange:function(e){set(f.k, e.target.value.replace(',','.'));},
-        style:Object.assign({},inp,{maxWidth:90})
+        style:Object.assign({},inp,{maxWidth:100})
       }),
-      h('div',{style:{minWidth:24,fontSize:11,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}}, f.unit)
+      h('div',{style:{minWidth:34,fontSize:11,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}}, f.unit)
     );
   }
 
@@ -3683,12 +3754,30 @@ function BodyEntryForm(p){
         h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em'}}, initial && initial.id ? 'Modifica misurazione' : 'Nuova misurazione'),
         h('button',{onClick:p.onClose,'aria-label':'Chiudi',style:{background:'none',border:'none',color:MUTED,cursor:'pointer'}}, h(Icon,{n:'close',sz:20,c:MUTED}))
       ),
-      h('div',{style:{fontSize:12,color:MUTED,marginBottom:14,lineHeight:1.45}}, 'Compila solo i campi che ti servono. Tutto opzionale tranne la data.'),
+      h('div',{style:{fontSize:12,color:MUTED,marginBottom:14,lineHeight:1.45}}, 'Peso pre-popolato dal profilo. Altezza e data di nascita arrivano dalle Impostazioni. Tutti gli altri campi sono opzionali.'),
+      /* BMI live preview */
+      liveBmi != null && h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:'10px 12px',marginBottom:14,display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('div',null,
+          h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}},'BMI calcolato'),
+          h('div',{style:{fontSize:11,color:MUTED}}, 'peso / altezza² = '+liveBmi+' kg/m²')
+        ),
+        h('div',{style:{textAlign:'right'}},
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.02em',color:ACC,lineHeight:1}}, liveBmi),
+          liveBmiCat && h('div',{style:{fontSize:9,color:liveBmiCat.color,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:2}}, liveBmiCat.label)
+        )
+      ),
+      !altezzaCm && h('div',{style:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:10,padding:'9px 12px',marginBottom:14,fontSize:11,color:TEXT,lineHeight:1.5}},
+        '⚠️ Aggiungi l\'altezza in Impostazioni → Profilo per calcolare il BMI.'
+      ),
       h(Lbl,null,'Data'),
       h('input',{type:'date',value:form.date||todayISO(),onChange:function(e){set('date',e.target.value);},style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'9px 12px',color:TEXT,fontSize:14,marginBottom:14}}),
       h(Lbl,null,'Composizione corporea'),
       h('div',{style:{background:SURF2,borderRadius:10,padding:'2px 10px',marginBottom:14}},
         BODY_FIELDS.filter(function(f){return f.group==='comp';}).map(field)
+      ),
+      h(Lbl,null,'Idratazione'),
+      h('div',{style:{background:SURF2,borderRadius:10,padding:'2px 10px',marginBottom:14}},
+        BODY_FIELDS.filter(function(f){return f.group==='idro';}).map(field)
       ),
       h(Lbl,null,'Circonferenze (cm)'),
       h('div',{style:{background:SURF2,borderRadius:10,padding:'2px 10px',marginBottom:14}},

@@ -1,4 +1,4 @@
-/* GymTracker Service Worker — v1.9.1
+/* GymTracker Service Worker — v1.9.2
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -57,6 +57,14 @@
  *             • Calisthenics: catalogo esteso con 7 categorie, 150+ esercizi,
  *               livelli 1-7 (skill ladder), supporto hold (secondi).
  *             • Settings: export report "per nutrizionista" (.txt + .csv).
+ *   - v1.9.2: Misure corporee semplificate + BMI auto + idratazione.
+ *             • BODY_FIELDS rivisti: peso, massa grassa (kg), massa magra (kg),
+ *               acqua totale/extra/intracellulare (L), circonferenze vita/fianchi/
+ *               addome/coscia. Rimossi i 7+ campi circonferenze poco usati.
+ *             • BMI calcolato automaticamente da peso + altezza (profilo); preview
+ *               live nel form, KPI dedicata, classificazione OMS (sottopeso/
+ *               normopeso/sovrappeso/obesità) con codice colore.
+ *             • Peso pre-popolato dal profilo nel form (basta confermare).
  *   - v1.9.1: Pre-fill last-session + sala pesi libera + offline robusto.
  *             • All'apertura di un esercizio (sia in scheda che mid-session), peso
  *               e reps sono pre-popolati con quelli dell'ultima sessione (anche
@@ -70,7 +78,7 @@
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.9.1';
+const CACHE_VERSION = 'gymtracker-v1.9.2';
 const CACHE_RUNTIME = 'gymtracker-runtime-v4';
 
 /* HTML escluso dalla precache: viene preso network-first.
