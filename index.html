@@ -4813,30 +4813,50 @@ function AdherenceView(p){
       })
     ),
 
-    /* Weekly adherence chart — bar count = numWeeks (dinamico).
-       Per range >12 le label settimanali diventano illeggibili: mostro solo ogni 2/4/8 bar. */
+    /* Weekly adherence chart — strategia label dinamica per evitare sovrapposizioni:
+       - Range <=8 settimane: range data per ogni barra (c'è spazio)
+       - Range >8 settimane: solo "Ora" sulla settimana corrente + mese abbreviato ai cambi mese.
+         Risultato: 3-4 label per 12 sett, ~6 per 6m, ~12 per 1a (uno per mese). */
     (function(){
-      var labelEvery = numWeeks <= 12 ? 1 : (numWeeks <= 26 ? 2 : 4);
+      var useMonthLabels = numWeeks > 8;
       var headerTitle = numWeeks <= 12 ? ('Ultime '+numWeeks+' settimane') : ('Ultimi '+(numWeeks===26?'6 mesi':numWeeks===52?'12 mesi':numWeeks+' settimane'));
+      function chartLabel(w){
+        var ws = new Date(w.start);
+        if(ws.getTime() === currentMonday) return 'Ora';
+        if(!useMonthLabels) return weekRangeLabel(ws);
+        /* Settimana che apre un nuovo mese (lunedì della prima settimana del mese) */
+        var prevMonday = new Date(ws); prevMonday.setDate(prevMonday.getDate() - 7);
+        if(prevMonday.getMonth() !== ws.getMonth()){
+          var mon = ws.toLocaleDateString('it-IT',{month:'short'}).replace('.','');
+          /* Prefisso anno per gennaio quando il chart copra più di un anno */
+          if(numWeeks > 26 && ws.getMonth() === 0){
+            mon = mon + ' ' + String(ws.getFullYear()).slice(-2);
+          }
+          return mon;
+        }
+        return '';
+      }
+      var labelFontSize = numWeeks > 26 ? 7 : 8;
+      var barGap = numWeeks <= 8 ? 6 : numWeeks <= 12 ? 4 : numWeeks <= 26 ? 3 : 2;
       return h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
           h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}}, headerTitle),
           h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'target: '+target+'/sett')
         ),
         h('div',{style:{fontSize:10,color:MUTED,marginBottom:12,lineHeight:1.4}},'Ogni barra = una settimana intera (lun-dom). Verde = target raggiunto, giallo = parziale, rosso = vuota.'),
-        h('div',{style:{display:'flex',alignItems:'flex-end',gap: numWeeks<=8?6: numWeeks<=12?4:2, height:90,marginBottom:8}},
+        h('div',{style:{display:'flex',alignItems:'flex-end',gap:barGap,height:90,marginBottom:8}},
           weeks.map(function(w,i){
             var barH=Math.max(6,Math.round(w.count/maxBarCount*80));
             var hit=w.count>=target;
-            /* Label solo su alcuni indici per evitare sovrapposizioni quando ci sono molte barre */
-            var idxFromEnd = weeks.length - 1 - i;
-            var showLabel = idxFromEnd % labelEvery === 0;
-            var weekLbl = showLabel ? weekRangeLabel(w.start, i, weeks.length) : '';
+            var weekLbl = chartLabel(w);
+            /* Numero sopra la barra: nascondiamo se troppe barre per non saturare */
             var showCount = numWeeks <= 12 || hit || w.count===0;
             return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,minWidth:0}},
               h('div',{style:{fontSize:9,fontFamily:"'Roboto Mono',monospace",color:hit?'var(--success)':w.count>0?TEXT:MUTED,fontWeight:700,visibility:showCount?'visible':'hidden'}},w.count||''),
               h('div',{style:{width:'100%',height:barH,borderRadius:3,background:hit?'var(--success)':w.count>0?'var(--warning)':'rgba(239,68,68,0.25)',transition:'height .3s'}}),
-              h('div',{style:{fontSize:8,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",whiteSpace:'nowrap',minHeight:10}},weekLbl)
+              /* overflow:visible così l'etichetta di una barra stretta può "uscire" lateralmente
+                 senza far crescere la cella — le altre barre vicine NON hanno label quindi non collidono */
+              h('div',{style:{fontSize:labelFontSize,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",whiteSpace:'nowrap',minHeight:10,overflow:'visible'}},weekLbl)
             );
           })
         ),
