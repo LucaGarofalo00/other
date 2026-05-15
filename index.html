@@ -4653,6 +4653,83 @@ function StatsTabs(p){
   );
 }
 
+/* Chart settimanale scorribile orizzontalmente. Barra a larghezza fissa così
+   "5-11 mag" è sempre leggibile sotto ogni colonna. Su mount/cambio range
+   scrolla a destra per mostrare subito "Ora". Gradiente fade a sinistra per
+   suggerire che c'è altro da scoprire scrollando. */
+function AdherenceChartScrollable(p){
+  var weeks = p.weeks;
+  var target = p.target;
+  var maxBarCount = p.maxBarCount;
+  var numWeeks = p.numWeeks;
+  var weekRangeLabel = p.weekRangeLabel;
+  var scrollRef = useRef(null);
+  /* Scroll alla fine (destra) ad ogni cambio range, così "Ora" è visibile */
+  useEffect(function(){
+    var el = scrollRef.current;
+    if(el){
+      /* doppio rAF per garantire layout completato prima di scrollare */
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          if(scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+        });
+      });
+    }
+  }, [numWeeks]);
+  var headerTitle = numWeeks <= 12
+    ? ('Ultime '+numWeeks+' settimane')
+    : ('Ultimi '+(numWeeks===26?'6 mesi':numWeeks===52?'12 mesi':numWeeks+' settimane'));
+  /* Barra: ~40px abbondante per label "5-11 mag" + gap 5px */
+  var BAR_W = 40;
+  var BAR_GAP = 5;
+  return h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
+      h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}}, headerTitle),
+      h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'target: '+target+'/sett')
+    ),
+    h('div',{style:{fontSize:10,color:MUTED,marginBottom:8,lineHeight:1.4}},'Ogni barra = una settimana (lun-dom). ' + (numWeeks>8?'← Scorri per vedere lo storico.':'Verde = target, giallo = parziale, rosso = vuota.')),
+    /* Wrapper relative per il gradient fade sui bordi */
+    h('div',{style:{position:'relative'}},
+      /* Scroller orizzontale */
+      h('div',{
+        ref: scrollRef,
+        style:{
+          overflowX:'auto',
+          overflowY:'hidden',
+          WebkitOverflowScrolling:'touch',
+          paddingBottom:4,
+          /* nascondi scrollbar visiva (Webkit) — gestita via CSS globale se vuoi */
+          scrollbarWidth:'thin',
+          scrollbarColor: BORD+' transparent'
+        }
+      },
+        h('div',{style:{display:'inline-flex',alignItems:'flex-end',gap:BAR_GAP,height:90,paddingLeft:2,paddingRight:2}},
+          weeks.map(function(w,i){
+            var barH=Math.max(6,Math.round(w.count/maxBarCount*80));
+            var hit=w.count>=target;
+            var weekLbl = weekRangeLabel(w.start);
+            var isCurrent = weekLbl === 'Questa' || weekLbl === 'Ora';
+            return h('div',{key:i,style:{flexShrink:0,width:BAR_W,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},
+              h('div',{style:{fontSize:10,fontFamily:"'Roboto Mono',monospace",color:hit?'var(--success)':w.count>0?TEXT:MUTED,fontWeight:700,minHeight:12}},w.count),
+              h('div',{style:{width:'100%',height:barH,borderRadius:3,background:hit?'var(--success)':w.count>0?'var(--warning)':'rgba(239,68,68,0.25)',transition:'height .3s',outline: isCurrent ? '1.5px solid '+ACC : 'none', outlineOffset: isCurrent?2:0}}),
+              h('div',{style:{fontSize:9,color:isCurrent?ACC:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:isCurrent?700:500,letterSpacing:'0.02em',whiteSpace:'nowrap',minHeight:12}},weekLbl)
+            );
+          })
+        )
+      ),
+      /* Gradient fade a sinistra: indica visivamente che c'è contenuto fuori vista */
+      numWeeks > 8 && h('div',{
+        'aria-hidden':true,
+        style:{
+          position:'absolute',top:0,left:0,bottom:0,width:24,
+          background:'linear-gradient(to right, '+SURF2+', transparent)',
+          pointerEvents:'none'
+        }
+      })
+    )
+  );
+}
+
 /* ── Adherence stats tab: costanza, streak, muscle heatmap ── */
 function AdherenceView(p){
   var sessions=p.sessions,profile=p.profile;
@@ -4813,58 +4890,16 @@ function AdherenceView(p){
       })
     ),
 
-    /* Weekly adherence chart — strategia label dinamica per evitare sovrapposizioni:
-       - Range <=8 settimane: range data per ogni barra (c'è spazio)
-       - Range >8 settimane: solo "Ora" sulla settimana corrente + mese abbreviato ai cambi mese.
-         Risultato: 3-4 label per 12 sett, ~6 per 6m, ~12 per 1a (uno per mese). */
-    (function(){
-      var useMonthLabels = numWeeks > 8;
-      var headerTitle = numWeeks <= 12 ? ('Ultime '+numWeeks+' settimane') : ('Ultimi '+(numWeeks===26?'6 mesi':numWeeks===52?'12 mesi':numWeeks+' settimane'));
-      function chartLabel(w){
-        var ws = new Date(w.start);
-        if(ws.getTime() === currentMonday) return 'Ora';
-        if(!useMonthLabels) return weekRangeLabel(ws);
-        /* Settimana che apre un nuovo mese (lunedì della prima settimana del mese) */
-        var prevMonday = new Date(ws); prevMonday.setDate(prevMonday.getDate() - 7);
-        if(prevMonday.getMonth() !== ws.getMonth()){
-          var mon = ws.toLocaleDateString('it-IT',{month:'short'}).replace('.','');
-          /* Prefisso anno per gennaio quando il chart copra più di un anno */
-          if(numWeeks > 26 && ws.getMonth() === 0){
-            mon = mon + ' ' + String(ws.getFullYear()).slice(-2);
-          }
-          return mon;
-        }
-        return '';
-      }
-      var labelFontSize = numWeeks > 26 ? 7 : 8;
-      var barGap = numWeeks <= 8 ? 6 : numWeeks <= 12 ? 4 : numWeeks <= 26 ? 3 : 2;
-      return h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
-          h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}}, headerTitle),
-          h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'target: '+target+'/sett')
-        ),
-        h('div',{style:{fontSize:10,color:MUTED,marginBottom:12,lineHeight:1.4}},'Ogni barra = una settimana intera (lun-dom). Verde = target raggiunto, giallo = parziale, rosso = vuota.'),
-        h('div',{style:{display:'flex',alignItems:'flex-end',gap:barGap,height:90,marginBottom:8}},
-          weeks.map(function(w,i){
-            var barH=Math.max(6,Math.round(w.count/maxBarCount*80));
-            var hit=w.count>=target;
-            var weekLbl = chartLabel(w);
-            /* Numero sopra la barra: nascondiamo se troppe barre per non saturare */
-            var showCount = numWeeks <= 12 || hit || w.count===0;
-            return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,minWidth:0}},
-              h('div',{style:{fontSize:9,fontFamily:"'Roboto Mono',monospace",color:hit?'var(--success)':w.count>0?TEXT:MUTED,fontWeight:700,visibility:showCount?'visible':'hidden'}},w.count||''),
-              h('div',{style:{width:'100%',height:barH,borderRadius:3,background:hit?'var(--success)':w.count>0?'var(--warning)':'rgba(239,68,68,0.25)',transition:'height .3s'}}),
-              /* overflow:visible così l'etichetta di una barra stretta può "uscire" lateralmente
-                 senza far crescere la cella — le altre barre vicine NON hanno label quindi non collidono */
-              h('div',{style:{fontSize:labelFontSize,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",whiteSpace:'nowrap',minHeight:10,overflow:'visible'}},weekLbl)
-            );
-          })
-        ),
-        h('div',{style:{height:1,background:'rgba(255,255,255,0.06)',position:'relative',marginBottom:4}},
-          h('div',{style:{position:'absolute',top:-10,left:0,right:0,height:1,borderTop:'1px dashed rgba(200,255,0,0.2)'}})
-        )
-      );
-    })(),
+    /* Weekly adherence chart — scorribile orizzontalmente.
+       Ogni barra ha larghezza fissa abbastanza per ospitare "5-11 mag" leggibile.
+       Al cambio range, scrolliamo automaticamente a destra così "Ora" è subito visibile. */
+    h(AdherenceChartScrollable, {
+      weeks: weeks,
+      target: target,
+      maxBarCount: maxBarCount,
+      numWeeks: numWeeks,
+      weekRangeLabel: weekRangeLabel
+    }),
 
     /* Muscle coverage heatmap */
     h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
