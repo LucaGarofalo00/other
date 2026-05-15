@@ -4158,8 +4158,308 @@ function Log(p){
 }
 
 /* ── dettaglio sessione ── */
+/* Sheet: modifica metadati di una sessione (data, ora, durata, umore, note).
+   Comune a tutti i tipi di sessione. */
+function SessionMetaEdit(p){
+  useEffect(function(){lockScroll();return unlockScroll;},[]);
+  var s = p.session;
+  var t0 = new Date(s.t0);
+  var pad = function(n){return String(n).padStart(2,'0');};
+  var _d = useState(t0.getFullYear()+'-'+pad(t0.getMonth()+1)+'-'+pad(t0.getDate()));
+  var data = _d[0]; var setData = _d[1];
+  var _ora = useState(pad(t0.getHours())+':'+pad(t0.getMinutes()));
+  var ora = _ora[0]; var setOra = _ora[1];
+  var _du = useState(String(s.dur||0)); var durata = _du[0]; var setDurata = _du[1];
+  var _u = useState(s.umore||3); var umore = _u[0]; var setUmore = _u[1];
+  var _n = useState(s.nota||''); var nota = _n[0]; var setNota = _n[1];
+  function doSave(){
+    var d = new Date(data);
+    if(ora){
+      var parts = ora.split(':');
+      d.setHours(parseInt(parts[0])||0, parseInt(parts[1])||0, 0, 0);
+    } else {
+      d.setHours(12,0,0,0);
+    }
+    p.onSave({
+      t0: d.toISOString(),
+      dur: parseInt(durata)||0,
+      umore: umore,
+      nota: nota
+    });
+  }
+  var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
+  var inpC=Object.assign({},inp,{textAlign:'center',fontFamily:"'Roboto Mono',monospace"});
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)p.onClose();}},
+    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},'Modifica sessione'),
+        h('button',{onClick:p.onClose,'aria-label':'Chiudi',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10}},h(Icon,{n:'close',sz:20,c:MUTED}))
+      ),
+      h('div',{style:{overflowY:'auto',flex:1,padding:'16px 16px 0'}},
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
+          h('div',null,h(Lbl,null,'Data'),h('input',{type:'date',value:data,max:todayISO(),onChange:function(e){setData(e.target.value);},style:inp})),
+          h('div',null,h(Lbl,null,'Ora'),h('input',{type:'time',value:ora,onChange:function(e){setOra(e.target.value);},style:inp}))
+        ),
+        h(Lbl,null,'Durata (minuti)'),
+        h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:durata,onFocus:function(e){e.target.select();},onChange:function(e){setDurata(e.target.value.replace(/[^0-9]/g,''));},style:Object.assign({},inpC,{fontSize:18,padding:'12px',marginBottom:14})}),
+        h(Lbl,null,'Umore'),
+        h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+          [1,2,3,4,5].map(function(n){
+            return h('button',{key:n,onClick:function(){setUmore(n);},'aria-pressed':umore===n,style:{flex:1,padding:'10px 0',borderRadius:10,border:'1px solid '+(umore===n?ACC:BORD),background:umore===n?ACC2:'transparent',color:umore===n?ACC:MUTED,cursor:'pointer',fontSize:19}},['😫','😕','😐','😊','💪'][n-1]);
+          })
+        ),
+        h(Lbl,null,'Note'),
+        h('textarea',{value:nota,onChange:function(e){setNota(e.target.value);},rows:3,placeholder:'Come è andata?',style:Object.assign({},inp,{resize:'none',marginBottom:20})})
+      ),
+      h('div',{style:{padding:'12px 16px 32px',borderTop:'0.5px solid '+BORD,flexShrink:0}},
+        h(Btn,{full:true,onClick:doSave},'Salva modifiche')
+      )
+    )
+  );
+}
+
+/* Sheet: modifica un singolo esercizio nella sessione.
+   Per ogni serie: editing inline di kg/reps/durata + toggle ok + rimuovi.
+   Supporta riscaldamento, standard, e cal hold/reps. */
+function SessionExerciseEdit(p){
+  useEffect(function(){lockScroll();return unlockScroll;},[]);
+  var ex = p.ex;
+  var sessionTipo = p.sessionTipo;
+  var isCal = sessionTipo==='cal' || !!ex.modalita;
+  var isWarmup = ex.tipo === 'riscaldamento';
+
+  var _n = useState(ex.nome); var nome = _n[0]; var setNome = _n[1];
+  var _mod = useState(ex.modalita || 'reps'); var modalita = _mod[0]; var setModalita = _mod[1];
+  /* Warmup-only fields */
+  var _wDur = useState(String(ex.durata||10)); var wDur = _wDur[0]; var setWDur = _wDur[1];
+  var _wInt = useState(ex.intensita||'Media'); var wInt = _wInt[0]; var setWInt = _wInt[1];
+  var _wFatto = useState(!!ex.fatto); var wFatto = _wFatto[0]; var setWFatto = _wFatto[1];
+  /* Standard: serie editabili */
+  var _serie = useState(JSON.parse(JSON.stringify(ex.serie||[])));
+  var serie = _serie[0]; var setSerie = _serie[1];
+
+  function updateField(idx, field, val){
+    setSerie(function(prev){
+      return prev.map(function(sr,i){
+        if(i!==idx) return sr;
+        var u = Object.assign({},sr);
+        u[field] = val === '' ? 0 : (parseFloat(val)||0);
+        return u;
+      });
+    });
+  }
+  function toggleOk(idx){
+    setSerie(function(prev){
+      return prev.map(function(sr,i){
+        if(i!==idx) return sr;
+        return Object.assign({},sr,{ok: !sr.ok, t: !sr.ok ? Date.now() : null});
+      });
+    });
+  }
+  function addNewSerie(){
+    setSerie(function(prev){
+      var last = prev[prev.length-1] || {peso:0,reps:8,durata:20};
+      return prev.concat([{
+        n: prev.length+1,
+        peso: last.peso || 0,
+        reps: modalita==='hold' ? 0 : (last.reps || 8),
+        durata: modalita==='hold' ? (last.durata || 20) : 0,
+        ok: true, t: Date.now()
+      }]);
+    });
+  }
+  function removeAt(idx){
+    setSerie(function(prev){
+      return prev.filter(function(_,i){return i!==idx;}).map(function(sr,i){return Object.assign({},sr,{n:i+1});});
+    });
+  }
+  function doSave(){
+    if(isWarmup){
+      p.onSave(Object.assign({},ex,{nome:nome,durata:parseInt(wDur)||0,intensita:wInt,fatto:wFatto}));
+    } else {
+      p.onSave(Object.assign({},ex,{nome:nome,modalita: isCal?modalita:ex.modalita, serie:serie}));
+    }
+  }
+  function doDelete(){
+    if(!confirm('Rimuovere "'+nome+'" da questa sessione?')) return;
+    p.onDelete(ex.id);
+  }
+  var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
+  var inpSmC=Object.assign({},inp,{padding:'7px 6px',fontSize:14,textAlign:'center',fontFamily:"'Roboto Mono',monospace"});
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)p.onClose();}},
+    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0,gap:8}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.02em',color:ACC,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isWarmup?'🔥 Riscaldamento':(nome||'Modifica esercizio')),
+        h('button',{onClick:p.onClose,'aria-label':'Chiudi',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10,flexShrink:0}},h(Icon,{n:'close',sz:20,c:MUTED}))
+      ),
+      h('div',{style:{overflowY:'auto',flex:1,padding:'16px 16px 0'}},
+        h(Lbl,null,'Nome'),
+        h('input',{value:nome,onChange:function(e){setNome(e.target.value);},style:Object.assign({},inp,{marginBottom:14})}),
+
+        isWarmup && h('div',null,
+          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
+            h('div',null,h(Lbl,null,'Durata (min)'),h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:wDur,onFocus:function(e){e.target.select();},onChange:function(e){setWDur(e.target.value.replace(/[^0-9]/g,''));},style:inpSmC})),
+            h('div',null,h(Lbl,null,'Intensità'),h('select',{value:wInt,onChange:function(e){setWInt(e.target.value);},style:Object.assign({},inp,{cursor:'pointer'})},['Bassa','Media','Alta','Massimale'].map(function(v){return h('option',{key:v,value:v},v);})))
+          ),
+          h('button',{onClick:function(){setWFatto(!wFatto);},style:{width:'100%',padding:12,borderRadius:10,border:'1px solid '+(wFatto?ACC:BORD),background:wFatto?ACC2:'transparent',color:wFatto?ACC:TEXT,fontSize:13,fontWeight:600,cursor:'pointer',marginBottom:14}}, wFatto?'✓ Completato':'Segna come completato')
+        ),
+
+        !isWarmup && h('div',null,
+          isCal && h('div',null,
+            h(Lbl,null,'Modalità'),
+            h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+              [{id:'reps',l:'Reps'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
+                var on = modalita===m.id;
+                return h('button',{key:m.id,onClick:function(){hap(6);setModalita(m.id);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, m.l);
+              })
+            )
+          ),
+          h(Lbl,null,'Serie · tocca ✓ per spuntare/togliere'),
+          serie.length === 0 && h('div',{style:{padding:'14px',background:SURF2,borderRadius:10,marginBottom:10,color:MUTED,fontSize:12,textAlign:'center'}},'Nessuna serie. Aggiungi la prima.'),
+          serie.map(function(sr,si){
+            var isHold = modalita==='hold';
+            var canRemove = serie.length > 1;
+            return h('div',{key:si,style:{background:sr.ok?ACC5:SURF2,border:'1px solid '+(sr.ok?ACC3:BORD),borderRadius:8,padding:8,marginBottom:6,display:'flex',alignItems:'center',gap:6}},
+              h('div',{style:{minWidth:26,fontFamily:"'Bebas Neue',cursive",fontSize:16,color:sr.ok?ACC:TEXT}}, '#'+(sr.n||si+1)),
+              h('div',{style:{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
+                isHold
+                  ? h('div',null,
+                      h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:1}},'SEC'),
+                      h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:(sr.durata===0||sr.durata==null)?'':String(sr.durata),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){updateField(si,'durata',e.target.value);},style:inpSmC})
+                    )
+                  : h('div',null,
+                      h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:1}},'REPS'),
+                      h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:(sr.reps===0||sr.reps==null)?'':String(sr.reps),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){updateField(si,'reps',e.target.value);},style:inpSmC})
+                    ),
+                h('div',null,
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:1}}, (isCal && isHold)?'+ KG':'KG'),
+                  h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(sr.peso===0||sr.peso==null)?'':String(sr.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){updateField(si,'peso',e.target.value.replace(',','.'));},style:inpSmC})
+                )
+              ),
+              h('button',{onClick:function(){hap(8);toggleOk(si);},'aria-label':sr.ok?'Togli spunta':'Spunta serie',style:{width:36,height:36,borderRadius:'50%',background:sr.ok?ACC:'transparent',border:'2px solid '+(sr.ok?ACC:BORD),color:sr.ok?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:14,fontWeight:700}}, sr.ok?h(Icon,{n:'check',sz:14,c:'var(--act)'}):''),
+              canRemove && h('button',{onClick:function(){hap(8);removeAt(si);},'aria-label':'Rimuovi serie',style:{width:24,height:36,background:'transparent',border:'none',color:'rgba(239,68,68,0.55)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,padding:0}}, h(Icon,{n:'trash',sz:12,c:'rgba(239,68,68,0.55)'}))
+            );
+          }),
+          h('button',{onClick:addNewSerie,style:{width:'100%',padding:9,borderRadius:8,border:'1px dashed '+ACC3,background:ACC5,color:ACC,fontSize:12,cursor:'pointer',marginTop:4,marginBottom:14,fontWeight:600}}, '+ Aggiungi serie')
+        ),
+
+        p.onDelete && h('button',{onClick:doDelete,style:{width:'100%',padding:'10px',borderRadius:10,border:'1px solid rgba(239,68,68,0.3)',background:'transparent',color:'#EF4444',cursor:'pointer',fontSize:13,marginBottom:14,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}, h(Icon,{n:'trash',sz:14,c:'#EF4444'}), 'Rimuovi esercizio'),
+        h('div',{style:{height:8}})
+      ),
+      h('div',{style:{padding:'12px 16px 32px',borderTop:'0.5px solid '+BORD,flexShrink:0}},
+        h(Btn,{full:true,onClick:doSave},'Salva modifiche')
+      )
+    )
+  );
+}
+
+/* Sheet: modifica dati cardio di una sessione (tipo + campi specifici). */
+function SessionCardioEdit(p){
+  useEffect(function(){lockScroll();return unlockScroll;},[]);
+  var s = p.session;
+  var _t = useState(s.cardioTipo || 'corsa');
+  var tipoId = _t[0]; var setTipoId = _t[1];
+  var tipoDef = getCardioTipo(tipoId);
+  var _v = useState(Object.assign({}, s.cardioData || {}));
+  var vals = _v[0]; var setVals = _v[1];
+  function setVal(k,v){ setVals(function(prev){var u=Object.assign({},prev);u[k]=v;return u;}); }
+  function changeTipo(newId){
+    if(newId===tipoId) return;
+    hap(8); setTipoId(newId);
+    var newFields = getCardioTipo(newId).fields;
+    setVals(function(prev){
+      var nv={};
+      newFields.forEach(function(f){if(prev[f]!==undefined && prev[f]!=='') nv[f] = prev[f];});
+      return nv;
+    });
+  }
+  function doSave(){
+    var cd={};
+    tipoDef.fields.forEach(function(f){
+      var v = vals[f];
+      if(v!==undefined && v!==''){
+        var meta = CARDIO_FIELD_META[f];
+        cd[f] = (meta && (meta.text || meta.select)) ? v : (parseFloat(String(v).replace(',','.'))||0);
+      }
+    });
+    p.onSave({cardioTipo:tipoId, cardioData:cd, sId:'cardio-'+tipoId});
+  }
+  var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
+  var inpC=Object.assign({},inp,{textAlign:'center',fontFamily:"'Roboto Mono',monospace"});
+  function fieldEl(f){
+    var meta = CARDIO_FIELD_META[f]; if(!meta) return null;
+    if(meta.select){
+      return h('div',{key:f},
+        h(Lbl,null, meta.lbl),
+        h('select',{value:vals[f]||'',onChange:function(e){setVal(f,e.target.value);},style:Object.assign({},inp,{cursor:'pointer'})},
+          h('option',{value:''},'—'),
+          meta.select.map(function(o){return h('option',{key:o,value:o},o);})
+        )
+      );
+    }
+    var inputMode = meta.text ? 'text' : (meta.decimal ? 'decimal' : 'numeric');
+    var pattern = meta.text ? null : (meta.decimal ? '[0-9]*[.,]?[0-9]*' : '[0-9]*');
+    return h('div',{key:f},
+      h(Lbl,null, meta.lbl + (meta.unit?' ('+meta.unit+')':'')),
+      h('input',{type:'text',inputMode:inputMode,pattern:pattern,value:vals[f]||'',placeholder:meta.ph||'',onFocus:function(e){e.target.select();},onChange:function(e){var v = meta.decimal ? e.target.value.replace(',','.') : e.target.value; setVal(f,v);},style:inpC})
+    );
+  }
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)p.onClose();}},
+    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.02em',color:ACC}},'Modifica cardio'),
+        h('button',{onClick:p.onClose,'aria-label':'Chiudi',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10}},h(Icon,{n:'close',sz:20,c:MUTED}))
+      ),
+      h('div',{style:{overflowY:'auto',flex:1,padding:'16px 16px 0'}},
+        h(Lbl,null,'Tipo cardio'),
+        h('div',{style:{display:'flex',gap:6,overflowX:'auto',marginBottom:14,paddingBottom:4,WebkitOverflowScrolling:'touch'}},
+          CARDIO_TIPI.map(function(t){
+            var on = tipoId===t.id;
+            return h('button',{key:t.id,onClick:function(){changeTipo(t.id);},'aria-pressed':on,style:{flexShrink:0,padding:'7px 11px',borderRadius:16,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:TEXT,fontSize:11,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,whiteSpace:'nowrap'}},
+              h('span',{style:{fontSize:13}},t.emoji),
+              t.label
+            );
+          })
+        ),
+        tipoDef.fields.length > 0 && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
+          tipoDef.fields.map(fieldEl)
+        ),
+        tipoDef.fields.length === 0 && h('div',{style:{padding:'14px',background:SURF2,borderRadius:10,marginBottom:14,fontSize:12,color:MUTED,textAlign:'center',lineHeight:1.5}}, 'Questo tipo cardio non ha metriche specifiche. Durata, umore e note si modificano dalla "Modifica sessione" in alto.'),
+        h('div',{style:{height:8}})
+      ),
+      h('div',{style:{padding:'12px 16px 32px',borderTop:'0.5px solid '+BORD,flexShrink:0}},
+        h(Btn,{full:true,onClick:doSave},'Salva modifiche')
+      )
+    )
+  );
+}
+
 function Det(p){
-  var s=p.s,schede=p.schede,go=p.go;
+  /* Stato locale: sorgente di verità dopo qualsiasi edit. Seed da prop.s. */
+  var _s = useState(p.s); var s = _s[0]; var setS = _s[1];
+  /* Tre sheet: metadati, esercizio, cardio. */
+  var _ee = useState(null); var edEx = _ee[0]; var setEdEx = _ee[1];
+  var _em = useState(false); var edMeta = _em[0]; var setEdMeta = _em[1];
+  var _ec = useState(false); var edCardio = _ec[0]; var setEdCardio = _ec[1];
+  function applyUpdate(updated){
+    var touched = Object.assign({}, updated, {lastModified: Date.now()});
+    setS(touched);
+    if(p.onUpdate) p.onUpdate(touched);
+  }
+  function handleMetaSave(meta){ applyUpdate(Object.assign({},s,meta)); setEdMeta(false); }
+  function handleExSave(updatedEx){
+    var newEs = s.es.map(function(e){return e.id===updatedEx.id?updatedEx:e;});
+    applyUpdate(Object.assign({},s,{es:newEs}));
+    setEdEx(null);
+  }
+  function handleExDelete(exId){
+    var newEs = s.es.filter(function(e){return e.id!==exId;});
+    applyUpdate(Object.assign({},s,{es:newEs}));
+    setEdEx(null);
+  }
+  function handleCardioSave(cardio){ applyUpdate(Object.assign({},s,cardio)); setEdCardio(false); }
+
+  var schede=p.schede,go=p.go;
   /* Sessione cardio: layout dedicato (no completion rate, no esercizi) */
   if(s.tipo==='cardio'){
     var ctd = getCardioTipo(s.cardioTipo||'altro');
@@ -4179,20 +4479,29 @@ function Det(p){
     if(cdd.lungVasca)kpis.push({lbl:'Lung. vasca',val:cdd.lungVasca+' m'});
     return h('div',{style:{padding:'24px 16px 100px'}},
       h(Back,{onClick:function(){go('log');}}),
-      h('div',{style:{margin:'14px 0 18px'}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
-          h('span',{style:{fontSize:32}},ctd.emoji),
-          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1}}, ctd.label)
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,margin:'14px 0 18px'}},
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
+            h('span',{style:{fontSize:32}},ctd.emoji),
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1}}, ctd.label)
+          ),
+          h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+' min')
         ),
-        h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+' min')
+        h('button',{onClick:function(){hap(8);setEdMeta(true);},'aria-label':'Modifica sessione',style:{flexShrink:0,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'9px 11px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,color:ACC,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}, h(Icon,{n:'edit',sz:12,c:ACC}), 'Modifica')
       ),
-      kpis.length > 0 && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
-        kpis.map(function(k,i){
-          return h('div',{key:i,style:{background:SURF2,borderRadius:12,padding:'12px 14px'}},
-            h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3}},k.lbl),
-            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,color:ACC,lineHeight:1}},k.val)
-          );
-        })
+      /* Dati cardio - card cliccabile per modificare */
+      h('div',{onClick:function(){hap(6);setEdCardio(true);},style:{cursor:'pointer'}},
+        kpis.length > 0
+          ? h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:6,position:'relative'}},
+              kpis.map(function(k,i){
+                return h('div',{key:i,style:{background:SURF2,borderRadius:12,padding:'12px 14px'}},
+                  h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3}},k.lbl),
+                  h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,color:ACC,lineHeight:1}},k.val)
+                );
+              })
+            )
+          : h('div',{style:{background:SURF2,border:'1px dashed '+BORD,borderRadius:12,padding:'14px 16px',marginBottom:6,textAlign:'center',color:MUTED,fontSize:12}}, 'Nessuna metrica registrata · tocca per aggiungere'),
+        h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginBottom:14,opacity:0.7}},'Tocca per modificare i dati cardio')
       ),
       s.umore&&h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},h('span',{style:{fontSize:24}},['😫','😕','😐','😊','💪'][s.umore-1]),h('span',{style:{fontSize:13,color:MUTED}},['Molto faticosa','Faticosa','Normale','Bene','Top!'][s.umore-1])),
       s.nota&&h(Card,null,h('div',{style:{fontSize:13,color:TEXT,lineHeight:1.6}},s.nota)),
@@ -4201,7 +4510,9 @@ function Det(p){
           h(Icon,{n:'trash',sz:15,c:'#EF4444'}),
           'Elimina sessione'
         )
-      )
+      ),
+      edMeta && h(SessionMetaEdit,{session:s, onClose:function(){setEdMeta(false);}, onSave:handleMetaSave}),
+      edCardio && h(SessionCardioEdit,{session:s, onClose:function(){setEdCardio(false);}, onSave:handleCardioSave})
     );
   }
   var sc=schede.find(function(x){return x.id===s.sId;});
@@ -4210,9 +4521,12 @@ function Det(p){
   var cInfo=completionLabel(cRate);
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(Back,{onClick:function(){go('log');}}),
-    h('div',{style:{margin:'14px 0 18px'}},
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1,marginBottom:4}},s.tipo==='cal'?(bl?bl.nome:sc?sc.nome:'Calisthenics'):(bl?bl.nome:'Sessione')),
-      h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+'min · '+Math.round(ton(s.es))+'kg')
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,margin:'14px 0 18px'}},
+      h('div',{style:{flex:1,minWidth:0}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1,marginBottom:4}},s.tipo==='cal'?(bl?bl.nome:sc?sc.nome:'Calisthenics'):(bl?bl.nome:'Sessione')),
+        h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+'min · '+Math.round(ton(s.es))+'kg')
+      ),
+      h('button',{onClick:function(){hap(8);setEdMeta(true);},'aria-label':'Modifica sessione',style:{flexShrink:0,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'9px 11px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,color:ACC,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}, h(Icon,{n:'edit',sz:12,c:ACC}), 'Modifica')
     ),
     /* Completion rate bar */
     h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:14,border:'0.5px solid '+BORD}},
@@ -4231,18 +4545,78 @@ function Det(p){
     ),
     s.umore&&h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},h('span',{style:{fontSize:24}},['😫','😕','😐','😊','💪'][s.umore-1]),h('span',{style:{fontSize:13,color:MUTED}},['Molto faticosa','Faticosa','Normale','Bene','Top!'][s.umore-1])),
     s.nota&&h(Card,null,h('div',{style:{fontSize:13,color:TEXT,lineHeight:1.6}},s.nota)),
-    h(Lbl,null,'Esercizi'),
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}},
+      h(Lbl,null,'Esercizi'),
+      h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em'}}, 'tocca per modificare')
+    ),
     s.es.map(function(ex){
-      var fatte=ex.serie.filter(function(sr){return sr.ok;});
-      if(fatte.length===0&&!ex.fatto)return null;
-      if(ex.tipo==='riscaldamento')return ex.fatto?h(Card,{key:ex.id},h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},h('div',null,h('div',{style:{fontWeight:500,fontSize:14}},'🔥 '+ex.nome),h('div',{style:{fontSize:11,color:MUTED}},ex.durata+'min · '+ex.intensita)),h('div',{style:{color:'#22C55E',fontSize:13}},'✓'))):null;
-      return h(Card,{key:ex.id},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:7}},
-          h('div',{style:{fontWeight:500,fontSize:14}},ex.nome),
-          h('div',{style:{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:ACC,fontWeight:700}},fatte.reduce(function(a,sr){return a+sr.peso*sr.reps;},0)+'kg')
+      /* Mostriamo TUTTI gli esercizi (anche quelli senza serie spuntate) così l'utente può aprirli
+         e completarli. La card è cliccabile → apre SessionExerciseEdit. */
+      if(ex.tipo==='riscaldamento'){
+        return h(Card,{
+          key:ex.id,
+          onClick:function(){setEdEx(ex);},
+          style:{cursor:'pointer'}
+        },
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+            h('div',null,
+              h('div',{style:{fontWeight:500,fontSize:14}},'🔥 '+ex.nome),
+              h('div',{style:{fontSize:11,color:MUTED}}, (ex.durata||0)+'min · '+(ex.intensita||'Media'))
+            ),
+            h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+              ex.fatto && h('div',{style:{color:'#22C55E',fontSize:13}},'✓'),
+              h(Icon,{n:'next',sz:14,c:MUTED})
+            )
+          )
+        );
+      }
+      var serieList = ex.serie || [];
+      var fatte = serieList.filter(function(sr){return sr.ok;});
+      var isHold = ex.modalita==='hold';
+      /* Tonnellaggio per pesi standard. Per cal mostriamo reps/sec totali invece. */
+      var sumDisp;
+      if(isHold){
+        var totSec = fatte.reduce(function(a,sr){return a+(sr.durata||0);},0);
+        sumDisp = totSec + 's';
+      } else if(s.tipo==='cal'){
+        var totReps = fatte.reduce(function(a,sr){return a+(sr.reps||0);},0);
+        sumDisp = totReps + ' reps';
+      } else {
+        var totKg = fatte.reduce(function(a,sr){return a+(sr.peso||0)*(sr.reps||0);},0);
+        sumDisp = Math.round(totKg) + 'kg';
+      }
+      return h(Card,{
+        key:ex.id,
+        onClick:function(){setEdEx(ex);},
+        style:{cursor:'pointer'}
+      },
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: serieList.length>0?7:0,gap:8}},
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{fontWeight:500,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},ex.nome),
+            h('div',{style:{fontSize:11,color:MUTED,marginTop:2}}, fatte.length+'/'+serieList.length+' serie')
+          ),
+          h('div',{style:{display:'flex',alignItems:'center',gap:6,flexShrink:0}},
+            fatte.length>0 && h('div',{style:{fontFamily:"'Roboto Mono',monospace",fontSize:13,color:ACC,fontWeight:700}}, sumDisp),
+            h(Icon,{n:'next',sz:14,c:MUTED})
+          )
         ),
-        h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
-          fatte.map(function(sr,i){return h('div',{key:i,style:{fontSize:11,padding:'3px 8px',borderRadius:6,background:SURF2,fontFamily:"'Roboto Mono',monospace"}},sr.peso+'×'+sr.reps);})
+        serieList.length>0 && h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
+          serieList.map(function(sr,i){
+            /* Chip per ogni serie: opaca se spuntata, semi-trasparente se non spuntata.
+               Per cal hold mostro "20s + 0kg" o solo "20s"; per pesi standard "80×8". */
+            var chipBg = sr.ok ? ACC5 : SURF2;
+            var chipBd = sr.ok ? ACC3 : BORD;
+            var chipCol = sr.ok ? ACC : MUTED;
+            var disp;
+            if(isHold){
+              disp = (sr.durata||0)+'s' + (sr.peso>0 ? ' +'+sr.peso+'kg' : '');
+            } else if(s.tipo==='cal'){
+              disp = (sr.peso>0 ? sr.peso+'×' : '') + (sr.reps||0)+'r';
+            } else {
+              disp = (sr.peso||0)+'×'+(sr.reps||0);
+            }
+            return h('div',{key:i,style:{fontSize:11,padding:'3px 8px',borderRadius:6,background:chipBg,border:'1px solid '+chipBd,color:chipCol,fontFamily:"'Roboto Mono',monospace",opacity:sr.ok?1:0.65}}, disp);
+          })
         )
       );
     }),
@@ -4251,7 +4625,10 @@ function Det(p){
         h(Icon,{n:'trash',sz:15,c:'#EF4444'}),
         'Elimina sessione'
       )
-    )
+    ),
+    /* Sheet di modifica: si aprono su tap delle relative aree. */
+    edMeta && h(SessionMetaEdit,{session:s, onClose:function(){setEdMeta(false);}, onSave:handleMetaSave}),
+    edEx && h(SessionExerciseEdit,{ex:edEx, sessionTipo:s.tipo, onClose:function(){setEdEx(null);}, onSave:handleExSave, onDelete:handleExDelete})
   );
 }
 
@@ -6670,7 +7047,9 @@ function App(){
     view==='cardiolive'&&h(CardioLive,{go:go,allSessions:liveSessions,initial:args.initial,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
     view==='addpast'&&h(AddPastSession,{go:go,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
     view==='log'&&h(Log,{sessions:liveSessions,schede:liveSchede,go:go}),
-    view==='det'&&h(Det,{s:args.s,schede:liveSchede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');}}),
+    view==='det'&&h(Det,{s:args.s,schede:liveSchede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');},onUpdate:function(updated){
+      setSessions(function(prev){return prev.map(function(x){return x.id===updated.id ? Object.assign({},updated,{lastModified:Date.now()}) : x;});});
+    }}),
     view==='stats'&&h(Stats,{sessions:liveSessions,go:go,profile:profile}),
     view==='scheda'&&h(SchedaV,{schede:liveSchede,setSchede:function(updater){
       setSchede(function(prev){
