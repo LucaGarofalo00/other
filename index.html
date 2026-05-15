@@ -523,7 +523,10 @@ function e1RM(peso, reps){
 
 /* Completion rate di una sessione: quante serie completate vs totali (0-100) */
 function sessionCompletionRate(session){
-  if(!session||!session.es||!session.es.length) return 0;
+  if(!session) return 0;
+  /* Cardio: una sessione cardio loggata è "completata" per definizione (non ha serie da spuntare) */
+  if(session.tipo === 'cardio') return 100;
+  if(!session.es||!session.es.length) return 0;
   var totalSets=0, doneSets=0;
   session.es.forEach(function(e){
     if(e.tipo==='riscaldamento'){
@@ -1119,6 +1122,7 @@ function profileLocalToRow(p, userId){
     altezza: (p.altezza === '' || p.altezza == null) ? null : Number(p.altezza),
     obiettivo: p.obiettivo || null,
     livello: p.livello || null,
+    giorni_target: (p.giorniTarget === '' || p.giorniTarget == null) ? null : Number(p.giorniTarget),
     theme: (function(){ try{ return loadTheme().id; }catch(e){ return 'lime'; } })(),
     freq: (function(){ try{ return getFreq(); }catch(e){ return {}; } })(),
     last_modified: p.lastModified || Date.now(),
@@ -1134,6 +1138,7 @@ function profileRowToLocal(row){
     altezza: row.altezza != null ? String(row.altezza) : '',
     obiettivo: row.obiettivo || 'Ipertrofia',
     livello: row.livello || 'Intermedio',
+    giorniTarget: row.giorni_target != null ? Number(row.giorni_target) : 3,
     lastModified: row.last_modified || 0
   };
 }
@@ -1635,12 +1640,22 @@ function RecPicker(p){
 function ExerciseConfigSheet(p){
   useEffect(function(){lockScroll();return unlockScroll;},[]);
   var ex=p.ex,nome=p.nome,onSave=p.onSave,onClose=p.onClose;
+  /* schedaTipo: 'pesi' (default) o 'cal'. Per cal mostriamo modalità reps/tenuta
+     e nascondiamo i tipi 'progressivo' / 'superset' che non si applicano. */
+  var schedaTipo = p.schedaTipo || 'pesi';
+  var isCal = schedaTipo === 'cal';
   var esNome=ex?ex.nome:nome;
   var _t=useState(ex&&ex.tipo||'standard');var tipo=_t[0];var setTipo=_t[1];
+  var _m=useState(ex&&ex.modalita || (function(){
+    if(!isCal) return 'reps';
+    var sk = findCalSkill(esNome);
+    return (sk && sk.type === 'hold') ? 'hold' : 'reps';
+  })());var modalita=_m[0];var setModalita=_m[1];
   var _s=useState(String(ex&&(ex.sets||ex.serie)||3));var sets=_s[0];var setSets=_s[1];
-  var _r=useState(ex&&ex.reps||'10');var reps=_r[0];var setReps=_r[1];
+  var _r=useState(ex&&ex.reps||(isCal?'8':'10'));var reps=_r[0];var setReps=_r[1];
+  var _hd=useState(String(ex&&ex.durata||(isCal?'20':'10')));var holdDur=_hd[0];var setHoldDur=_hd[1];
   var _p=useState(String(ex&&ex.peso||0));var peso=_p[0];var setPeso=_p[1];
-  var _rs=useState(ex&&(ex.recSet||ex.rec)||90);var recSet=_rs[0];var setRecSet=_rs[1];
+  var _rs=useState(ex&&(ex.recSet||ex.rec)||(isCal?60:90));var recSet=_rs[0];var setRecSet=_rs[1];
   var _re=useState(ex&&ex.recEs||60);var recEs=_re[0];var setRecEs=_re[1];
   var _n=useState(ex&&ex.note||'');var note=_n[0];var setNote=_n[1];
   var _g=useState(ex&&ex.gr||'');var gr=_g[0];var setGr=_g[1];
@@ -1651,13 +1666,28 @@ function ExerciseConfigSheet(p){
   var _int=useState(ex&&ex.intensita||'Media');var intensita=_int[0];var setIntensita=_int[1];
   var iB={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14};
   var iSm=Object.assign({},iB,{padding:'8px',fontSize:14,textAlign:'center'});
-  var TIPI=[{id:'standard',label:'Normale'},{id:'progressivo',label:'Progressivo'},{id:'superset',label:'Superset'},{id:'riscaldamento',label:'🔥 Riscaldamento'}];
+  /* Tipi disponibili: cal vede solo Normale e Riscaldamento (progressivo/superset escluso) */
+  var TIPI = isCal
+    ? [{id:'standard',label:'Normale'},{id:'riscaldamento',label:'🔥 Riscaldamento'}]
+    : [{id:'standard',label:'Normale'},{id:'progressivo',label:'Progressivo'},{id:'superset',label:'Superset'},{id:'riscaldamento',label:'🔥 Riscaldamento'}];
   var GRP=['Petto','Schiena','Spalle','Braccia','Bicipiti','Tricipiti','Gambe','Core','Cardio','Full Body'];
   function doSave(){
     var base={id:ex?ex.id:uid(),nome:esNome,tipo:tipo,gr:gr,note:note};
     if(tipo==='riscaldamento'){onSave(Object.assign(base,{durata:parseInt(durata)||10,intensita:intensita}));}
     else if(tipo==='progressivo'){onSave(Object.assign(base,{peso:parseFloat(peso)||0,progressione:prog,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,serie:prog.length>0?prog[0].sets:3,reps:prog.length>0?prog[0].reps:'6',rec:parseInt(recSet)||90}));}
     else if(tipo==='superset'){onSave(Object.assign(base,{sets:parseInt(sets)||3,serie:parseInt(sets)||3,reps:reps,peso:parseFloat(peso)||0,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,rec:parseInt(recSet)||90,partner:partner}));}
+    else if(isCal){
+      /* Cal "standard": include modalita e durata (per hold) o reps. Peso opzionale (cal zavorrato). */
+      var payload = {
+        sets:parseInt(sets)||3, serie:parseInt(sets)||3,
+        peso:parseFloat(peso)||0,
+        recSet:parseInt(recSet)||60, recEs:parseInt(recEs)||60, rec:parseInt(recSet)||60,
+        modalita: modalita
+      };
+      if(modalita==='hold') payload.durata = parseInt(holdDur)||20;
+      else payload.reps = reps;
+      onSave(Object.assign(base,payload));
+    }
     else{onSave(Object.assign(base,{sets:parseInt(sets)||3,serie:parseInt(sets)||3,reps:reps,peso:parseFloat(peso)||0,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,rec:parseInt(recSet)||90}));}
   }
   return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)onClose();}},
@@ -1679,7 +1709,25 @@ function ExerciseConfigSheet(p){
               ['Bassa','Media','Alta','Massimale'].map(function(v){return h('option',{key:v,value:v},v);})))
           )
         ),
-        (tipo==='standard'||tipo==='superset')&&h('div',null,
+        /* CAL standard: modalità reps vs tenuta. Per le tenute usiamo durata in secondi. */
+        isCal && tipo==='standard' && h('div',null,
+          h(Lbl,null,'Modalità'),
+          h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+            [{id:'reps',l:'Reps'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
+              var on = modalita === m.id;
+              return h('button',{key:m.id,onClick:function(){hap(6);setModalita(m.id);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, m.l);
+            })
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}},
+            h('div',null,h(Lbl,null,'Serie'),h('input',{type:'number',value:sets,min:1,onChange:function(e){setSets(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})})),
+            modalita==='hold'
+              ? h('div',null,h(Lbl,null,'Tenuta (s)'),h('input',{type:'number',value:holdDur,min:1,onChange:function(e){setHoldDur(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
+              : h('div',null,h(Lbl,null,'Reps'),h('input',{type:'text',value:reps,onChange:function(e){setReps(e.target.value);},placeholder:'8',style:Object.assign({},iB,{textAlign:'center'})})),
+            h('div',null,h(Lbl,null,'+ Peso (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,placeholder:'0',onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
+          )
+        ),
+        /* PESI standard / superset: layout originale */
+        !isCal && (tipo==='standard'||tipo==='superset')&&h('div',null,
           h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}},
             h('div',null,h(Lbl,null,'Serie'),h('input',{type:'number',value:sets,min:1,onChange:function(e){setSets(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})})),
             h('div',null,h(Lbl,null,'Reps'),h('input',{type:'text',value:reps,onChange:function(e){setReps(e.target.value);},placeholder:'10',style:Object.assign({},iB,{textAlign:'center'})})),
@@ -2253,6 +2301,8 @@ function Settings(p){
 /* ── home ── */
 function Home(p){
   var schede=p.schede,sessions=p.sessions,profile=p.profile,go=p.go;
+  /* Promemoria settimanali: letti da localStorage. Refresh via prop key per forzare re-render dopo edit. */
+  var remindersList = loadReminders();
   var now=new Date(),weekAgo=new Date(now-7*86400000),twoWeeksAgo=new Date(now-14*86400000);
   var wk=sessions.filter(function(s){return new Date(s.t0)>=weekAgo;});
   var prevWk=sessions.filter(function(s){var d=new Date(s.t0);return d>=twoWeeksAgo && d<weekAgo;});
@@ -2325,6 +2375,9 @@ function Home(p){
     ),
     h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginBottom:14,marginTop:-4}},'Tocca una metrica per scoprire cosa significa'),
 
+    /* Promemoria settimanali: appuntamenti nutrizionista, chiusure palestra, eventi */
+    h(RemindersWidget,{reminders:remindersList, go:go}),
+
     /* Weekly adherence calendar */
     (function(){
       var target=profile&&profile.giorniTarget?profile.giorniTarget:3;
@@ -2379,6 +2432,25 @@ function Home(p){
     ),
     h(Lbl,null,'Ultime sessioni'),
     sorted.slice(0,4).map(function(s){
+      /* Card cardio: layout dedicato, no completion-rate, KPI in km/kcal */
+      if(s.tipo === 'cardio'){
+        var ct = getCardioTipo(s.cardioTipo||'altro');
+        var cd = s.cardioData || {};
+        var mainKpi = cd.distanza ? (cd.distanza + 'km') : (cd.kcal ? (cd.kcal + 'kcal') : (s.dur + 'min'));
+        return h(Card,{key:s.id,onClick:function(){go('det',{s:s});},style:{cursor:'pointer',borderLeft:'3px solid #00F0FF'}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+            h('div',{style:{flex:1,minWidth:0}},
+              h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+                h('span',{style:{fontSize:10,background:'rgba(0,240,255,0.10)',color:'#00F0FF',padding:'2px 7px',borderRadius:20,border:'1px solid rgba(0,240,255,0.3)',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CARDIO'),
+                h('span',{style:{fontSize:14}},ct.emoji),
+                h('div',{style:{fontSize:13,fontWeight:500}}, ct.label)
+              ),
+              h('div',{style:{fontSize:11,color:MUTED}},fmtD(s.t0)+' · '+s.dur+'min')
+            ),
+            h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:15}}, mainKpi)
+          )
+        );
+      }
       var sc=schede.find(function(x){return x.id===s.sId;});
       var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
       var isCal=s.tipo==='cal';
@@ -2390,7 +2462,7 @@ function Home(p){
           h('div',{style:{flex:1,minWidth:0}},
             h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
               isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
-              h('div',{style:{fontSize:13,fontWeight:500}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sala pesi')),
+              h('div',{style:{fontSize:13,fontWeight:500}},isCal?(bl?bl.nome:sc?sc.nome:'Calisthenics'):(bl?bl.nome:sc?sc.nome:'Sala pesi')),
               cRate<100&&h('span',{style:{fontSize:9,padding:'1px 6px',borderRadius:20,background:cRate>=50?'rgba(245,158,11,0.12)':'rgba(239,68,68,0.12)',color:cInfo.color,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},cInfo.text)
             ),
             h('div',{style:{fontSize:11,color:MUTED}},fmtD(s.t0)+' · '+s.dur+'min')
@@ -2408,48 +2480,59 @@ function Home(p){
 /* ── start: scegli modalità ── */
 function Start(p){
   var schede=p.schede,go=p.go;
-  var attive=schede.filter(function(s){return s.attiva;});
-  var scheda=attive[0];
-  var multi=attive.length>1;
-  var noActive=schede.length>0&&attive.length===0;
-  var noSchede=schede.length===0;
+  /* Separazione per tipo: pesi (default per quelle senza tipo) vs cal */
+  var pesiSchede=schede.filter(function(s){return (s.tipo||'pesi')!=='cal';});
+  var calSchede=schede.filter(function(s){return s.tipo==='cal';});
+  var attivePesi=pesiSchede.filter(function(s){return s.attiva;});
+  var attiveCal=calSchede.filter(function(s){return s.attiva;});
+  var pesiScheda=attivePesi[0];
+  var calScheda=attiveCal[0];
+  var multiPesi=attivePesi.length>1;
+  var multiCal=attiveCal.length>1;
+  var noActivePesi=pesiSchede.length>0 && attivePesi.length===0;
+  var noPesi=pesiSchede.length===0;
+  var noCalSchede=calSchede.length===0;
   return h('div',{style:{padding:'24px 16px'}},
     h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',marginBottom:6}},'Pump Time'),
     h('div',{style:{fontSize:13,color:MUTED,marginBottom:24}},'Scegli come vuoi allenarti oggi'),
-    h(Card,{onClick:function(){go('pesiblocks');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD,opacity:noActive?0.6:1}},
+    /* Sala pesi con scheda */
+    h(Card,{onClick:function(){go('pesiblocks');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD,opacity:noActivePesi?0.6:1}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14}},
         h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h(Icon,{n:'dumbbell',sz:22,c:ACC})),
         h('div',{style:{flex:1,minWidth:0}},
           h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Sala pesi'),
-          h('div',{style:{fontSize:12,color:noActive?'var(--warning)':MUTED}},
-            noSchede?'Crea prima una scheda PT'
-            :noActive?('Nessuna scheda attiva · '+schede.length+' inattiv'+(schede.length===1?'a':'e'))
-            :multi?(attive.length+' schede attive')
-            :scheda.nome
+          h('div',{style:{fontSize:12,color:noActivePesi?'var(--warning)':MUTED}},
+            noPesi?'Crea prima una scheda pesi'
+            :noActivePesi?('Nessuna scheda attiva · '+pesiSchede.length+' inattiv'+(pesiSchede.length===1?'a':'e'))
+            :multiPesi?(attivePesi.length+' schede attive')
+            :pesiScheda.nome
           ),
-          multi
-            ?h('div',{style:{fontSize:11,color:MUTED,marginTop:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},attive.map(function(s){return s.nome;}).join(' · '))
-            :(scheda&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},scheda.blocchi.length+' blocchi · '+scheda.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi'))
+          multiPesi
+            ?h('div',{style:{fontSize:11,color:MUTED,marginTop:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}},attivePesi.map(function(s){return s.nome;}).join(' · '))
+            :(pesiScheda&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},pesiScheda.blocchi.length+' blocchi · '+pesiScheda.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi'))
         ),
         h(Icon,{n:'next',sz:18,c:ACC})
       )
     ),
-    h(Card,{onClick:function(){go('callive');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD}},
+    /* Calisthenics con scheda — appare solo se ci sono schede cal attive */
+    attiveCal.length>0 && h(Card,{onClick:function(){go('calblocks');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14}},
         h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h('span',{style:{fontSize:24}},'🤸')),
-        h('div',{style:{flex:1}},
+        h('div',{style:{flex:1,minWidth:0}},
           h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Calisthenics'),
-          h('div',{style:{fontSize:12,color:MUTED}},'Sessione libera, aggiungi gli esercizi'),
-          h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Pull-up · Dip · L-sit · Planche…')
+          h('div',{style:{fontSize:12,color:MUTED}}, multiCal?(attiveCal.length+' schede cal attive'):calScheda.nome),
+          multiCal
+            ? h('div',{style:{fontSize:11,color:MUTED,marginTop:3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, attiveCal.map(function(s){return s.nome;}).join(' · '))
+            : h('div',{style:{fontSize:11,color:MUTED,marginTop:3}}, calScheda.blocchi.length+' blocchi · '+calScheda.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi')
         ),
         h(Icon,{n:'next',sz:18,c:ACC})
       )
     ),
-    /* Sala pesi libera — sessione senza scheda, esercizi aggiunti mano a mano */
+    /* Sala pesi libera */
     h(Card,{onClick:function(){
       var bl = {id:'pesi-free', nome:'Sala pesi libera', es:[]};
       go('live',{bl:bl, sId:'pesi-free'});
-    },style:{cursor:'pointer',border:'0.5px solid '+BORD}},
+    },style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14}},
         h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h(Icon,{n:'dumbbell',sz:22,c:ACC})),
         h('div',{style:{flex:1,minWidth:0}},
@@ -2460,29 +2543,55 @@ function Start(p){
         h(Icon,{n:'next',sz:18,c:ACC})
       )
     ),
-    !scheda&&h('div',{style:{marginTop:16}},h(Btn,{full:true,sec:true,onClick:function(){go('nuova');}},'+ Crea scheda PT'))
+    /* Calisthenics libera — sempre disponibile */
+    h(Card,{onClick:function(){go('callive');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:14}},
+        h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h('span',{style:{fontSize:24}},'🤸')),
+        h('div',{style:{flex:1}},
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Calisthenics libera'),
+          h('div',{style:{fontSize:12,color:MUTED}},'Senza scheda, aggiungi esercizi mano a mano'),
+          h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Pull-up · Dip · L-sit · Planche…')
+        ),
+        h(Icon,{n:'next',sz:18,c:ACC})
+      )
+    ),
+    /* Cardio — Spinning, Piscina, MTB, Corsa, ecc. */
+    h(Card,{onClick:function(){go('cardiolive');},style:{cursor:'pointer',border:'0.5px solid '+BORD}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:14}},
+        h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h('span',{style:{fontSize:24}},'🚴')),
+        h('div',{style:{flex:1}},
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',marginBottom:2}},'Cardio'),
+          h('div',{style:{fontSize:12,color:MUTED}},'Spinning, Piscina, MTB, Corsa, Yoga…'),
+          h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Durata, distanza, FC, kcal — quello che ti serve')
+        ),
+        h(Icon,{n:'next',sz:18,c:ACC})
+      )
+    ),
+    (noPesi && noCalSchede) && h('div',{style:{marginTop:16}},h(Btn,{full:true,sec:true,onClick:function(){go('nuova');}},'+ Crea scheda'))
   );
 }
 
 /* ── pesi blocks con stima tempo ── */
 function PesiBlocks(p){
   var schede=p.schede,sessions=p.sessions,go=p.go;
-  var attive=schede.filter(function(s){return s.attiva;});
+  /* Solo schede pesi (default per quelle senza campo tipo). Le cal vivono in CalBlocks. */
+  var pesiSchede=schede.filter(function(s){return (s.tipo||'pesi')!=='cal';});
+  var attive=pesiSchede.filter(function(s){return s.attiva;});
   var _1=useState(0);
   var si=_1[0];var setSi=_1[1];
   var scheda=attive[si]||attive[0];
-  if(schede.length===0)return h('div',{style:{padding:'40px 16px',textAlign:'center'}},
+  if(pesiSchede.length===0)return h('div',{style:{padding:'40px 16px',textAlign:'center'}},
     h(Back,{onClick:function(){go('start');}}),
-    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,margin:'30px 0 14px'}},'Nessuna scheda creata'),
-    h('div',{style:{fontSize:13,color:MUTED,marginBottom:24,lineHeight:1.5}},'Crea la tua prima scheda PT per iniziare ad allenarti.'),
-    h(Btn,{onClick:function(){go('nuova');}},'+ Crea scheda')
+    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,margin:'30px 0 14px'}},'Nessuna scheda pesi'),
+    h('div',{style:{fontSize:13,color:MUTED,marginBottom:24,lineHeight:1.5}},'Crea la tua prima scheda sala pesi per iniziare ad allenarti.'),
+    h(Btn,{onClick:function(){go('nuova',{tipo:'pesi'});}},'+ Crea scheda pesi')
   );
   if(attive.length===0)return h('div',{style:{padding:'24px 16px'}},
     h(Back,{onClick:function(){go('start');}}),
     h('div',{style:{textAlign:'center',padding:'30px 8px'}},
       h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'🔌'),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,marginBottom:8}},'Nessuna scheda attiva'),
-      h('div',{style:{fontSize:13,color:MUTED,marginBottom:22,lineHeight:1.5}},'Hai '+schede.length+' scheda'+(schede.length===1?'':'e')+' ma '+(schede.length===1?'è inattiva':'sono tutte inattive')+'.',h('br'),'Vai su Schede e attivane almeno una.'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,marginBottom:8}},'Nessuna scheda pesi attiva'),
+      h('div',{style:{fontSize:13,color:MUTED,marginBottom:22,lineHeight:1.5}},'Hai '+pesiSchede.length+' scheda'+(pesiSchede.length===1?'':'e')+' pesi ma '+(pesiSchede.length===1?'è inattiva':'sono tutte inattive')+'.',h('br'),'Vai su Schede e attivane almeno una.'),
       h(Btn,{onClick:function(){go('scheda');}},'Vai alle schede')
     )
   );
@@ -2515,6 +2624,66 @@ function PesiBlocks(p){
             ),
             scheda.blocchi.length>1&&h('div',{style:{fontSize:10,color:MUTED,marginTop:2}},sectionInfo),
             last&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Ultima: '+fmtD(last.t0)+' · '+Math.round(ton(last.es))+'kg')
+          ),
+          h(Icon,{n:'next',sz:18,c:ACC})
+        )
+      );
+    })()
+  );
+}
+
+/* ── cal blocks: come PesiBlocks ma per schede calisthenics ── */
+function CalBlocks(p){
+  var schede=p.schede,sessions=p.sessions,go=p.go;
+  var calSchede=schede.filter(function(s){return s.tipo==='cal';});
+  var attive=calSchede.filter(function(s){return s.attiva;});
+  var _1=useState(0);
+  var si=_1[0];var setSi=_1[1];
+  var scheda=attive[si]||attive[0];
+  if(calSchede.length===0)return h('div',{style:{padding:'40px 16px',textAlign:'center'}},
+    h(Back,{onClick:function(){go('start');}}),
+    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,margin:'30px 0 14px'}},'Nessuna scheda calisthenics'),
+    h('div',{style:{fontSize:13,color:MUTED,marginBottom:24,lineHeight:1.5}},'Crea la tua prima scheda calisthenics oppure usa la sessione libera.'),
+    h(Btn,{onClick:function(){go('nuova',{tipo:'cal'});}},'+ Crea scheda cal')
+  );
+  if(attive.length===0)return h('div',{style:{padding:'24px 16px'}},
+    h(Back,{onClick:function(){go('start');}}),
+    h('div',{style:{textAlign:'center',padding:'30px 8px'}},
+      h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'🔌'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,marginBottom:8}},'Nessuna scheda cal attiva'),
+      h('div',{style:{fontSize:13,color:MUTED,marginBottom:22,lineHeight:1.5}},'Hai '+calSchede.length+' scheda'+(calSchede.length===1?'':'e')+' cal ma '+(calSchede.length===1?'è inattiva':'sono tutte inattive')+'.',h('br'),'Vai su Schede e attivane almeno una.'),
+      h(Btn,{onClick:function(){go('scheda');}},'Vai alle schede')
+    )
+  );
+  return h('div',{style:{padding:'24px 16px'}},
+    h(Back,{onClick:function(){go('start');}}),
+    h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',margin:'12px 0 4px'}},
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,letterSpacing:'0.02em'}},scheda.nome.length>24?scheda.nome.slice(0,24)+'…':scheda.nome),
+      attive.length>1&&h('div',{style:{display:'flex',gap:6}},
+        h('button',{onClick:function(){setSi(function(i){return(i-1+attive.length)%attive.length;});},style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'9px 12px',cursor:'pointer',minWidth:36,minHeight:36}},h(Icon,{n:'back',sz:14,c:MUTED})),
+        h('button',{onClick:function(){setSi(function(i){return(i+1)%attive.length;});},style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'9px 12px',cursor:'pointer',minWidth:36,minHeight:36}},h(Icon,{n:'next',sz:14,c:MUTED}))
+      )
+    ),
+    attive.length>1&&h('div',{style:{fontSize:11,color:MUTED,marginBottom:14}},(si+1)+' / '+attive.length+' schede cal attive'),
+    (function(){
+      var mergedEs=scheda.blocchi.reduce(function(all,b){return all.concat(b.es);}, []);
+      var mergedBl={id:scheda.id,nome:scheda.nome,tipo:'cal',es:mergedEs};
+      var last=sessions.filter(function(s){return s.sId===scheda.id;}).slice(-1)[0];
+      var est=Math.max(10,Math.round(mergedEs.length*4));
+      var sectionInfo=scheda.blocchi.map(function(b){return b.nome+' ('+b.es.length+')';}).join(' · ');
+      return h(Card,{onClick:function(){go('callive',{bl:mergedBl,sId:scheda.id});},style:{cursor:'pointer'}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+          h('div',null,
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.02em',marginBottom:2}},scheda.nome),
+            h('div',{style:{display:'flex',alignItems:'center',gap:12}},
+              h('div',{style:{fontSize:11,color:MUTED}},mergedEs.length+' esercizi'),
+              h('div',{style:{display:'flex',alignItems:'center',gap:4,fontSize:11,color:ACC}},
+                h(Icon,{n:'timer',sz:12,c:'var(--acc)'}),
+                '~'+est+'min'
+              )
+            ),
+            scheda.blocchi.length>1&&h('div',{style:{fontSize:10,color:MUTED,marginTop:2}},sectionInfo),
+            last&&h('div',{style:{fontSize:11,color:MUTED,marginTop:3}},'Ultima: '+fmtD(last.t0))
           ),
           h(Icon,{n:'next',sz:18,c:ACC})
         )
@@ -2917,9 +3086,58 @@ function PesiLive(p){
 
 /* ── calisthenics live ── */
 function CalLive(p){
-  var go=p.go,onSave=p.onSave;
+  var go=p.go,onSave=p.onSave,bl=p.bl,sId=p.sId;
   var _1=useState(Date.now());var t0=_1[0];
-  var _2=useState([]);var es=_2[0];var setEs=_2[1];
+  /* Se ricevuto un preset (scheda cal), inizializza es dai blocchi.
+     Per ogni esercizio preset: tira modalita da preset o dallo skill catalog,
+     pre-popola serie da ultima sessione, altrimenti dai default del preset. */
+  var initEs = (bl && bl.es && bl.es.length) ? bl.es.map(function(ex){
+    var skill = findCalSkill(ex.nome);
+    var modalita = ex.modalita || (skill && skill.type==='hold' ? 'hold' : 'reps');
+    var isHold = modalita==='hold';
+    var nSets = parseInt(ex.sets||ex.serie)||3;
+    var defReps = parseInt(ex.reps)||5;
+    var defDur  = parseInt(ex.durata)||20;
+    var defPeso = parseFloat(ex.peso)||0;
+    var last = findLastExerciseSession(ex.nome, (p.allSessions||[]));
+    var baseSerie;
+    if(last && last.serie && last.serie.length){
+      baseSerie = Array.from({length:nSets}, function(_, i){
+        var ref = last.serie[i] || last.serie[last.serie.length-1];
+        return {
+          n:i+1,
+          peso: ref.peso || defPeso,
+          reps: isHold ? 0 : (ref.reps || defReps),
+          durata: isHold ? (ref.durata || defDur) : (ref.durata || 0),
+          ok:false, t:null
+        };
+      });
+    } else {
+      baseSerie = Array.from({length:nSets}, function(_, i){
+        return {
+          n:i+1,
+          peso: defPeso,
+          reps: isHold ? 0 : defReps,
+          durata: isHold ? defDur : 0,
+          ok:false, t:null
+        };
+      });
+    }
+    return {
+      id: ex.id || uid(),
+      nome: ex.nome,
+      tipo: 'standard',
+      modalita: modalita,
+      livello: ex.livello || (skill ? skill.lvl : null),
+      categoria: ex.categoria || (skill ? skill.categoryId : null),
+      muscoli: ex.muscoli || (skill ? skill.muscoli : null),
+      progressioneA: ex.progressioneA || (skill ? skill.prog : null),
+      recSet: parseInt(ex.recSet||ex.rec)||90,
+      note: ex.note || '',
+      serie: baseSerie
+    };
+  }) : [];
+  var _2=useState(initEs);var es=_2[0];var setEs=_2[1];
   var _3=useState(false);var picker=_3[0];var setPicker=_3[1];
   var _4=useRestTimer();var tmr=_4[0];var startRest=_4[1];var stopRest=_4[2];
   var _5=useState(false);var done=_5[0];var setDone=_5[1];
@@ -2991,8 +3209,12 @@ function CalLive(p){
     if(saving)return;
     setSaving(true);
     var dur=Math.round((Date.now()-t0)/60000);
-    var s={id:uid(),sId:'cal',bId:'cal',t0:new Date(t0).toISOString(),dur:dur,es:es,umore:umore,nota:nota,tipo:'cal'};
-    gtLogInfo('Sessione cal salvata', {dur:dur,esercizi:es.length,umore:umore});
+    /* Se la sessione è partita da una scheda cal, ricolleghiamo sId/bId così le statistiche
+       e l'ultima-sessione-per-scheda funzionano come per le sessioni pesi. */
+    var sIdFinal = sId || (bl && bl.id) || 'cal';
+    var bIdFinal = (bl && bl.id) || 'cal';
+    var s={id:uid(),sId:sIdFinal,bId:bIdFinal,t0:new Date(t0).toISOString(),dur:dur,es:es,umore:umore,nota:nota,tipo:'cal'};
+    gtLogInfo('Sessione cal salvata', {dur:dur,esercizi:es.length,umore:umore,scheda:!!bl});
     onSave(s);go('home');
   }
   if(done){
@@ -3007,7 +3229,10 @@ function CalLive(p){
   return h('div',{style:{display:'flex',flexDirection:'column',height:'100vh',height:'100dvh'}},
     h(TimerBar,{tmr:tmr,onSkip:stopRest,fb:calFbProps}),
     h('div',{style:{padding:'14px 16px',background:SURF,borderBottom:'1px solid '+BORD,display:'flex',alignItems:'center',justifyContent:'space-between'}},
-      h('div',null,h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em'}},'Calisthenics'),h('div',{style:{fontSize:11,color:MUTED}},es.length+' esercizi · '+Math.round((Date.now()-t0)/60000)+'min')),
+      h('div',null,
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em'}}, (bl && bl.nome) ? bl.nome : 'Calisthenics'),
+        h('div',{style:{fontSize:11,color:MUTED}},es.length+' esercizi · '+Math.round((Date.now()-t0)/60000)+'min'+((bl && bl.nome)?' · cal scheda':''))
+      ),
       h('button',{onClick:function(){es.length>0?setDone(true):go('start');},style:{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontWeight:700,cursor:'pointer',padding:'7px 12px',borderRadius:8,fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em'}},'TERMINA')
     ),
     h('div',{style:{flex:1,overflowY:'auto',padding:16}},
@@ -3087,6 +3312,180 @@ function CalLive(p){
   );
 }
 
+/* ── cardio: tipi e metriche ──
+   Ogni tipo cardio ha un set di campi consigliati. Tutti opzionali tranne durata.
+   I dati live (durata, kcal, FC, distanza, ecc.) sono salvati come `cardioData` JSON
+   nella sessione, così non rompiamo lo schema esistente. */
+var CARDIO_TIPI = [
+  {id:'corsa',     label:'Corsa',         emoji:'🏃',   fields:['distanza','passo','fcMedia','fcMax','kcal']},
+  {id:'camminata', label:'Camminata',     emoji:'🚶',   fields:['distanza','fcMedia','kcal']},
+  {id:'tapis',     label:'Tapis roulant', emoji:'🏃‍♀️', fields:['distanza','passo','kcal','fcMedia','fcMax']},
+  {id:'cyclette',  label:'Cyclette',      emoji:'🚲',   fields:['distanza','kcal','fcMedia','fcMax','watt']},
+  {id:'spinning',  label:'Spinning',      emoji:'🚴',   fields:['distanza','kcal','fcMedia','fcMax','rpm','watt']},
+  {id:'mtb',       label:'Mountain bike', emoji:'🚵',   fields:['distanza','dislivello','kcal','fcMedia','fcMax','velMedia']},
+  {id:'strada',    label:'Bici strada',   emoji:'🚴‍♂️', fields:['distanza','dislivello','kcal','fcMedia','fcMax','velMedia']},
+  {id:'piscina',   label:'Piscina',       emoji:'🏊',   fields:['distanza','vasche','stile','lungVasca','kcal','fcMedia']},
+  {id:'vogatore',  label:'Vogatore',      emoji:'🚣',   fields:['distanza','kcal','fcMedia','fcMax','watt']},
+  {id:'ellittica', label:'Ellittica',     emoji:'⚙️',  fields:['distanza','kcal','fcMedia','fcMax']},
+  {id:'scale',     label:'Step / Scale',  emoji:'🪜',   fields:['kcal','fcMedia','fcMax']},
+  {id:'yoga',      label:'Yoga',          emoji:'🧘',   fields:['kcal']},
+  {id:'pilates',   label:'Pilates',       emoji:'🧘‍♀️', fields:['kcal']},
+  {id:'stretching',label:'Stretching',    emoji:'🤸‍♀️', fields:[]},
+  {id:'hiit',      label:'HIIT / Circuit',emoji:'🔥',   fields:['kcal','fcMedia','fcMax']},
+  {id:'altro',     label:'Altro',         emoji:'⏱️',  fields:['distanza','kcal','fcMedia','fcMax']}
+];
+function getCardioTipo(id){ return CARDIO_TIPI.find(function(t){return t.id===id;}) || CARDIO_TIPI[0]; }
+var CARDIO_FIELD_META = {
+  distanza:  {lbl:'Distanza',     unit:'km',     ph:'5.0',  step:'0.1', decimal:true},
+  passo:     {lbl:'Passo',        unit:'min/km', ph:'5:30', text:true},
+  fcMedia:   {lbl:'FC media',     unit:'bpm',    ph:'140'},
+  fcMax:     {lbl:'FC max',       unit:'bpm',    ph:'175'},
+  kcal:      {lbl:'Kcal',         unit:'kcal',   ph:'400'},
+  rpm:       {lbl:'RPM medio',    unit:'rpm',    ph:'85'},
+  watt:      {lbl:'Watt medio',   unit:'W',      ph:'180'},
+  vasche:    {lbl:'Vasche',       unit:'',       ph:'30'},
+  stile:     {lbl:'Stile',        unit:'',       select:['Stile libero','Dorso','Rana','Delfino','Misto']},
+  lungVasca: {lbl:'Lung. vasca',  unit:'m',      ph:'25'},
+  dislivello:{lbl:'Dislivello',   unit:'m',      ph:'200'},
+  velMedia:  {lbl:'Vel. media',   unit:'km/h',   ph:'25',   step:'0.1', decimal:true}
+};
+
+/* ── cardio live: log di una sessione cardio (corsa, spinning, piscina, ecc.) ──
+   Form semplice. Tutti i campi sono opzionali tranne durata. */
+function CardioLive(p){
+  var go=p.go,onSave=p.onSave;
+  var _t=useState('corsa');var tipoId=_t[0];var setTipoId=_t[1];
+  var tipoDef = getCardioTipo(tipoId);
+  var _du=useState('');var durata=_du[0];var setDurata=_du[1];
+  /* Mappa generica per i campi opzionali. Resetta quando cambia tipo per evitare confusione. */
+  var _vals=useState({});var vals=_vals[0];var setVals=_vals[1];
+  function setVal(k,v){ setVals(function(prev){var u=Object.assign({},prev);u[k]=v;return u;}); }
+  var _u=useState(3);var umore=_u[0];var setUmore=_u[1];
+  var _n=useState('');var nota=_n[0];var setNota=_n[1];
+  var _sv=useState(false);var saving=_sv[0];var setSaving=_sv[1];
+  function changeTipo(newId){
+    if(newId===tipoId) return;
+    hap(8);
+    setTipoId(newId);
+    /* Mantiene FC e kcal se valgono per il nuovo tipo, scarta gli altri (dato che non c'entrano) */
+    var newFields = getCardioTipo(newId).fields;
+    setVals(function(prev){
+      var nv = {};
+      newFields.forEach(function(f){ if(prev[f]!==undefined && prev[f]!=='') nv[f] = prev[f]; });
+      return nv;
+    });
+  }
+  function save(){
+    if(saving) return;
+    var dur = parseInt(durata)||0;
+    if(dur<=0){ alert('Inserisci la durata in minuti'); return; }
+    setSaving(true);
+    var cardioData = {};
+    tipoDef.fields.forEach(function(f){
+      if(vals[f]!==undefined && vals[f]!==''){
+        var meta = CARDIO_FIELD_META[f];
+        cardioData[f] = (meta && (meta.text || meta.select)) ? vals[f] : (parseFloat(String(vals[f]).replace(',','.'))||0);
+      }
+    });
+    var s = {
+      id: uid(),
+      sId: 'cardio-'+tipoId,
+      bId: 'cardio',
+      t0: new Date().toISOString(),
+      dur: dur,
+      tipo: 'cardio',
+      cardioTipo: tipoId,
+      cardioData: cardioData,
+      es: [],
+      umore: umore,
+      nota: nota
+    };
+    gtLogInfo('Sessione cardio salvata', {dur:dur,tipo:tipoId});
+    onSave(s);
+    go('home');
+  }
+  var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
+  var fieldEl = function(f){
+    var meta = CARDIO_FIELD_META[f]; if(!meta) return null;
+    if(meta.select){
+      return h('div',{key:f},
+        h(Lbl,null, meta.lbl),
+        h('select',{value:vals[f]||'',onChange:function(e){setVal(f,e.target.value);},style:Object.assign({},inp,{cursor:'pointer'})},
+          h('option',{value:''},'—'),
+          meta.select.map(function(o){return h('option',{key:o,value:o},o);})
+        )
+      );
+    }
+    var inputMode = meta.text ? 'text' : (meta.decimal ? 'decimal' : 'numeric');
+    var pattern = meta.text ? null : (meta.decimal ? '[0-9]*[.,]?[0-9]*' : '[0-9]*');
+    return h('div',{key:f},
+      h(Lbl,null, meta.lbl + (meta.unit?' ('+meta.unit+')':'')),
+      h('input',{
+        type:'text',
+        inputMode:inputMode,
+        pattern:pattern,
+        value: vals[f]||'',
+        placeholder: meta.ph||'',
+        onFocus:function(e){ e.target.select(); },
+        onChange:function(e){ var v = meta.decimal ? e.target.value.replace(',','.') : e.target.value; setVal(f, v); },
+        style: Object.assign({},inp,{textAlign:'center',fontFamily:"'Roboto Mono',monospace"})
+      })
+    );
+  };
+  return h('div',{style:{minHeight:'100vh',display:'flex',flexDirection:'column',background:BG}},
+    h('div',{style:{padding:'14px 16px',background:SURF,borderBottom:'1px solid '+BORD,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+      h('div',null,
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em'}},'Cardio'),
+        h('div',{style:{fontSize:11,color:MUTED}},'Log della sessione')
+      ),
+      h('button',{onClick:function(){go('start');},style:{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontWeight:700,cursor:'pointer',padding:'7px 12px',borderRadius:8,fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em'}},'ANNULLA')
+    ),
+    h('div',{style:{flex:1,overflowY:'auto',padding:16}},
+      h(Lbl,null,'Tipo di cardio'),
+      h('div',{style:{display:'flex',gap:6,overflowX:'auto',marginBottom:16,paddingBottom:4,WebkitOverflowScrolling:'touch'}},
+        CARDIO_TIPI.map(function(t){
+          var on = tipoId===t.id;
+          return h('button',{key:t.id,onClick:function(){changeTipo(t.id);},'aria-pressed':on,style:{flexShrink:0,padding:'8px 12px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:TEXT,fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}},
+            h('span',{style:{fontSize:14}},t.emoji),
+            t.label
+          );
+        })
+      ),
+      /* Durata sempre presente */
+      h('div',{style:{background:SURF,borderRadius:12,padding:14,marginBottom:14,border:'1px solid '+ACC3}},
+        h(Lbl,null,'Durata (minuti)'),
+        h('input',{
+          type:'text', inputMode:'numeric', pattern:'[0-9]*',
+          value:durata, placeholder:'45',
+          onFocus:function(e){ e.target.select(); },
+          onChange:function(e){ setDurata(e.target.value.replace(/[^0-9]/g,'')); },
+          style:Object.assign({},inp,{textAlign:'center',fontFamily:"'Roboto Mono',monospace",fontSize:20,padding:'14px 12px'}),
+          autoFocus:true
+        })
+      ),
+      tipoDef.fields.length > 0 && h('div',null,
+        h(Lbl,null, 'Metriche ' + tipoDef.label.toLowerCase()),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
+          tipoDef.fields.map(fieldEl)
+        )
+      ),
+      h(Lbl,null,'Come ti sei sentito?'),
+      h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+        [1,2,3,4,5].map(function(n){
+          var moodLabels=['Pessimo','Male','Neutro','Bene','Ottimo'];
+          return h('button',{key:n,onClick:function(){setUmore(n);},'aria-label':moodLabels[n-1],'aria-pressed':umore===n,style:{flex:1,padding:'10px 0',borderRadius:10,border:'1px solid '+(umore===n?ACC:BORD),background:umore===n?ACC2:'transparent',color:umore===n?ACC:MUTED,cursor:'pointer',fontSize:19}},['😫','😕','😐','😊','💪'][n-1]);
+        })
+      ),
+      h(Lbl,null,'Note (opzionale)'),
+      h('textarea',{value:nota,onChange:function(e){setNota(e.target.value);},placeholder:'Percorso, sensazioni, meteo…',rows:3,style:Object.assign({},inp,{resize:'none'})}),
+      h('div',{style:{height:80}})
+    ),
+    h('div',{style:{padding:'12px 16px 32px',background:SURF,borderTop:'1px solid '+BORD}},
+      h(Btn,{full:true,onClick:save,disabled:saving||!durata},saving?'Salvataggio…':'Salva sessione cardio →')
+    )
+  );
+}
+
 /* ── log / storico ── */
 function Log(p){
   var sessions=p.sessions,schede=p.schede,go=p.go;
@@ -3095,6 +3494,10 @@ function Log(p){
 
   /* Helper: nome esercizi presenti in una sessione (per la ricerca testo) */
   function sessionLabel(s){
+    if(s.tipo==='cardio'){
+      var ct = getCardioTipo(s.cardioTipo||'altro');
+      return 'Cardio ' + ct.label;
+    }
     var sc=schede.find(function(x){return x.id===s.sId;});
     var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
     return (s.tipo==='cal'?'Calisthenics ':'') + (bl?bl.nome:sc?sc.nome:'Sessione');
@@ -3109,8 +3512,9 @@ function Log(p){
   var monthAgo = now - 30*86400000;
   var sorted = sessions.slice().sort(function(a,b){return new Date(b.t0)-new Date(a.t0);});
   var filtered = sorted.filter(function(s){
-    if(filter==='pesi' && s.tipo==='cal') return false;
+    if(filter==='pesi' && (s.tipo==='cal' || s.tipo==='cardio')) return false;
     if(filter==='cal'  && s.tipo!=='cal') return false;
+    if(filter==='cardio' && s.tipo!=='cardio') return false;
     if(filter==='week' && new Date(s.t0).getTime() < weekAgo) return false;
     if(filter==='month'&& new Date(s.t0).getTime() < monthAgo) return false;
     if(search.trim()){
@@ -3152,6 +3556,7 @@ function Log(p){
     ['all', 'Tutto'],
     ['pesi', 'Pesi'],
     ['cal', 'Cal'],
+    ['cardio', 'Cardio'],
     ['week', '7g'],
     ['month', '30g']
   ];
@@ -3203,6 +3608,39 @@ function Log(p){
           h('span',{style:{marginLeft:6,opacity:0.65}}, '· ' + groups[gk].length)
         ),
         groups[gk].map(function(s){
+          var isCardio = s.tipo === 'cardio';
+          if(isCardio){
+            var ct = getCardioTipo(s.cardioTipo||'altro');
+            var cd = s.cardioData || {};
+            /* KPI principale per la card: distanza se c'è, altrimenti kcal o solo durata */
+            var mainKpi = '';
+            if(cd.distanza) mainKpi = cd.distanza + 'km';
+            else if(cd.kcal) mainKpi = cd.kcal + 'kcal';
+            else mainKpi = s.dur + 'min';
+            return h(Card,{key:s.id,onClick:function(){go('det',{s:s});},style:{borderLeft:'3px solid '+(s.umore>=4?'var(--success)':s.umore<=2?'var(--warning)':ACC)}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}},
+                h('div',{style:{flex:1,minWidth:0}},
+                  h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+                    h('span',{style:{fontSize:10,background:'rgba(0,240,255,0.10)',color:'#00F0FF',padding:'2px 7px',borderRadius:20,border:'1px solid rgba(0,240,255,0.3)',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CARDIO'),
+                    h('span',{style:{fontSize:14}},ct.emoji),
+                    h('div',{style:{fontWeight:500,fontSize:14}},ct.label)
+                  ),
+                  h('div',{style:{fontSize:11,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})+' · '+s.dur+'min')
+                ),
+                h('div',{style:{textAlign:'right'}},
+                  h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:14,fontVariantNumeric:'tabular-nums'}}, mainKpi)
+                )
+              ),
+              h('div',{style:{fontSize:11,color:MUTED,display:'flex',gap:10,flexWrap:'wrap'}},
+                [cd.kcal && (cd.kcal+' kcal'),
+                 cd.fcMedia && ('FC ' + cd.fcMedia),
+                 cd.passo && ('Passo ' + cd.passo),
+                 cd.dislivello && ('+' + cd.dislivello + 'm dsl'),
+                 cd.vasche && (cd.vasche + ' vasche')
+                ].filter(Boolean).map(function(t,i){return h('span',{key:i},t);})
+              )
+            );
+          }
           var sc=schede.find(function(x){return x.id===s.sId;});
           var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
           var isCal=s.tipo==='cal';
@@ -3214,7 +3652,7 @@ function Log(p){
               h('div',{style:{flex:1,minWidth:0}},
                 h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
                   isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
-                  h('div',{style:{fontWeight:500,fontSize:14}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sessione')),
+                  h('div',{style:{fontWeight:500,fontSize:14}},isCal?(bl?bl.nome:sc?sc.nome:'Calisthenics'):(bl?bl.nome:sc?sc.nome:'Sessione')),
                   cRate<100&&h('span',{style:{fontSize:9,padding:'2px 7px',borderRadius:20,background:cRate>=50?'rgba(245,158,11,0.12)':'rgba(239,68,68,0.12)',color:cInfo.color,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,border:'1px solid '+(cRate>=50?'rgba(245,158,11,0.25)':'rgba(239,68,68,0.25)')}},cInfo.text)
                 ),
                 h('div',{style:{fontSize:11,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})+' · '+s.dur+'min')
@@ -3240,6 +3678,50 @@ function Log(p){
 /* ── dettaglio sessione ── */
 function Det(p){
   var s=p.s,schede=p.schede,go=p.go;
+  /* Sessione cardio: layout dedicato (no completion rate, no esercizi) */
+  if(s.tipo==='cardio'){
+    var ctd = getCardioTipo(s.cardioTipo||'altro');
+    var cdd = s.cardioData || {};
+    var kpis = [];
+    if(cdd.distanza) kpis.push({lbl:'Distanza',val:cdd.distanza+' km'});
+    if(cdd.kcal)     kpis.push({lbl:'Kcal',val:cdd.kcal});
+    if(cdd.fcMedia)  kpis.push({lbl:'FC media',val:cdd.fcMedia+' bpm'});
+    if(cdd.fcMax)    kpis.push({lbl:'FC max',val:cdd.fcMax+' bpm'});
+    if(cdd.passo)    kpis.push({lbl:'Passo',val:cdd.passo+' min/km'});
+    if(cdd.rpm)      kpis.push({lbl:'RPM',val:cdd.rpm});
+    if(cdd.watt)     kpis.push({lbl:'Watt',val:cdd.watt+' W'});
+    if(cdd.velMedia) kpis.push({lbl:'Vel. media',val:cdd.velMedia+' km/h'});
+    if(cdd.dislivello)kpis.push({lbl:'Dislivello',val:'+'+cdd.dislivello+' m'});
+    if(cdd.vasche)   kpis.push({lbl:'Vasche',val:cdd.vasche});
+    if(cdd.stile)    kpis.push({lbl:'Stile',val:cdd.stile});
+    if(cdd.lungVasca)kpis.push({lbl:'Lung. vasca',val:cdd.lungVasca+' m'});
+    return h('div',{style:{padding:'24px 16px 100px'}},
+      h(Back,{onClick:function(){go('log');}}),
+      h('div',{style:{margin:'14px 0 18px'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
+          h('span',{style:{fontSize:32}},ctd.emoji),
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1}}, ctd.label)
+        ),
+        h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+' min')
+      ),
+      kpis.length > 0 && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
+        kpis.map(function(k,i){
+          return h('div',{key:i,style:{background:SURF2,borderRadius:12,padding:'12px 14px'}},
+            h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3}},k.lbl),
+            h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,color:ACC,lineHeight:1}},k.val)
+          );
+        })
+      ),
+      s.umore&&h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},h('span',{style:{fontSize:24}},['😫','😕','😐','😊','💪'][s.umore-1]),h('span',{style:{fontSize:13,color:MUTED}},['Molto faticosa','Faticosa','Normale','Bene','Top!'][s.umore-1])),
+      s.nota&&h(Card,null,h('div',{style:{fontSize:13,color:TEXT,lineHeight:1.6}},s.nota)),
+      h('div',{style:{marginTop:28,paddingTop:18,borderTop:'0.5px solid '+BORD}},
+        h('button',{onClick:function(){p.onDelete&&p.onDelete(s.id);},style:{width:'100%',padding:'12px',borderRadius:10,border:'1px solid rgba(239,68,68,0.3)',background:'rgba(239,68,68,0.08)',color:'#EF4444',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+          h(Icon,{n:'trash',sz:15,c:'#EF4444'}),
+          'Elimina sessione'
+        )
+      )
+    );
+  }
   var sc=schede.find(function(x){return x.id===s.sId;});
   var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
   var cRate=sessionCompletionRate(s);
@@ -3247,7 +3729,7 @@ function Det(p){
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(Back,{onClick:function(){go('log');}}),
     h('div',{style:{margin:'14px 0 18px'}},
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1,marginBottom:4}},s.tipo==='cal'?'Calisthenics':(bl?bl.nome:'Sessione')),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1,marginBottom:4}},s.tipo==='cal'?(bl?bl.nome:sc?sc.nome:'Calisthenics'):(bl?bl.nome:'Sessione')),
       h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+'min · '+Math.round(ton(s.es))+'kg')
     ),
     /* Completion rate bar */
@@ -3317,9 +3799,10 @@ function Stats(p){
   }
   var cutoff=new Date(Date.now()-range*86400000);
   var prevCutoff=new Date(Date.now()-range*2*86400000);
-  var data=sessions.filter(function(s){return new Date(s.t0)>=cutoff;});
-  /* Periodo precedente per confronto delta */
-  var prevData=sessions.filter(function(s){var t=new Date(s.t0);return t>=prevCutoff && t<cutoff;});
+  /* Per la tab Allenamenti escludiamo le sessioni cardio: hanno una semantica diversa
+     (durata/distanza/kcal vs peso/reps) e finirebbero a inquinare tonnellaggio e top esercizi. */
+  var data=sessions.filter(function(s){return new Date(s.t0)>=cutoff && s.tipo!=='cardio';});
+  var prevData=sessions.filter(function(s){var t=new Date(s.t0);return t>=prevCutoff && t<cutoff && s.tipo!=='cardio';});
   var pesiData=data.filter(function(s){return s.tipo!=='cal';});
   var calData=data.filter(function(s){return s.tipo==='cal';});
 
@@ -3833,6 +4316,154 @@ var BODY_FIELDS = [
   {k:'addome',   lbl:'Addome',  unit:'cm', group:'circ'},
   {k:'coscia',   lbl:'Coscia',  unit:'cm', group:'circ'}
 ];
+/* Colori distintivi per il grafico multi-metrica. Stabili tra sessioni così l'occhio impara. */
+var BODY_COLORS = {
+  peso:           '#C8FF00',
+  bmi:            '#94A3B8',
+  massaGrassaKg:  '#EF4444',
+  massaMagraKg:   '#22C55E',
+  acquaTotale:    '#00F0FF',
+  acquaExtra:     '#3B82F6',
+  acquaIntra:     '#A855F7',
+  vita:           '#F59E0B',
+  fianchi:        '#EC4899',
+  addome:         '#F97316',
+  coscia:         '#14B8A6'
+};
+/* "Buono se sale" vs "buono se scende" — usato per colorare le frecce del riepilogo. */
+function metricDirHint(key, obiettivo){
+  if(key==='massaMagraKg' || key==='acquaTotale' || key==='acquaIntra') return 'up';
+  if(key==='massaGrassaKg' || key==='vita' || key==='addome' || key==='fianchi') return 'down';
+  if(key==='peso'){
+    if(obiettivo==='Definizione') return 'down';
+    if(obiettivo==='Forza' || obiettivo==='Ipertrofia') return 'up';
+  }
+  return null;
+}
+function humanSpan(days){
+  if(days < 14) return days + ' giorni';
+  if(days < 60) return Math.round(days/7) + ' settimane';
+  if(days < 365) return Math.max(1,Math.round(days/30)) + ' mesi';
+  return Math.round(days/365*10)/10 + ' anni';
+}
+
+/* Grafico multi-metrica: ogni metrica diventa una linea normalizzata come variazione %
+   rispetto al primo valore. Così metriche con unità diverse (kg / cm / L) sono confrontabili
+   sullo stesso asse Y. La linea tratteggiata a 0% è la baseline. */
+function MultiMetricChart(p){
+  var series = (p.series||[]).filter(function(s){ return s.points && s.points.length >= 2; });
+  var w=320, hg=170, padX=14, padY=20;
+  if(series.length === 0){
+    return h('div',{style:{height:hg,display:'flex',alignItems:'center',justifyContent:'center',color:MUTED,fontSize:12,textAlign:'center',padding:'0 20px'}},'Servono almeno 2 misurazioni per la panoramica');
+  }
+  var visible = series.filter(function(s){ return (p.hidden||[]).indexOf(s.key) < 0; });
+  if(visible.length === 0){
+    return h('div',{style:{height:hg,display:'flex',alignItems:'center',justifyContent:'center',color:MUTED,fontSize:12,textAlign:'center',padding:'0 20px'}},'Nessuna metrica attiva — tocca una etichetta sotto per accenderla');
+  }
+  var allTs=[], allD=[];
+  visible.forEach(function(s){
+    var base = s.points[0].v;
+    var denom = Math.abs(base) || 1;
+    s.points.forEach(function(pt){
+      allTs.push(new Date(pt.t0).getTime());
+      allD.push((pt.v - base)/denom * 100);
+    });
+  });
+  var tMin=Math.min.apply(null,allTs), tMax=Math.max.apply(null,allTs);
+  var tRng=tMax-tMin || 86400000;
+  var yMin=Math.min.apply(null,allD), yMax=Math.max.apply(null,allD);
+  if(yMin===yMax){ yMin-=1; yMax+=1; }
+  var yPad=Math.max(0.5,(yMax-yMin)*0.15);
+  yMin-=yPad; yMax+=yPad;
+  function xFor(t){ return padX + ((t-tMin)/tRng) * (w-padX*2); }
+  function yFor(d){ return hg-padY - ((d-yMin)/(yMax-yMin)) * (hg-padY*2); }
+  var yZero=yFor(0);
+  return h('svg',{width:'100%',height:hg,viewBox:'0 0 '+w+' '+hg,style:{display:'block'},role:'img','aria-label':'Grafico variazione percentuale di '+visible.length+' metriche'},
+    h('line',{x1:padX,x2:w-padX,y1:yZero,y2:yZero,stroke:'rgba(255,255,255,0.18)',strokeDasharray:'3,4',strokeWidth:1}),
+    h('text',{x:w-padX-2,y:yZero-3,fontSize:8,fill:'rgba(255,255,255,0.4)',textAnchor:'end',fontFamily:"'Roboto Mono',monospace"},'baseline 0%'),
+    h('text',{x:padX,y:padY-6,fontSize:8,fill:'rgba(255,255,255,0.4)',fontFamily:"'Roboto Mono',monospace"},'+'+Math.round(yMax)+'%'),
+    h('text',{x:padX,y:hg-4,fontSize:8,fill:'rgba(255,255,255,0.4)',fontFamily:"'Roboto Mono',monospace"},Math.round(yMin)+'%'),
+    visible.map(function(s){
+      var base = s.points[0].v;
+      var denom = Math.abs(base) || 1;
+      var pts = s.points.map(function(pt){
+        return {x:xFor(new Date(pt.t0).getTime()), y:yFor((pt.v-base)/denom*100)};
+      });
+      var path = pts.map(function(pt,i){ return (i===0?'M':'L') + pt.x.toFixed(1)+','+pt.y.toFixed(1); }).join(' ');
+      return h('g',{key:s.key},
+        h('path',{d:path,stroke:s.color,strokeWidth:1.8,fill:'none',strokeLinecap:'round',strokeLinejoin:'round'}),
+        pts.map(function(pt,i){
+          return h('circle',{key:i,cx:pt.x,cy:pt.y,r:2.4,fill:s.color,stroke:BG,strokeWidth:0.5});
+        })
+      );
+    })
+  );
+}
+
+/* Riepilogo "in chiaro": frase con frecce colorate per ogni metrica con variazione ≥ 0.1.
+   La direzione "buono/cattivo" dipende dall'obiettivo (es. peso ↑ è buono per Ipertrofia, ↓ per Definizione). */
+function PlainBodySummary(p){
+  var series = (p.series||[]).filter(function(s){ return s.points && s.points.length >= 2; });
+  if(series.length === 0) return null;
+  var allTs=[];
+  series.forEach(function(s){ s.points.forEach(function(pt){ allTs.push(new Date(pt.t0).getTime()); }); });
+  var days = Math.round((Math.max.apply(null,allTs)-Math.min.apply(null,allTs))/86400000) || 1;
+  var span = humanSpan(days);
+  var changes = series.map(function(s){
+    var first=s.points[0].v, last=s.points[s.points.length-1].v;
+    var d = last-first;
+    if(Math.abs(d) < 0.1) return null;
+    var dr = Math.round(d*10)/10;
+    var dStr = (dr>0?'+':'') + String(dr).replace('.',',') + s.unit;
+    var dir = metricDirHint(s.key, p.obiettivo);
+    var good = dir ? ((dir==='up') === (d>0)) : null;
+    return {key:s.key, label:s.label, dStr:dStr, dPos:d>0, good:good, color:s.color};
+  }).filter(Boolean);
+  if(changes.length === 0){
+    return h('div',{style:{padding:'10px 12px',background:SURF2,borderRadius:10,marginBottom:10,fontSize:12,color:MUTED,lineHeight:1.5}},
+      'In ' + span + ' nessuna variazione significativa nelle metriche tracciate.'
+    );
+  }
+  return h('div',{style:{padding:'10px 12px',background:SURF2,borderRadius:10,marginBottom:10}},
+    h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:6}}, 'In ' + span),
+    h('div',{style:{display:'flex',flexDirection:'column',gap:3}},
+      changes.map(function(c){
+        var col = c.good===true ? 'var(--success)' : (c.good===false ? 'var(--danger)' : TEXT);
+        return h('div',{key:c.key,style:{display:'flex',alignItems:'center',gap:8,fontSize:12,lineHeight:1.4}},
+          h('span',{style:{width:6,height:6,borderRadius:3,background:c.color,flexShrink:0}}),
+          h('span',{style:{color:TEXT,flex:1}}, c.label),
+          h('span',{style:{color:col,fontFamily:"'Roboto Mono',monospace",fontWeight:700,fontSize:12}}, (c.dPos?'▲ ':'▼ ') + c.dStr)
+        );
+      })
+    )
+  );
+}
+
+/* Legenda interattiva: tap su una chip nasconde/mostra quella linea nel grafico. */
+function MetricLegend(p){
+  return h('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginTop:10}},
+    p.series.map(function(s){
+      var hidden = (p.hidden||[]).indexOf(s.key) >= 0;
+      return h('button',{
+        key:s.key,
+        onClick:function(){ hap(6); p.onToggle(s.key); },
+        'aria-pressed': !hidden,
+        title: hidden ? 'Mostra ' + s.label : 'Nascondi ' + s.label,
+        style:{
+          padding:'4px 9px',borderRadius:14,
+          border:'1px solid '+(hidden ? BORD : s.color),
+          background: hidden ? 'transparent' : s.color+'1f',
+          color: hidden ? MUTED : s.color,
+          fontSize:11, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5,
+          opacity: hidden ? 0.55 : 1, transition:'all 0.15s'
+        }
+      },
+        h('span',{style:{width:8,height:8,borderRadius:4,background:hidden?MUTED:s.color,display:'inline-block'}}),
+        s.label
+      );
+    })
+  );
+}
 /* Field "virtuale" calcolato: BMI = peso / (altezza_m)^2.
    Non si inserisce manualmente, ma viene incluso nei grafici trend e nelle KPI.
    Categoria OMS: <18.5 sottopeso · 18.5-24.9 normo · 25-29.9 sovrappeso · ≥30 obeso. */
@@ -3855,9 +4486,17 @@ function BodyView(p){
   var setLog = p.setLog;
   var profile = p.profile;
   var altezzaCm = profile && profile.altezza ? parseFloat(String(profile.altezza).replace(',','.')) : null;
+  var obiettivo = profile && profile.obiettivo || '';
   var _f = useState(false); var formOpen = _f[0]; var setFormOpen = _f[1];
   var _ed = useState(null); var editing = _ed[0]; var setEditing = _ed[1];
   var _sel = useState('peso'); var selMetric = _sel[0]; var setSelMetric = _sel[1];
+  var _vw = useState('overview'); var chartView = _vw[0]; var setChartView = _vw[1];
+  var _hd = useState([]); var hiddenMetrics = _hd[0]; var setHiddenMetrics = _hd[1];
+  function toggleHidden(k){
+    setHiddenMetrics(function(prev){
+      return prev.indexOf(k) >= 0 ? prev.filter(function(x){return x!==k;}) : prev.concat([k]);
+    });
+  }
 
   var sorted = log.slice().sort(function(a,b){return new Date(a.t) - new Date(b.t);});
   var hasData = sorted.length > 0;
@@ -3970,25 +4609,58 @@ function BodyView(p){
           );
         })
       ),
-      /* Selector metrica per il grafico */
-      availableMetrics.length > 1 && h('div',null,
-        h(Lbl,null,'Trend per metrica'),
-        h('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}},
-          availableMetrics.map(function(f){
-            var on = selMetric === f.k;
-            return h('button',{key:f.k,onClick:function(){setSelMetric(f.k);},style:{padding:'5px 10px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:11,cursor:'pointer',fontWeight:on?700:400}}, f.lbl);
-          })
-        )
-      ),
-      selPts.length >= 2 && h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:14,marginBottom:14}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
-          h('div',{style:{fontSize:13,fontWeight:500}}, selField.lbl + ' ('+selField.unit+')'),
-          h(TrendBadge,{trend:selTrend})
-        ),
-        h(Chart,{data:selPts}),
-        h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginTop:4}}, selPts.length+' misurazioni · da '+fmtD(selPts[0].t0)+' a '+fmtD(selPts[selPts.length-1].t0))
-      ),
-      selPts.length < 2 && selPts.length > 0 && h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:14,marginBottom:14,textAlign:'center',color:MUTED,fontSize:12}}, 'Serve almeno una seconda misurazione di "'+selField.lbl+'" per vedere il grafico.')
+      /* Costruisce la serie multi-metrica per il grafico "Panoramica" */
+      (function(){
+        var multiSeries = allFields.map(function(f){
+          var pts = pointsFor(f.k);
+          return {key:f.k, label:f.lbl, unit:f.unit, color:BODY_COLORS[f.k]||ACC, points:pts};
+        }).filter(function(s){ return s.points.length >= 1; });
+        var trendableSeries = multiSeries.filter(function(s){ return s.points.length >= 2; });
+        var hasTrend = trendableSeries.length > 0;
+        return h('div',null,
+          /* Switcher Panoramica / Dettaglio: solo se c'è almeno una metrica con 2+ misurazioni */
+          hasTrend && h('div',{style:{display:'flex',gap:4,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:4,marginBottom:10}},
+            [['overview','Panoramica'],['focus','Dettaglio']].map(function(it){
+              var on = chartView===it[0];
+              return h('button',{key:it[0],onClick:function(){hap(8);setChartView(it[0]);},'aria-pressed':on,style:{flex:1,padding:'8px 10px',borderRadius:7,border:'none',background:on?ACC:'transparent',color:on?ACT:MUTED,fontSize:12,fontWeight:on?700:500,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em',textTransform:'uppercase'}},it[1]);
+            })
+          ),
+          /* PANORAMICA: linee di tutte le metriche, con riepilogo in chiaro + legenda toggle */
+          hasTrend && chartView === 'overview' && h('div',null,
+            h(PlainBodySummary,{series:trendableSeries, obiettivo:obiettivo}),
+            h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:'14px 10px 12px',marginBottom:14}},
+              h('div',{style:{fontSize:10,color:MUTED,marginBottom:6,paddingLeft:4,lineHeight:1.4}}, 'Ogni linea = variazione % rispetto alla prima misurazione. La linea tratteggiata è la baseline 0%.'),
+              h(MultiMetricChart,{series:trendableSeries, hidden:hiddenMetrics}),
+              h(MetricLegend,{series:trendableSeries, hidden:hiddenMetrics, onToggle:toggleHidden}),
+              trendableSeries.length > 1 && h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginTop:8,paddingTop:8,borderTop:'0.5px solid '+BORD}}, 'Tocca una etichetta per nasconderla. Per il dettaglio in unità reali, passa a "Dettaglio".')
+            )
+          ),
+          /* DETTAGLIO: zoom su una singola metrica con valori reali */
+          hasTrend && chartView === 'focus' && h('div',null,
+            availableMetrics.length > 1 && h('div',{style:{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}},
+              availableMetrics.map(function(f){
+                var on = selMetric === f.k;
+                var c = BODY_COLORS[f.k]||ACC;
+                return h('button',{key:f.k,onClick:function(){hap(6);setSelMetric(f.k);},'aria-pressed':on,style:{padding:'5px 10px',borderRadius:16,border:'1px solid '+(on?c:BORD),background:on?(c+'22'):'transparent',color:on?c:MUTED,fontSize:11,cursor:'pointer',fontWeight:on?700:400,display:'inline-flex',alignItems:'center',gap:5}},
+                  h('span',{style:{width:7,height:7,borderRadius:4,background:c,display:'inline-block'}}),
+                  f.lbl
+                );
+              })
+            ),
+            selPts.length >= 2 && h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:14,marginBottom:14}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,gap:8}},
+                h('div',{style:{fontSize:13,fontWeight:500}}, selField.lbl + ' ('+selField.unit+')'),
+                h(TrendBadge,{trend:selTrend})
+              ),
+              h(Chart,{data:selPts}),
+              h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginTop:4}}, selPts.length+' misurazioni · da '+fmtD(selPts[0].t0)+' a '+fmtD(selPts[selPts.length-1].t0))
+            ),
+            selPts.length < 2 && selPts.length > 0 && h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:14,marginBottom:14,textAlign:'center',color:MUTED,fontSize:12}}, 'Serve almeno una seconda misurazione di "'+selField.lbl+'" per vedere il grafico.')
+          ),
+          /* Stato "nessun trend ancora" — c'è almeno una misurazione ma <2 per ogni metrica */
+          !hasTrend && h('div',{style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:14,marginBottom:14,textAlign:'center',color:MUTED,fontSize:12,lineHeight:1.5}}, 'Aggiungi una seconda misurazione per vedere i grafici.')
+        );
+      })()
     ),
     /* CTA */
     h('div',{style:{display:'flex',gap:8,marginBottom:18}},
@@ -4155,15 +4827,22 @@ function SchedaV(p){
     schede.length===0&&h('div',{style:{textAlign:'center',padding:'40px 24px',color:MUTED}},
       h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📋'),
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessuna scheda ancora'),
-      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:20}},'Crea la prima scheda da zero, oppure',h('br'),'parti da un template e personalizza.'),
-      h('button',{onClick:function(){go('nuova');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'+ Crea scheda')
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:20}},'Crea la prima scheda — sala pesi o calisthenics.'),
+      h('div',{style:{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}},
+        h('button',{onClick:function(){go('nuova',{tipo:'pesi'});},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'+ Scheda pesi'),
+        h('button',{onClick:function(){go('nuova',{tipo:'cal'});},style:{padding:'12px 22px',background:'transparent',color:ACC,border:'1px solid '+ACC3,borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'+ Scheda cal')
+      )
     ),
     schede.map(function(sc){
+      var scTipo = sc.tipo||'pesi';
       return h(Card,{key:sc.id,className:sc.attiva?'gt-scheda-active':'',style:{position:'relative',border:sc.attiva?'1.5px solid '+ACC:'0.5px solid '+BORD,background:sc.attiva?ACC5:SURF,opacity:sc.attiva?1:0.78,transition:'opacity .2s ease'}},
         sc.attiva && h('div',{style:{position:'absolute',top:-9,right:14,background:ACC,color:ACT,fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',padding:'3px 9px',borderRadius:20,boxShadow:'0 2px 8px '+ACC3}},'IN USO'),
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:5}},
           h('div',{style:{flex:1,minWidth:0}},
-            h('div',{style:{fontWeight:sc.attiva?700:500,fontSize:14,wordBreak:'break-word',marginBottom:2,color:sc.attiva?TEXT:MUTED}},sc.nome),
+            h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2,flexWrap:'wrap'}},
+              h('span',{style:{fontSize:11,padding:'1px 7px',borderRadius:14,background:scTipo==='cal'?'rgba(168,85,247,0.12)':'rgba(200,255,0,0.08)',border:'1px solid '+(scTipo==='cal'?'rgba(168,85,247,0.35)':ACC3),color:scTipo==='cal'?'#C084FC':ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}}, scTipo==='cal'?'🤸 CAL':'🏋️ PESI'),
+              h('div',{style:{fontWeight:sc.attiva?700:500,fontSize:14,wordBreak:'break-word',color:sc.attiva?TEXT:MUTED}},sc.nome)
+            ),
             h('div',{style:{fontSize:11,color:MUTED}},sc.blocchi.length+' blocchi · '+sc.blocchi.reduce(function(t,b){return t+b.es.length;},0)+' esercizi')
           ),
           h('div',{style:{display:'flex',gap:4,flexShrink:0}},
@@ -4176,19 +4855,281 @@ function SchedaV(p){
         sc.blocchi.length>0&&h('div',{style:{fontSize:11,color:MUTED,marginTop:6,paddingTop:8,borderTop:'0.5px solid '+BORD}},sc.blocchi.map(function(b){return b.nome+' ('+b.es.length+')';}).join(' · '))
       );
     }),
-    h(Btn,{full:true,onClick:function(){go('nuova');}},'+ Nuova scheda PT')
+    h('div',{style:{display:'flex',gap:8}},
+      h(Btn,{full:true,onClick:function(){go('nuova',{tipo:'pesi'});}},'+ Pesi'),
+      h(Btn,{full:true,sec:true,onClick:function(){go('nuova',{tipo:'cal'});}},'+ Cal')
+    )
+  );
+}
+
+/* ── PROMEMORIA SETTIMANALI ──
+   Memo che l'utente vuole vedere sulla dashboard: appuntamenti col nutrizionista,
+   giorni di chiusura palestra, assenza coach, eventi vari. Storage localStorage.
+   I tipi sono colorati così l'utente li identifica a colpo d'occhio sulla home. */
+var REM_KEY = 'pumplog_reminders';
+function loadReminders(){
+  try { return JSON.parse(localStorage.getItem(REM_KEY)||'[]') || []; }
+  catch(e) { return []; }
+}
+function saveReminders(arr){
+  try { localStorage.setItem(REM_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+function addReminder(r){
+  var arr = loadReminders();
+  arr.push(Object.assign({}, r, {id: r.id || ('rem_'+uid()), lastModified: Date.now()}));
+  saveReminders(arr);
+  return arr;
+}
+function delReminderById(id){
+  var arr = loadReminders().filter(function(x){ return x.id !== id; });
+  saveReminders(arr);
+  return arr;
+}
+function updReminderById(id, patch){
+  var arr = loadReminders().map(function(x){
+    return x.id === id ? Object.assign({}, x, patch, {lastModified: Date.now()}) : x;
+  });
+  saveReminders(arr);
+  return arr;
+}
+var REMINDER_TYPES = [
+  {id:'nutrizionista', label:'Nutrizionista',     emoji:'🥗', color:'#F97316', bg:'rgba(249,115,22,0.10)', bord:'rgba(249,115,22,0.35)'},
+  {id:'palestra',      label:'Palestra chiusa',    emoji:'🚫', color:'#EF4444', bg:'rgba(239,68,68,0.10)', bord:'rgba(239,68,68,0.35)'},
+  {id:'coach',         label:'Coach assente',      emoji:'👤', color:'#F59E0B', bg:'rgba(245,158,11,0.10)', bord:'rgba(245,158,11,0.35)'},
+  {id:'allenamento',   label:'Allenamento',        emoji:'💪', color:'#22C55E', bg:'rgba(34,197,94,0.10)', bord:'rgba(34,197,94,0.35)'},
+  {id:'visita',        label:'Visita medica',      emoji:'🩺', color:'#3B82F6', bg:'rgba(59,130,246,0.10)', bord:'rgba(59,130,246,0.35)'},
+  {id:'altro',         label:'Altro',              emoji:'📌', color:'#94A3B8', bg:'rgba(148,163,184,0.10)', bord:'rgba(148,163,184,0.35)'}
+];
+function getReminderType(id){ return REMINDER_TYPES.find(function(t){return t.id===id;}) || REMINDER_TYPES[REMINDER_TYPES.length-1]; }
+
+/* Calcola la data della prossima occorrenza per un promemoria ricorrente settimanale.
+   Per i one-shot ritorna la data originale. */
+function nextOccurrence(r, fromDate){
+  var base = new Date(r.date);
+  base.setHours(0,0,0,0);
+  if(!r.recurring || r.recurring==='none') return base;
+  if(r.recurring==='weekly'){
+    var now = new Date(fromDate||Date.now());
+    now.setHours(0,0,0,0);
+    if(base >= now) return base;
+    var diffDays = Math.floor((now - base)/86400000);
+    var addWeeks = Math.ceil((diffDays+1)/7);
+    var next = new Date(base);
+    next.setDate(base.getDate() + addWeeks*7);
+    return next;
+  }
+  return base;
+}
+
+/* Widget compatto per la Home. Mostra i prossimi 3 promemoria entro 7 giorni.
+   Empty state invita a creare il primo. Tap sull'header apre la vista completa. */
+function RemindersWidget(p){
+  var reminders = p.reminders || [];
+  var go = p.go;
+  var now = new Date(); now.setHours(0,0,0,0);
+  var horizon = new Date(now.getTime() + 8*86400000);
+  /* Espandi gli eventi: per ricorrenti, prendi la prossima occorrenza nella finestra */
+  var occurrences = [];
+  reminders.forEach(function(r){
+    var n = nextOccurrence(r, now);
+    if(n >= now && n < horizon) occurrences.push(Object.assign({}, r, {_occ: n}));
+  });
+  occurrences.sort(function(a,b){return a._occ - b._occ;});
+  function dayLabel(d){
+    var diff = Math.round((d - now)/86400000);
+    if(diff===0) return 'Oggi';
+    if(diff===1) return 'Domani';
+    return d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'short'});
+  }
+  if(reminders.length === 0){
+    return h('div',{style:{marginBottom:18}},
+      h('div',{onClick:function(){hap(8);go('reminders');},style:{display:'flex',alignItems:'center',gap:10,background:SURF2,border:'1px dashed '+BORD,borderRadius:12,padding:'13px 14px',cursor:'pointer'}},
+        h('div',{style:{fontSize:22}},'📌'),
+        h('div',{style:{flex:1}},
+          h('div',{style:{fontSize:13,fontWeight:600,color:TEXT}},'Promemoria della settimana'),
+          h('div',{style:{fontSize:11,color:MUTED,marginTop:1}},'Aggiungi appuntamenti, chiusure palestra, eventi…')
+        ),
+        h(Icon,{n:'next',sz:16,c:MUTED})
+      )
+    );
+  }
+  return h('div',{style:{marginBottom:18}},
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}},
+      h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase'}},'Promemoria · prossimi 7 giorni'),
+      h('button',{onClick:function(){hap(8);go('reminders');},style:{background:'none',border:'none',color:ACC,fontSize:11,cursor:'pointer',padding:2}},'Gestisci →')
+    ),
+    occurrences.length === 0
+      ? h('div',{style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',gap:10}},
+          h('div',{style:{fontSize:20,opacity:0.6}},'✓'),
+          h('div',{style:{flex:1,fontSize:12,color:MUTED}},'Nessun promemoria nei prossimi 7 giorni')
+        )
+      : occurrences.slice(0,3).map(function(r){
+          var t = getReminderType(r.type);
+          return h('div',{key:r.id,onClick:function(){hap(8);go('reminders');},style:{background:t.bg,border:'1px solid '+t.bord,borderRadius:10,padding:'9px 11px',marginBottom:5,display:'flex',alignItems:'center',gap:10,cursor:'pointer'}},
+            h('div',{style:{fontSize:20}}, t.emoji),
+            h('div',{style:{flex:1,minWidth:0}},
+              h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, r.title),
+              h('div',{style:{fontSize:11,color:MUTED}}, dayLabel(r._occ) + (r.time?' · '+r.time:'') + (r.recurring==='weekly'?' · settimanale':''))
+            )
+          );
+        }),
+    occurrences.length > 3 && h('div',{style:{fontSize:11,color:MUTED,textAlign:'center',marginTop:2}}, '+ altri ' + (occurrences.length-3) + ' nei prossimi giorni')
+  );
+}
+
+/* Vista completa: lista + form. Tutti i promemoria, ordinati per data, con azioni edit/delete. */
+function RemindersView(p){
+  var go = p.go;
+  var _r = useState(loadReminders()); var reminders = _r[0]; var setReminders = _r[1];
+  var _form = useState(false); var formOpen = _form[0]; var setFormOpen = _form[1];
+  var _ed = useState(null); var editing = _ed[0]; var setEditing = _ed[1];
+  function openNew(){ setEditing(null); setFormOpen(true); }
+  function openEdit(r){ setEditing(r); setFormOpen(true); }
+  function handleSave(data){
+    if(editing && editing.id){
+      var arr = updReminderById(editing.id, data);
+      setReminders(arr);
+    } else {
+      var arr2 = addReminder(data);
+      setReminders(arr2);
+    }
+    setFormOpen(false); setEditing(null);
+    if(p.onChange) p.onChange();
+  }
+  function handleDelete(r){
+    if(!confirm('Eliminare "'+r.title+'"?')) return;
+    var arr = delReminderById(r.id);
+    setReminders(arr);
+    if(p.onChange) p.onChange();
+  }
+  /* Ordinamento: prossima occorrenza crescente. I passati vengono in fondo. */
+  var now = new Date(); now.setHours(0,0,0,0);
+  var sorted = reminders.slice().sort(function(a,b){
+    var na = nextOccurrence(a, now), nb = nextOccurrence(b, now);
+    return na - nb;
+  });
+  var upcoming = sorted.filter(function(r){return nextOccurrence(r,now) >= now;});
+  var past = sorted.filter(function(r){return nextOccurrence(r,now) < now;});
+  function renderItem(r){
+    var t = getReminderType(r.type);
+    var occ = nextOccurrence(r, now);
+    var diff = Math.round((occ - now)/86400000);
+    var when = diff===0?'Oggi':diff===1?'Domani':diff<0?(Math.abs(diff)+' gg fa'):occ.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',year: occ.getFullYear()!==new Date().getFullYear()?'numeric':undefined});
+    return h('div',{key:r.id,style:{background:t.bg,border:'1px solid '+t.bord,borderRadius:12,padding:'12px 14px',marginBottom:8,display:'flex',alignItems:'center',gap:12}},
+      h('div',{style:{fontSize:26,flexShrink:0}}, t.emoji),
+      h('div',{style:{flex:1,minWidth:0,cursor:'pointer'},onClick:function(){openEdit(r);}},
+        h('div',{style:{fontSize:14,fontWeight:600,color:TEXT,marginBottom:2,overflow:'hidden',textOverflow:'ellipsis'}}, r.title),
+        h('div',{style:{fontSize:11,color:MUTED}}, t.label + ' · ' + when + (r.time?' · '+r.time:'') + (r.recurring==='weekly'?' · ogni settimana':'')),
+        r.notes && h('div',{style:{fontSize:11,color:MUTED,fontStyle:'italic',marginTop:3,overflow:'hidden',textOverflow:'ellipsis'}}, '“' + r.notes.slice(0,80) + (r.notes.length>80?'…':'') + '”')
+      ),
+      h('div',{style:{display:'flex',gap:4,flexShrink:0}},
+        h('button',{onClick:function(){openEdit(r);},'aria-label':'Modifica',style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:8,padding:'6px 8px',cursor:'pointer'}},h(Icon,{n:'edit',sz:13,c:t.color})),
+        h('button',{onClick:function(){handleDelete(r);},'aria-label':'Elimina',style:{background:'transparent',border:'none',cursor:'pointer',padding:'6px 4px'}},h(Icon,{n:'trash',sz:13,c:'rgba(239,68,68,0.6)'}))
+      )
+    );
+  }
+  return h('div',{style:{padding:'24px 16px 100px'}},
+    h(Back,{onClick:function(){go('home');}}),
+    h(PageHeader,{title:'Promemoria',sub:reminders.length+' totali · '+upcoming.length+' attivi'}),
+    reminders.length === 0 && h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
+      h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📌'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Niente da ricordare'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Aggiungi appuntamenti col nutrizionista, giorni in cui',h('br'),'la palestra è chiusa, assenze del coach, ecc.'),
+      h('button',{onClick:openNew,style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'+ Primo promemoria')
+    ),
+    upcoming.length > 0 && h('div',null,
+      h(Lbl,null,'Prossimi'),
+      upcoming.map(renderItem)
+    ),
+    past.length > 0 && h('div',{style:{marginTop:14}},
+      h(Lbl,null,'Passati'),
+      h('div',{style:{opacity:0.55}}, past.slice(0,8).map(renderItem))
+    ),
+    reminders.length > 0 && h('div',{style:{marginTop:18}},
+      h(Btn,{full:true,onClick:openNew},'+ Nuovo promemoria')
+    ),
+    formOpen && h(ReminderForm,{initial:editing,onClose:function(){setFormOpen(false);setEditing(null);},onSave:handleSave})
+  );
+}
+
+/* Modale form: titolo, tipo (chip selector), data, ora (opz), ricorrenza, note. */
+function ReminderForm(p){
+  useEffect(function(){lockScroll();return unlockScroll;},[]);
+  var init = p.initial || {};
+  var _t=useState(init.type||'nutrizionista');var tipo=_t[0];var setTipo=_t[1];
+  var _ti=useState(init.title||'');var titolo=_ti[0];var setTitolo=_ti[1];
+  var _d=useState(init.date ? init.date.slice(0,10) : todayISO());var data=_d[0];var setData=_d[1];
+  var _h=useState(init.time||'');var ora=_h[0];var setOra=_h[1];
+  var _r=useState(init.recurring||'none');var rec=_r[0];var setRec=_r[1];
+  var _n=useState(init.notes||'');var note=_n[0];var setNote=_n[1];
+  function doSave(){
+    if(!titolo.trim()){ alert('Inserisci un titolo'); return; }
+    if(!data){ alert('Scegli una data'); return; }
+    p.onSave({
+      type: tipo,
+      title: titolo.trim(),
+      date: new Date(data).toISOString(),
+      time: ora || null,
+      recurring: rec,
+      notes: note.trim() || null
+    });
+  }
+  var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)p.onClose();}},
+    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0}},
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:ACC}}, init.id ? 'Modifica promemoria' : 'Nuovo promemoria'),
+        h('button',{onClick:p.onClose,'aria-label':'Chiudi',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10}},h(Icon,{n:'close',sz:20,c:MUTED}))
+      ),
+      h('div',{style:{overflowY:'auto',flex:1,padding:'16px 16px 0'}},
+        h(Lbl,null,'Tipo'),
+        h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}},
+          REMINDER_TYPES.map(function(t){
+            var on = tipo === t.id;
+            return h('button',{key:t.id,onClick:function(){hap(8);setTipo(t.id);},'aria-pressed':on,style:{padding:'7px 11px',borderRadius:18,border:'1px solid '+(on?t.color:BORD),background:on?t.bg:'transparent',color:on?t.color:TEXT,fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,fontWeight:on?700:400}},
+              h('span',{style:{fontSize:14}},t.emoji),
+              t.label
+            );
+          })
+        ),
+        h(Lbl,null,'Titolo'),
+        h('input',{value:titolo,onChange:function(e){setTitolo(e.target.value);},placeholder: tipo==='palestra'?'es. Palestra chiusa per ferie': tipo==='nutrizionista'?'es. Visita controllo dieta':'Descrizione',style:Object.assign({},inp,{marginBottom:14}),autoFocus:!init.id}),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
+          h('div',null,h(Lbl,null,'Data'),h('input',{type:'date',value:data,onChange:function(e){setData(e.target.value);},style:inp})),
+          h('div',null,h(Lbl,null,'Ora (opz.)'),h('input',{type:'time',value:ora,onChange:function(e){setOra(e.target.value);},style:inp}))
+        ),
+        h(Lbl,null,'Ricorrenza'),
+        h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+          [{id:'none',l:'Una volta'},{id:'weekly',l:'Ogni settimana'}].map(function(r){
+            var on = rec === r.id;
+            return h('button',{key:r.id,onClick:function(){hap(6);setRec(r.id);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, r.l);
+          })
+        ),
+        rec==='weekly' && h('div',{style:{fontSize:11,color:MUTED,marginTop:-8,marginBottom:14,lineHeight:1.5,padding:'8px 10px',background:SURF2,borderRadius:8}},'Il promemoria si ripeterà ogni settimana nello stesso giorno.'),
+        h(Lbl,null,'Note (opzionale)'),
+        h('textarea',{value:note,onChange:function(e){setNote(e.target.value);},placeholder:'Indirizzo, dettagli, riferimenti…',rows:3,style:Object.assign({},inp,{resize:'none',marginBottom:20})})
+      ),
+      h('div',{style:{padding:'12px 16px 32px',borderTop:'0.5px solid '+BORD,flexShrink:0}},
+        h(Btn,{full:true,onClick:doSave},init.id?'Salva modifiche':'Crea promemoria')
+      )
+    )
   );
 }
 
 /* ── nuova / modifica scheda ── */
 function NuovaScheda(p){
-  var go=p.go,setSchede=p.setSchede,existing=p.existing;
+  var go=p.go,setSchede=p.setSchede,existing=p.existing,initialTipo=p.initialTipo;
   var isEdit=!!(existing&&existing.id);
   var _1=useState(function(){
     if(isEdit) return JSON.parse(JSON.stringify(existing));
-    return {id:'sc_'+uid(),nome:'',blocchi:[],attiva:true,data:new Date().toISOString()};
+    return {id:'sc_'+uid(),nome:'',blocchi:[],attiva:true,data:new Date().toISOString(),tipo:(initialTipo||'pesi')};
   });
   var sc=_1[0];var setSc=_1[1];
+  /* tipo scheda: 'pesi' (default per retro-compat) o 'cal'. Determina anche il picker. */
+  var schedaTipo = sc.tipo || 'pesi';
+  function setSchedaTipo(t){
+    setSc(function(p){return Object.assign({},p,{tipo:t});});
+  }
   var _2=useState(null);var editEx=_2[0];var setEditEx=_2[1];
   var _3=useState({bi:null,ei:null,nuovo:null});var editCtx=_3[0];var setEditCtx=_3[1];
   var _4=useState(false);var picker=_4[0];var setPicker=_4[1];
@@ -4223,10 +5164,26 @@ function NuovaScheda(p){
   }
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(Back,{onClick:function(){go('scheda');}}),
-    h('div',{style:{margin:'14px 0 4px',fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em'}},isEdit?'Modifica scheda':'Nuova scheda PT'),
-    h('div',{style:{fontSize:13,color:MUTED,marginBottom:20}},isEdit?'Aggiorna nome, blocchi ed esercizi della scheda.':'Trasponi qui la scheda del tuo personal trainer'),
+    h('div',{style:{margin:'14px 0 4px',fontFamily:"'Bebas Neue',cursive",fontSize:30,letterSpacing:'0.03em'}},isEdit?'Modifica scheda':'Nuova scheda'),
+    h('div',{style:{fontSize:13,color:MUTED,marginBottom:20}},isEdit?'Aggiorna nome, blocchi ed esercizi della scheda.':'Trasponi qui la scheda del tuo PT o coach'),
+    /* Toggle tipo scheda: in modifica resta read-only per non rompere la coerenza dati */
+    !isEdit && h('div',null,
+      h(Lbl,null,'Tipo scheda'),
+      h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+        [{id:'pesi',l:'Sala pesi',ic:'🏋️'},{id:'cal',l:'Calisthenics',ic:'🤸'}].map(function(t){
+          var on = schedaTipo === t.id;
+          return h('button',{key:t.id,onClick:function(){hap(8);setSchedaTipo(t.id);},'aria-pressed':on,style:{flex:1,padding:'11px 10px',borderRadius:10,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:13,fontWeight:on?700:500,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:7}},
+            h('span',{style:{fontSize:18}},t.ic),
+            t.l
+          );
+        })
+      )
+    ),
+    isEdit && h('div',{style:{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:14,background:ACC5,border:'1px solid '+ACC3,marginBottom:14,fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}},
+      schedaTipo==='cal'?'🤸 Cal':'🏋️ Pesi'
+    ),
     h(Lbl,null,'Nome scheda'),
-    h('input',{value:sc.nome,onChange:function(e){setSc(function(p){return Object.assign({},p,{nome:e.target.value});});},placeholder:'es. Forza Q4 2025, Ipertrofia 5 giorni…',style:inp}),
+    h('input',{value:sc.nome,onChange:function(e){setSc(function(p){return Object.assign({},p,{nome:e.target.value});});},placeholder:schedaTipo==='cal'?'es. Push 3 livelli, Skill ladder…':'es. Forza Q4 2025, Ipertrofia 5 giorni…',style:inp}),
     sc.blocchi.map(function(b,bi){
       return h('div',{key:b.id,style:{background:SURF,border:'1px solid '+BORD,borderRadius:14,padding:14,marginBottom:12}},
         h('div',{style:{display:'flex',gap:6,marginBottom:10}},
@@ -4244,8 +5201,15 @@ function NuovaScheda(p){
     }),
     h('button',{onClick:addBlocco,style:{width:'100%',padding:10,borderRadius:10,border:'1px dashed '+ACC3,background:ACC5,color:ACC,fontSize:13,cursor:'pointer',marginBottom:18,fontWeight:600}},'+ Aggiungi blocco'),
     h(Btn,{full:true,onClick:save},isEdit?'Salva modifiche':'Salva scheda'),
-    picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:onPickerAdd,baseList:PESI_ES.concat(CAL_ES),label:'Scegli esercizio (sala pesi + calisthenics)'}),
-    editEx&&h(ExerciseConfigSheet,{ex:editEx.id?editEx:null,nome:editEx.nome,onClose:function(){setEditEx(null);},onSave:onSaveEx})
+    picker && h(ExercisePicker,{
+      visible:true,
+      onClose:function(){setPicker(false);},
+      onAdd:onPickerAdd,
+      baseList: schedaTipo==='cal' ? CAL_ES : PESI_ES,
+      mode: schedaTipo==='cal' ? 'cal' : 'pesi',
+      label: schedaTipo==='cal' ? 'Scegli esercizio calisthenics' : 'Scegli esercizio sala pesi'
+    }),
+    editEx&&h(ExerciseConfigSheet,{ex:editEx.id?editEx:null,nome:editEx.nome,schedaTipo:schedaTipo,onClose:function(){setEditEx(null);},onSave:onSaveEx})
   );
 }
 
@@ -4905,6 +5869,18 @@ function App(){
         var remoteSchede = remote.schede || [];
         var remoteSessions = remote.sessions || [];
 
+        /* Tema + freq esercizi vivono come campi separati su profiles (non nel JSON profile).
+           Li applichiamo qui in modo che seguano l'utente tra device: last-write-wins col cloud. */
+        if(remote.profileRow){
+          if(remote.profileRow.theme){
+            var t = THEMES.find(function(th){return th.id===remote.profileRow.theme;});
+            if(t) applyTheme(t);
+          }
+          if(remote.profileRow.freq && typeof remote.profileRow.freq === 'object'){
+            try{ localStorage.setItem(FK, JSON.stringify(remote.profileRow.freq)); }catch(e){}
+          }
+        }
+
         if(remoteSchede.length !== schede.length || JSON.stringify(remoteSchede) !== JSON.stringify(schede)){
           setSchede(remoteSchede);
         }
@@ -4973,15 +5949,17 @@ function App(){
     if(sch && sch.length){ setSchede(touchAll(sch)); }
   }});
 
-  var isLive=view==='live'||view==='callive';
+  var isLive=view==='live'||view==='callive'||view==='cardiolive';
   return h('div',{id:'main-content',role:'main',style:{maxWidth:440,margin:'0 auto',paddingBottom:isLive?0:80,position:'relative'}},
     view==='home'&&h(Home,{schede:liveSchede,sessions:liveSessions,profile:profile,go:go,syncStatus:syncStatus}),
     view==='settings'&&h(Settings,{profile:profile,onProfile:setProfile,go:go,schede:liveSchede,sessions:liveSessions,setSchede:function(s){setSchede(touchAll(s));},setSessions:function(s){setSessions(touchAll(s));}}),
     view==='admin'&&isCurrentUserAdmin(user)&&h(AdminPanel,{go:go,user:user}),
     view==='start'&&h(Start,{schede:liveSchede,go:go}),
     view==='pesiblocks'&&h(PesiBlocks,{schede:liveSchede,sessions:liveSessions,go:go}),
+    view==='calblocks'&&h(CalBlocks,{schede:liveSchede,sessions:liveSessions,go:go}),
     view==='live'&&h(PesiLive,{bl:args.bl,sId:args.sId,go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
-    view==='callive'&&h(CalLive,{go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
+    view==='callive'&&h(CalLive,{bl:args.bl,sId:args.sId,go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
+    view==='cardiolive'&&h(CardioLive,{go:go,allSessions:liveSessions,initial:args.initial,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
     view==='log'&&h(Log,{sessions:liveSessions,schede:liveSchede,go:go}),
     view==='det'&&h(Det,{s:args.s,schede:liveSchede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');}}),
     view==='stats'&&h(Stats,{sessions:liveSessions,go:go,profile:profile}),
@@ -4998,7 +5976,8 @@ function App(){
         });
       });
     },go:go,setUndoData:setUndoData}),
-    view==='nuova'&&h(NuovaScheda,{go:go,existing:args.edit,setSchede:function(updater){
+    view==='reminders'&&h(RemindersView,{go:go}),
+    view==='nuova'&&h(NuovaScheda,{go:go,existing:args.edit,initialTipo:args.tipo,setSchede:function(updater){
       setSchede(function(prev){
         var next = typeof updater === 'function' ? updater(prev) : updater;
         return next.map(function(s){
