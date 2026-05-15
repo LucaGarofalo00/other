@@ -3671,6 +3671,290 @@ function CardioLive(p){
   );
 }
 
+/* ── AddPastSession: inserimento manuale di una sessione già fatta ──
+   Per quando ti dimentichi di tracciare in tempo reale. Supporta pesi/cal/cardio
+   con data e ora arbitrarie. Le serie vengono marcate ok=true (per definizione: l'hai già fatta). */
+function AddPastSession(p){
+  var go=p.go, onSave=p.onSave;
+  var _t=useState('pesi'); var tipo=_t[0]; var setTipo=_t[1];
+  var _d=useState(todayISO()); var data=_d[0]; var setData=_d[1];
+  var _ora=useState(''); var ora=_ora[0]; var setOra=_ora[1];
+  var _dur=useState(''); var durata=_dur[0]; var setDurata=_dur[1];
+  var _u=useState(3); var umore=_u[0]; var setUmore=_u[1];
+  var _n=useState(''); var nota=_n[0]; var setNota=_n[1];
+  /* Esercizi pesi/cal */
+  var _es=useState([]); var exercises=_es[0]; var setExercises=_es[1];
+  var _pk=useState(false); var pickerOpen=_pk[0]; var setPickerOpen=_pk[1];
+  /* Cardio */
+  var _ct=useState('corsa'); var cardioTipo=_ct[0]; var setCardioTipo=_ct[1];
+  var _cv=useState({}); var cardioVals=_cv[0]; var setCardioVals=_cv[1];
+  function setCardioVal(k,v){ setCardioVals(function(prev){var u=Object.assign({},prev);u[k]=v;return u;}); }
+  var _sav=useState(false); var saving=_sav[0]; var setSaving=_sav[1];
+
+  function changeTipo(t){
+    if(t===tipo) return;
+    hap(8); setTipo(t);
+    /* Svuotiamo gli esercizi se si passa da pesi a cal o viceversa (esercizi diversi) */
+    if(t!=='cardio') setExercises([]);
+  }
+  function addExercise(nome){
+    var grp = muscleGroupOf(nome);
+    var skill = tipo==='cal' ? findCalSkill(nome) : null;
+    var isHold = !!(skill && skill.type==='hold');
+    setExercises(function(prev){
+      return prev.concat([{
+        id: uid(),
+        nome: nome,
+        gr: (grp && grp.label) || '',
+        sets: 3,
+        reps: isHold ? 0 : 8,
+        durata: isHold ? 20 : 0,
+        peso: 0,
+        modalita: tipo==='cal' ? (isHold?'hold':'reps') : null
+      }]);
+    });
+    setPickerOpen(false);
+  }
+  function updateExercise(idx, key, val){
+    setExercises(function(prev){
+      return prev.map(function(e,i){
+        if(i!==idx) return e;
+        var u = Object.assign({}, e); u[key] = val; return u;
+      });
+    });
+  }
+  function removeExercise(idx){
+    setExercises(function(prev){ return prev.filter(function(_,i){return i!==idx;}); });
+  }
+  function combineDateTime(){
+    var d = new Date(data);
+    if(ora){
+      var parts = ora.split(':');
+      d.setHours(parseInt(parts[0])||12, parseInt(parts[1])||0, 0, 0);
+    } else {
+      d.setHours(12, 0, 0, 0);
+    }
+    return d;
+  }
+  function save(){
+    if(saving) return;
+    if(!data){ alert('Inserisci la data'); return; }
+    var dur = parseInt(durata)||0;
+    if(dur<=0){ alert('Inserisci la durata in minuti'); return; }
+    if(tipo!=='cardio' && exercises.length===0){ alert('Aggiungi almeno un esercizio'); return; }
+    setSaving(true);
+    var t0Date = combineDateTime();
+    var t0ISO = t0Date.toISOString();
+    var t0Time = t0Date.getTime();
+    var s;
+    if(tipo==='cardio'){
+      var cd = {};
+      var tipoDef = getCardioTipo(cardioTipo);
+      tipoDef.fields.forEach(function(f){
+        var v = cardioVals[f];
+        if(v!==undefined && v!==''){
+          var meta = CARDIO_FIELD_META[f];
+          cd[f] = (meta && (meta.text || meta.select)) ? v : (parseFloat(String(v).replace(',','.'))||0);
+        }
+      });
+      s = {
+        id: uid(), sId: 'cardio-'+cardioTipo, bId: 'cardio',
+        t0: t0ISO, dur: dur, tipo: 'cardio',
+        cardioTipo: cardioTipo, cardioData: cd,
+        es: [], umore: umore, nota: nota, manuale: true
+      };
+    } else {
+      var esBuilt = exercises.map(function(ex){
+        var nSets = Math.max(1, parseInt(ex.sets)||1);
+        var isHold = ex.modalita==='hold';
+        var serie = [];
+        for(var i=0;i<nSets;i++){
+          serie.push({
+            n: i+1,
+            peso: parseFloat(ex.peso)||0,
+            reps: isHold ? 0 : (parseInt(ex.reps)||0),
+            durata: isHold ? (parseInt(ex.durata)||0) : 0,
+            ok: true,
+            t: t0Time + i*60000
+          });
+        }
+        var base = {
+          id: ex.id || uid(),
+          nome: ex.nome,
+          tipo: 'standard',
+          gr: ex.gr || '',
+          serie: serie,
+          sets: nSets,
+          reps: String(ex.reps||''),
+          peso: parseFloat(ex.peso)||0,
+          recSet: 0, recEs: 0, rec: 0,
+          note: ''
+        };
+        if(tipo==='cal') base.modalita = isHold ? 'hold' : 'reps';
+        return base;
+      });
+      s = {
+        id: uid(),
+        sId: tipo==='cal' ? 'past-cal' : 'past-pesi',
+        bId: tipo==='cal' ? 'cal' : 'past-pesi',
+        t0: t0ISO, dur: dur,
+        es: esBuilt, umore: umore, nota: nota, manuale: true
+      };
+      if(tipo==='cal') s.tipo = 'cal';
+    }
+    gtLogInfo('Sessione manuale salvata', {tipo:tipo, dur:dur, esercizi:exercises.length});
+    onSave(s);
+    go('log');
+  }
+
+  var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
+  var inpCenter = Object.assign({},inp,{textAlign:'center',fontFamily:"'Roboto Mono',monospace"});
+
+  /* Render del campo cardio (riusiamo la stessa logica di CardioLive) */
+  var tipoDef = getCardioTipo(cardioTipo);
+  function cardioFieldEl(f){
+    var meta = CARDIO_FIELD_META[f]; if(!meta) return null;
+    if(meta.select){
+      return h('div',{key:f},
+        h(Lbl,null, meta.lbl),
+        h('select',{value:cardioVals[f]||'',onChange:function(e){setCardioVal(f,e.target.value);},style:Object.assign({},inp,{cursor:'pointer'})},
+          h('option',{value:''},'—'),
+          meta.select.map(function(o){return h('option',{key:o,value:o},o);})
+        )
+      );
+    }
+    var inputMode = meta.text ? 'text' : (meta.decimal ? 'decimal' : 'numeric');
+    var pattern = meta.text ? null : (meta.decimal ? '[0-9]*[.,]?[0-9]*' : '[0-9]*');
+    return h('div',{key:f},
+      h(Lbl,null, meta.lbl + (meta.unit?' ('+meta.unit+')':'')),
+      h('input',{
+        type:'text', inputMode:inputMode, pattern:pattern,
+        value: cardioVals[f]||'',
+        placeholder: meta.ph||'',
+        onFocus:function(e){ e.target.select(); },
+        onChange:function(e){ var v = meta.decimal ? e.target.value.replace(',','.') : e.target.value; setCardioVal(f, v); },
+        style: inpCenter
+      })
+    );
+  }
+
+  return h('div',{style:{minHeight:'100vh',display:'flex',flexDirection:'column',background:BG}},
+    h('div',{style:{padding:'14px 16px',background:SURF,borderBottom:'1px solid '+BORD,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+      h('div',null,
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em'}},'Sessione passata'),
+        h('div',{style:{fontSize:11,color:MUTED}},'Logga un allenamento dimenticato')
+      ),
+      h('button',{onClick:function(){go('log');},style:{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',color:'#EF4444',fontWeight:700,cursor:'pointer',padding:'7px 12px',borderRadius:8,fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em'}},'ANNULLA')
+    ),
+    h('div',{style:{flex:1,overflowY:'auto',padding:16}},
+      /* Tipo */
+      h(Lbl,null,'Tipo di allenamento'),
+      h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+        [{id:'pesi',l:'Sala pesi',ic:'🏋️'},{id:'cal',l:'Calisthenics',ic:'🤸'},{id:'cardio',l:'Cardio',ic:'🚴'}].map(function(t){
+          var on = tipo === t.id;
+          return h('button',{key:t.id,onClick:function(){changeTipo(t.id);},'aria-pressed':on,style:{flex:1,padding:'12px 6px',borderRadius:10,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:TEXT,fontSize:11,fontWeight:on?700:500,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:5}},
+            h('span',{style:{fontSize:22}},t.ic),
+            t.l
+          );
+        })
+      ),
+      /* Data + ora */
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}},
+        h('div',null,h(Lbl,null,'Data'),h('input',{type:'date',value:data,max:todayISO(),onChange:function(e){setData(e.target.value);},style:inp})),
+        h('div',null,h(Lbl,null,'Ora (opz.)'),h('input',{type:'time',value:ora,onChange:function(e){setOra(e.target.value);},style:inp}))
+      ),
+      /* Durata */
+      h(Lbl,null,'Durata totale (minuti)'),
+      h('input',{
+        type:'text',inputMode:'numeric',pattern:'[0-9]*',
+        value:durata,placeholder:'45',
+        onFocus:function(e){e.target.select();},
+        onChange:function(e){setDurata(e.target.value.replace(/[^0-9]/g,''));},
+        style:Object.assign({},inpCenter,{fontSize:18,padding:'12px',marginBottom:16})
+      }),
+
+      /* Contenuto specifico per tipo */
+      tipo==='cardio' && h('div',null,
+        h(Lbl,null,'Tipo cardio'),
+        h('div',{style:{display:'flex',gap:6,overflowX:'auto',marginBottom:14,paddingBottom:4,WebkitOverflowScrolling:'touch'}},
+          CARDIO_TIPI.map(function(t){
+            var on = cardioTipo===t.id;
+            return h('button',{key:t.id,onClick:function(){hap(6);setCardioTipo(t.id);setCardioVals({});},'aria-pressed':on,style:{flexShrink:0,padding:'7px 11px',borderRadius:16,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:TEXT,fontSize:11,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,whiteSpace:'nowrap'}},
+              h('span',{style:{fontSize:13}},t.emoji),
+              t.label
+            );
+          })
+        ),
+        tipoDef.fields.length > 0 && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
+          tipoDef.fields.map(cardioFieldEl)
+        )
+      ),
+
+      tipo!=='cardio' && h('div',null,
+        h(Lbl,null,'Esercizi · '+(tipo==='cal'?'calisthenics':'sala pesi')),
+        exercises.length === 0 && h('div',{style:{textAlign:'center',padding:'24px 12px',color:MUTED,fontSize:12,background:SURF,border:'1px dashed '+BORD,borderRadius:10,marginBottom:10,lineHeight:1.5}},'Nessun esercizio aggiunto.',h('br'),'Tocca "+ Aggiungi" qui sotto.'),
+        exercises.map(function(ex,ei){
+          var isHold = ex.modalita === 'hold';
+          return h('div',{key:ex.id,style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'11px 12px',marginBottom:8}},
+            h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:8}},
+              h('div',{style:{flex:1,minWidth:0}},
+                h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, ex.nome),
+                ex.gr && h('div',{style:{fontSize:10,color:MUTED,marginTop:2}}, ex.gr)
+              ),
+              tipo==='cal' && h('button',{
+                onClick:function(){updateExercise(ei,'modalita', isHold?'reps':'hold');},
+                style:{padding:'4px 9px',borderRadius:14,border:'1px solid '+(isHold?ACC:BORD),background:isHold?ACC2:'transparent',color:isHold?ACC:MUTED,fontSize:10,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',cursor:'pointer',flexShrink:0}
+              }, isHold?'TENUTA':'REPS'),
+              h('button',{onClick:function(){removeExercise(ei);},'aria-label':'Rimuovi esercizio',style:{background:'transparent',border:'none',padding:4,cursor:'pointer',flexShrink:0}},h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.6)'}))
+            ),
+            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}},
+              h('div',null,
+                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'SET'),
+                h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.sets||''),placeholder:'3',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'sets',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
+              ),
+              isHold ? h('div',null,
+                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'SEC'),
+                h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.durata||''),placeholder:'20',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'durata',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
+              ) : h('div',null,
+                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'REPS'),
+                h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.reps||''),placeholder:'8',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'reps',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
+              ),
+              h('div',null,
+                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}}, tipo==='cal' ? '+ KG' : 'KG'),
+                h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(ex.peso===0||ex.peso==null)?'':String(ex.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'peso',e.target.value.replace(',','.'));},style:inpCenter})
+              )
+            )
+          );
+        }),
+        h('button',{onClick:function(){setPickerOpen(true);},style:{width:'100%',padding:10,borderRadius:10,border:'1px dashed '+ACC3,background:ACC5,color:ACC,fontSize:13,cursor:'pointer',marginBottom:14,fontWeight:600}}, '+ Aggiungi esercizio')
+      ),
+
+      /* Umore + note */
+      h(Lbl,null,'Come ti sei sentito?'),
+      h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+        [1,2,3,4,5].map(function(n){
+          var moodLabels=['Pessimo','Male','Neutro','Bene','Ottimo'];
+          return h('button',{key:n,onClick:function(){setUmore(n);},'aria-label':moodLabels[n-1],'aria-pressed':umore===n,style:{flex:1,padding:'10px 0',borderRadius:10,border:'1px solid '+(umore===n?ACC:BORD),background:umore===n?ACC2:'transparent',color:umore===n?ACC:MUTED,cursor:'pointer',fontSize:19}},['😫','😕','😐','😊','💪'][n-1]);
+        })
+      ),
+      h(Lbl,null,'Note (opzionale)'),
+      h('textarea',{value:nota,onChange:function(e){setNota(e.target.value);},placeholder:'Dettagli, sensazioni, contesto…',rows:3,style:Object.assign({},inp,{resize:'none'})}),
+      h('div',{style:{height:80}})
+    ),
+    h('div',{style:{padding:'12px 16px 32px',background:SURF,borderTop:'1px solid '+BORD}},
+      h(Btn,{full:true,onClick:save,disabled:saving||!durata}, saving?'Salvataggio…':'Salva sessione →')
+    ),
+    pickerOpen && h(ExercisePicker,{
+      visible:true,
+      onClose:function(){setPickerOpen(false);},
+      onAdd:addExercise,
+      baseList: tipo==='cal' ? CAL_ES : PESI_ES,
+      mode: tipo==='cal' ? 'cal' : 'pesi',
+      label: tipo==='cal' ? 'Esercizio calisthenics' : 'Esercizio sala pesi'
+    })
+  );
+}
+
 /* ── log / storico ── */
 function Log(p){
   var sessions=p.sessions,schede=p.schede,go=p.go;
@@ -3747,7 +4031,17 @@ function Log(p){
   ];
 
   return h('div',{style:{padding:'24px 16px 100px'}},
-    h(PageHeader,{title:'Il tuo Log',sub:sessions.length+' session'+(sessions.length===1?'e':'i')+' registrat'+(sessions.length===1?'a':'e')}),
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:18}},
+      h('div',{style:{flex:1,minWidth:0}},
+        h(PageHeader,{title:'Il tuo Log',sub:sessions.length+' session'+(sessions.length===1?'e':'i')+' registrat'+(sessions.length===1?'a':'e')})
+      ),
+      h('button',{
+        onClick:function(){hap(8);go('addpast');},
+        'aria-label':'Aggiungi sessione passata',
+        title:'Aggiungi una sessione che ti sei dimenticato di tracciare',
+        style:{flexShrink:0,marginTop:8,display:'inline-flex',alignItems:'center',gap:6,padding:'8px 12px',background:ACC2,border:'1px solid '+ACC3,borderRadius:10,color:ACC,fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',cursor:'pointer'}
+      }, '+ Passata')
+    ),
 
     /* Ricerca */
     sessions.length > 0 && h('div',{style:{marginBottom:10}},
@@ -3777,7 +4071,10 @@ function Log(p){
       h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📒'),
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Il tuo log è vuoto'),
       h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Ogni sessione che completi finisce qui — peso, serie, rep, tutto.',h('br'),'Il primo passo? Iniziare.'),
-      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Logga il primo pump →')
+      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Logga il primo pump →'),
+      h('div',{style:{marginTop:14,fontSize:12}},
+        h('button',{onClick:function(){go('addpast');},style:{background:'none',border:'none',color:ACC,fontSize:12,fontWeight:600,cursor:'pointer',padding:0,textDecoration:'underline'}}, 'Oppure inserisci una sessione passata')
+      )
     ),
 
     /* Sessioni filtrate: messaggio se i filtri non producono risultati */
@@ -4359,27 +4656,31 @@ function StatsTabs(p){
 /* ── Adherence stats tab: costanza, streak, muscle heatmap ── */
 function AdherenceView(p){
   var sessions=p.sessions,profile=p.profile;
+  /* Selettore periodo: numero di settimane analizzate. Default 8 (compromesso storia/segnale).
+     Per range lunghi (26, 52) il chart delle barre diventa stretto ma resta leggibile. */
+  var _rg = useState(8); var numWeeks = _rg[0]; var setNumWeeks = _rg[1];
+  var RANGES = [[4,'4s'],[8,'8s'],[12,'12s'],[26,'6m'],[52,'1a']];
   /* Target: se l'utente ha impostato breakdown per disciplina (pesi/cal/cardio), uso la somma.
      Altrimenti uso il totale profile.giorniTarget. */
   var bd = loadTargetBreakdown();
   var target = (bd && (bd.pesi||0)+(bd.cal||0)+(bd.cardio||0) > 0)
     ? (bd.pesi||0)+(bd.cal||0)+(bd.cardio||0)
     : (profile&&profile.giorniTarget?profile.giorniTarget:3);
-  var weeks=getAdherenceWeeks(sessions,8);
+  var weeks=getAdherenceWeeks(sessions,numWeeks);
   var maxBarCount=Math.max(target,Math.max.apply(null,weeks.map(function(w){return w.count;}).concat([1])));
 
   /* Streak calculation (consecutive weeks hitting target, FROM PAST WEEKS — settimana corrente
-     non chiude il conto. Se anche la settimana corrente raggiunge target, la sommiamo. */
+     non chiude il conto. Se anche la settimana corrente raggiunge target, la sommiamo.
+     NOTA: lo streak guarda sempre tutta la storia disponibile, ma è limitato dal range scelto. */
   var weekStreak=0;
-  /* Conta indietro dalla settimana precedente */
   for(var wi=weeks.length-2;wi>=0;wi--){
     if(weeks[wi].count>=target) weekStreak++;
     else break;
   }
-  /* Bonus se anche la settimana corrente è già a target */
   if(weeks.length && weeks[weeks.length-1].count>=target) weekStreak++;
 
-  /* Muscle coverage for last 7 days */
+  /* Muscle coverage: SEMPRE ultimi 7 giorni — è uno snapshot dello stato attuale,
+     non un'analisi storica. Indipendente dal selettore periodo. */
   var now=Date.now();
   var recentSessions=sessions.filter(function(s){return new Date(s.t0).getTime()>=now-7*86400000;});
   var muscleHits={};
@@ -4396,21 +4697,18 @@ function AdherenceView(p){
   var allMuscles=['Petto','Schiena','Spalle','Braccia','Gambe','Core'];
   var maxMuscle=Math.max.apply(null,allMuscles.map(function(m){return muscleHits[m]||0;}).concat([1]));
 
-  /* Completamento: media % di serie spuntate per sessione (ultime 20 sessioni).
-     Per le sessioni cardio è 100% per definizione (vedi sessionCompletionRate) — quindi
-     se l'utente fa solo cardio il valore è 100%, e questo va spiegato nel tooltip. */
-  var sessionsForCompletion = sessions.slice(-20);
-  var avgCompletion = sessionsForCompletion.length
-    ? Math.round(sessionsForCompletion.reduce(function(t,s){return t+sessionCompletionRate(s);},0)/sessionsForCompletion.length)
+  /* Completamento: media % serie spuntate per sessione nel range selezionato. */
+  var rangeCutoff = Date.now() - numWeeks*7*86400000;
+  var sessionsInRange = sessions.filter(function(s){return new Date(s.t0).getTime() >= rangeCutoff;});
+  var avgCompletion = sessionsInRange.length
+    ? Math.round(sessionsInRange.reduce(function(t,s){return t+sessionCompletionRate(s);},0)/sessionsInRange.length)
     : 0;
 
-  /* Skipped weeks (0 sessions) in last 8 — ESCLUDIAMO settimane future a "prima sessione"
-     altrimenti per chi inizia oggi appaiono 7-8 settimane saltate che non hanno senso. */
+  /* Skipped weeks (0 sessions) nel range. Escludiamo settimane prima della prima sessione. */
   var firstSessionTime = sessions.length ? Math.min.apply(null, sessions.map(function(s){return new Date(s.t0).getTime();})) : Date.now();
   var skippedWeeks = weeks.filter(function(w){
     return w.count===0 && w.start.getTime() + 7*86400000 > firstSessionTime;
   }).length;
-  /* Numero di settimane "valide" su cui calcoliamo le saltate (per il tooltip) */
   var validWeeksCount = weeks.filter(function(w){
     return w.start.getTime() + 7*86400000 > firstSessionTime;
   }).length;
@@ -4430,7 +4728,7 @@ function AdherenceView(p){
   }
 
   /* Tile KPI cliccabile con spiegazione plain-language */
-  function kpiTile(val, label, color, helpText){
+  function kpiTile(val, label, color, helpText, subLabel){
     return h('div',{
       onClick: function(){ alert(label+'\n\n'+helpText); },
       style:{background:SURF2,borderRadius:12,padding:'14px 6px 11px',textAlign:'center',border:'0.5px solid '+BORD,cursor:'pointer',position:'relative'}
@@ -4439,7 +4737,8 @@ function AdherenceView(p){
       h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:4}},
         label,
         h('span',{style:{fontSize:9,opacity:0.55}},'ⓘ')
-      )
+      ),
+      subLabel && h('div',{style:{fontSize:9,color:MUTED,marginTop:2,opacity:0.7,fontFamily:"'Roboto Mono',monospace"}}, subLabel)
     );
   }
 
@@ -4454,25 +4753,38 @@ function AdherenceView(p){
   var hasBreakdown = !!(bd && ((bd.pesi||0)+(bd.cal||0)+(bd.cardio||0) > 0));
 
   return h('div',null,
+    /* Range selector — settimane analizzate */
+    h('div',{style:{display:'flex',gap:5,marginBottom:12,overflowX:'auto',WebkitOverflowScrolling:'touch'}},
+      RANGES.map(function(r){
+        var on = numWeeks === r[0];
+        return h('button',{
+          key:r[0],
+          onClick:function(){hap(6);setNumWeeks(r[0]);},
+          'aria-pressed':on,
+          style:{flexShrink:0,padding:'6px 13px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer',fontWeight:on?700:500,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em',textTransform:'uppercase'}
+        }, r[1]);
+      })
+    ),
     /* Top KPI row */
     h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:hasBreakdown?12:16}},
       kpiTile(
         weekStreak,
         'SETT. STREAK',
         weekStreak>0?'var(--success)':MUTED,
-        'Settimane consecutive in cui hai raggiunto il target ('+target+'/sett). Se questa settimana sei già a target, conta. Saltare una settimana azzera il contatore.'
+        'Settimane consecutive in cui hai raggiunto il target ('+target+'/sett). Se questa settimana sei già a target, conta. Saltare una settimana azzera il contatore.\n\nLa streak guarda solo dentro il periodo selezionato — se vuoi vedere streak storiche più lunghe, allarga il range.'
       ),
       kpiTile(
         avgCompletion+'%',
         'COMPLETAMENTO',
         avgCompletion>=80?'var(--success)':avgCompletion>=50?'var(--warning)':'var(--danger)',
-        'Media di serie spuntate ✓ per sessione (ultime 20). Le sessioni cardio contano 100% per definizione (non hanno serie da spuntare). Se questa media è bassa significa che inizi le sessioni ma le abbandoni a metà.'
+        'Media di serie spuntate ✓ per sessione nelle ultime '+numWeeks+' settimane ('+sessionsInRange.length+' sessioni).\n\nLe sessioni cardio contano 100% per definizione (non hanno serie da spuntare). Se questa media è bassa significa che inizi le sessioni ma le abbandoni a metà.'
       ),
       kpiTile(
-        skippedWeeks+(validWeeksCount<8?'/'+validWeeksCount:''),
+        validWeeksCount===0 ? '—' : String(skippedWeeks),
         'SETT. SALTATE',
-        skippedWeeks===0?'var(--success)':skippedWeeks<=2?'var(--warning)':'var(--danger)',
-        'Settimane senza alcuna sessione. Conta solo le settimane in cui usavi già l\'app — quelle prima della tua prima sessione non vengono contate.'
+        validWeeksCount===0 ? MUTED : (skippedWeeks===0?'var(--success)':skippedWeeks<=2?'var(--warning)':'var(--danger)'),
+        'Numero di settimane in cui non ti sei allenato nessun giorno, nel periodo selezionato ('+numWeeks+' settimane).\n\nVengono conteggiate solo le settimane dopo la tua prima sessione (altrimenti per chi inizia oggi apparirebbero 8 settimane saltate, cosa che non vuol dire nulla).\n\nEsempio: "0" con sotto "su 1 sett." = hai iniziato questa settimana e non hai saltato nulla finora.',
+        validWeeksCount===0 ? null : ('su '+validWeeksCount+' sett.')
       )
     ),
 
@@ -4501,29 +4813,38 @@ function AdherenceView(p){
       })
     ),
 
-    /* Weekly adherence chart (last 8 weeks) */
-    h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
-        h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}},'Ultime 8 settimane'),
-        h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'target: '+target+'/sett')
-      ),
-      h('div',{style:{fontSize:10,color:MUTED,marginBottom:12,lineHeight:1.4}},'Ogni barra = una settimana intera (lun-dom). Verde = target raggiunto, giallo = parziale, rosso = vuota.'),
-      h('div',{style:{display:'flex',alignItems:'flex-end',gap:6,height:90,marginBottom:8}},
-        weeks.map(function(w,i){
-          var barH=Math.max(6,Math.round(w.count/maxBarCount*80));
-          var hit=w.count>=target;
-          var weekLbl = weekRangeLabel(w.start, i, weeks.length);
-          return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},
-            h('div',{style:{fontSize:9,fontFamily:"'Roboto Mono',monospace",color:hit?'var(--success)':w.count>0?TEXT:MUTED,fontWeight:700}},w.count),
-            h('div',{style:{width:'100%',height:barH,borderRadius:4,background:hit?'var(--success)':w.count>0?'var(--warning)':'rgba(239,68,68,0.25)',transition:'height .3s'}}),
-            h('div',{style:{fontSize:8,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",whiteSpace:'nowrap'}},weekLbl)
-          );
-        })
-      ),
-      h('div',{style:{height:1,background:'rgba(255,255,255,0.06)',position:'relative',marginBottom:4}},
-        h('div',{style:{position:'absolute',top:-10,left:0,right:0,height:1,borderTop:'1px dashed rgba(200,255,0,0.2)'}})
-      )
-    ),
+    /* Weekly adherence chart — bar count = numWeeks (dinamico).
+       Per range >12 le label settimanali diventano illeggibili: mostro solo ogni 2/4/8 bar. */
+    (function(){
+      var labelEvery = numWeeks <= 12 ? 1 : (numWeeks <= 26 ? 2 : 4);
+      var headerTitle = numWeeks <= 12 ? ('Ultime '+numWeeks+' settimane') : ('Ultimi '+(numWeeks===26?'6 mesi':numWeeks===52?'12 mesi':numWeeks+' settimane'));
+      return h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
+          h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}}, headerTitle),
+          h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'target: '+target+'/sett')
+        ),
+        h('div',{style:{fontSize:10,color:MUTED,marginBottom:12,lineHeight:1.4}},'Ogni barra = una settimana intera (lun-dom). Verde = target raggiunto, giallo = parziale, rosso = vuota.'),
+        h('div',{style:{display:'flex',alignItems:'flex-end',gap: numWeeks<=8?6: numWeeks<=12?4:2, height:90,marginBottom:8}},
+          weeks.map(function(w,i){
+            var barH=Math.max(6,Math.round(w.count/maxBarCount*80));
+            var hit=w.count>=target;
+            /* Label solo su alcuni indici per evitare sovrapposizioni quando ci sono molte barre */
+            var idxFromEnd = weeks.length - 1 - i;
+            var showLabel = idxFromEnd % labelEvery === 0;
+            var weekLbl = showLabel ? weekRangeLabel(w.start, i, weeks.length) : '';
+            var showCount = numWeeks <= 12 || hit || w.count===0;
+            return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4,minWidth:0}},
+              h('div',{style:{fontSize:9,fontFamily:"'Roboto Mono',monospace",color:hit?'var(--success)':w.count>0?TEXT:MUTED,fontWeight:700,visibility:showCount?'visible':'hidden'}},w.count||''),
+              h('div',{style:{width:'100%',height:barH,borderRadius:3,background:hit?'var(--success)':w.count>0?'var(--warning)':'rgba(239,68,68,0.25)',transition:'height .3s'}}),
+              h('div',{style:{fontSize:8,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",whiteSpace:'nowrap',minHeight:10}},weekLbl)
+            );
+          })
+        ),
+        h('div',{style:{height:1,background:'rgba(255,255,255,0.06)',position:'relative',marginBottom:4}},
+          h('div',{style:{position:'absolute',top:-10,left:0,right:0,height:1,borderTop:'1px dashed rgba(200,255,0,0.2)'}})
+        )
+      );
+    })(),
 
     /* Muscle coverage heatmap */
     h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
@@ -4769,19 +5090,28 @@ function BodyView(p){
   var _sel = useState('peso'); var selMetric = _sel[0]; var setSelMetric = _sel[1];
   var _vw = useState('overview'); var chartView = _vw[0]; var setChartView = _vw[1];
   var _hd = useState([]); var hiddenMetrics = _hd[0]; var setHiddenMetrics = _hd[1];
+  /* Range periodo: giorni indietro da oggi. 0 = "tutto" (no filtro). Default = tutto. */
+  var _rg = useState(0); var rangeDays = _rg[0]; var setRangeDays = _rg[1];
+  var BODY_RANGES = [[30,'1m'],[90,'3m'],[180,'6m'],[365,'1a'],[0,'Tutto']];
   function toggleHidden(k){
     setHiddenMetrics(function(prev){
       return prev.indexOf(k) >= 0 ? prev.filter(function(x){return x!==k;}) : prev.concat([k]);
     });
   }
 
+  /* Sorted: tutte le misurazioni in ordine cronologico.
+     Sorted filtered: solo quelle nel range — usato per chart, trend e KPI delta.
+     "Ultima misurazione" usa SEMPRE sorted (la più recente è sempre rilevante). */
   var sorted = log.slice().sort(function(a,b){return new Date(a.t) - new Date(b.t);});
   var hasData = sorted.length > 0;
+  var cutoffMs = rangeDays > 0 ? Date.now() - rangeDays*86400000 : 0;
+  var sortedInRange = rangeDays > 0 ? sorted.filter(function(r){return new Date(r.t).getTime() >= cutoffMs;}) : sorted;
   var last = sorted.length ? sorted[sorted.length-1] : null;
-  var first = sorted.length ? sorted[0] : null;
+  /* Per i delta KPI: confronto con prima misurazione NEL RANGE selezionato. */
+  var first = sortedInRange.length ? sortedInRange[0] : null;
 
   function pointsFor(key){
-    return sorted.map(function(r){
+    return sortedInRange.map(function(r){
       var v;
       if(key === 'bmi'){
         v = calcBmi(r.peso, altezzaCm);
@@ -4841,6 +5171,23 @@ function BodyView(p){
   var lastBmiCat = bmiCategory(lastBmi);
 
   return h('div',null,
+    /* Range periodo: filtra misurazioni considerate per chart e delta KPI.
+       L'ultima misurazione resta sempre quella reale (più recente in assoluto). */
+    hasData && h('div',{style:{display:'flex',gap:5,marginBottom:12,overflowX:'auto',WebkitOverflowScrolling:'touch'}},
+      BODY_RANGES.map(function(r){
+        var on = rangeDays === r[0];
+        return h('button',{
+          key:r[0],
+          onClick:function(){hap(6);setRangeDays(r[0]);},
+          'aria-pressed':on,
+          style:{flexShrink:0,padding:'6px 13px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer',fontWeight:on?700:500,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em',textTransform:'uppercase'}
+        }, r[1]);
+      })
+    ),
+    /* Avviso se il range scelto non contiene misurazioni */
+    hasData && sortedInRange.length === 0 && h('div',{style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:10,padding:'10px 12px',marginBottom:12,fontSize:12,color:MUTED,lineHeight:1.5,textAlign:'center'}},
+      'Nessuna misurazione negli ultimi '+(rangeDays===30?'30 giorni':rangeDays===90?'3 mesi':rangeDays===180?'6 mesi':'12 mesi')+'. Tocca "Tutto" per vedere lo storico completo.'
+    ),
     /* Riga info altezza/profilo se manca per BMI */
     hasData && !altezzaCm && h('div',{style:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:10,padding:'10px 12px',marginBottom:12,fontSize:11,color:TEXT,lineHeight:1.5}},
       '⚠️ Aggiungi l\'altezza in Impostazioni → Profilo per calcolare il BMI.'
@@ -4944,10 +5291,14 @@ function BodyView(p){
       h(Btn,{full:true,onClick:function(){setFormOpen(true);setEditing(null);}},'+ Nuova misurazione'),
       hasData && h(Btn,{sec:true,onClick:exportCsv},'⬇  CSV')
     ),
-    /* Storico cronologico */
+    /* Storico cronologico: rispetta il range selezionato. Se sortedInRange è vuoto
+       ma sorted no, indichiamo che il range è troppo stretto. */
     hasData && h('div',null,
-      h(Lbl,null,'Storico'),
-      sorted.slice().reverse().map(function(r){
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},
+        h(Lbl,null,'Storico'),
+        rangeDays > 0 && sortedInRange.length > 0 && h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}}, sortedInRange.length + ' di ' + sorted.length)
+      ),
+      sortedInRange.slice().reverse().map(function(r){
         var bmiR = calcBmi(r.peso, altezzaCm);
         var summary = ['peso','massaGrassaKg','vita'].map(function(k){
           var fld = BODY_FIELDS.find(function(f){return f.k===k;});
@@ -6262,6 +6613,7 @@ function App(){
     view==='live'&&h(PesiLive,{bl:args.bl,sId:args.sId,go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
     view==='callive'&&h(CalLive,{bl:args.bl,sId:args.sId,go:go,allSessions:liveSessions,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
     view==='cardiolive'&&h(CardioLive,{go:go,allSessions:liveSessions,initial:args.initial,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
+    view==='addpast'&&h(AddPastSession,{go:go,onSave:function(s){setSessions(function(p){return p.concat([touchRecord(s)]);});}}),
     view==='log'&&h(Log,{sessions:liveSessions,schede:liveSchede,go:go}),
     view==='det'&&h(Det,{s:args.s,schede:liveSchede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');}}),
     view==='stats'&&h(Stats,{sessions:liveSessions,go:go,profile:profile}),
