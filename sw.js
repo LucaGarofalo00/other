@@ -1,4 +1,4 @@
-/* GymTracker Service Worker — v1.9.2
+/* PumpLog Service Worker — v2.0.0
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -78,8 +78,8 @@
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'gymtracker-v1.9.2';
-const CACHE_RUNTIME = 'gymtracker-runtime-v4';
+const CACHE_VERSION = 'pumplog-v2.0.0';
+const CACHE_RUNTIME = 'pumplog-runtime-v5';
 
 /* HTML escluso dalla precache: viene preso network-first.
    CDN script aggiunti per garantire boot offline anche al primo riavvio. */
@@ -225,7 +225,7 @@ self.addEventListener('message', (event) => {
     _restTimerHandle = setTimeout(() => {
       _restTimerHandle = null;
       if(self.registration && self.registration.showNotification){
-        self.registration.showNotification('GymTracker', {
+        self.registration.showNotification('PumpLog', {
           body: label,
           icon: './icons/icon-192.png',
           badge: './icons/icon-96.png',

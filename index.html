@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"/>
-<meta name="description" content="Tracker allenamenti personale — sala pesi e calisthenics con progressioni, statistiche, sync GitHub."/>
-<title>GymTracker</title>
+<meta name="description" content="PumpLog — il tuo diario di allenamento. Traccia pesi e calisthenics con progressioni, statistiche e sync cloud."/>
+<title>PumpLog</title>
 
 <!-- PWA core -->
 <link rel="manifest" href="./manifest.webmanifest"/>
@@ -28,7 +28,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
-<meta name="apple-mobile-web-app-title" content="GymTracker"/>
+<meta name="apple-mobile-web-app-title" content="PumpLog"/>
 <meta name="format-detection" content="telephone=no"/>
 
 <!-- Icons -->
@@ -40,13 +40,13 @@
 <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png"/>
 
 <!-- Open Graph (for nice link previews) -->
-<meta property="og:title" content="GymTracker"/>
-<meta property="og:description" content="Tracker allenamenti — sala pesi e calisthenics"/>
+<meta property="og:title" content="PumpLog"/>
+<meta property="og:description" content="PumpLog — il tuo diario di allenamento. Pesi e calisthenics, davvero tracciati."/>
 <meta property="og:type" content="website"/>
 <meta property="og:image" content="./icons/icon-512.png"/>
 
 <!-- Accessibilità -->
-<meta name="application-name" content="GymTracker"/>
+<meta name="application-name" content="PumpLog"/>
 
 <!-- Preconnect to external origins for faster load -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -188,11 +188,11 @@ input:focus,textarea:focus{border-color:var(--acc) !important}
 <body>
 <div id="splash">
   <div class="mark">
-    <span class="letter">G</span><span class="letter accent">T</span>
+    <span class="letter">P</span><span class="letter accent">L</span>
     <span class="bar"></span>
   </div>
-  <div class="name">GymTracker</div>
-  <div class="subtitle">L'allenamento, davvero tracciato.</div>
+  <div class="name">PUMPLOG</div>
+  <div class="subtitle">Ogni serie conta.</div>
 </div>
 <div id="root"></div>
 <script>
@@ -357,8 +357,8 @@ function gtLogExport(){
   var screen = window.screen ? (window.screen.width + 'x' + window.screen.height) : 'unknown';
   var online = navigator.onLine ? 'online' : 'offline';
   var swOk = 'serviceWorker' in navigator && navigator.serviceWorker.controller ? 'attivo' : 'no';
-  var header = '=== GymTracker Diagnostic Log ===\n' +
-    'Versione: v1.9.2\n' +
+  var header = '=== PumpLog Diagnostic Log ===\n' +
+    'Versione: v2.0.0\n' +
     'Data export: ' + new Date().toISOString() + '\n' +
     'User-Agent: ' + ua + '\n' +
     'Schermo: ' + screen + ' @ ' + (window.devicePixelRatio||1) + 'x\n' +
@@ -519,6 +519,65 @@ function e1RM(peso, reps){
   if(reps <= 1) return peso;
   // Epley: 1RM = peso × (1 + reps/30)
   return Math.round(peso * (1 + reps/30));
+}
+
+/* Completion rate di una sessione: quante serie completate vs totali (0-100) */
+function sessionCompletionRate(session){
+  if(!session||!session.es||!session.es.length) return 0;
+  var totalSets=0, doneSets=0;
+  session.es.forEach(function(e){
+    if(e.tipo==='riscaldamento'){
+      totalSets++; if(e.fatto) doneSets++;
+    } else {
+      var serie=e.serie||[];
+      totalSets+=serie.length;
+      doneSets+=serie.filter(function(s){return s.ok;}).length;
+    }
+  });
+  if(totalSets===0) return 100;
+  return Math.round(doneSets/totalSets*100);
+}
+function completionLabel(rate){
+  if(rate>=100) return {text:'Completato',color:'var(--success)',icon:'check-circle'};
+  if(rate>=50) return {text:rate+'%',color:'var(--warning)',icon:'alert'};
+  return {text:rate+'%',color:'var(--danger)',icon:'x-circle'};
+}
+
+/* Weekly adherence: confronta sessioni fatte vs obiettivo settimanale */
+function getWeekSessions(sessions, weekStartDate){
+  var start=new Date(weekStartDate); start.setHours(0,0,0,0);
+  var end=new Date(start); end.setDate(end.getDate()+7);
+  return sessions.filter(function(s){var d=new Date(s.t0);return d>=start&&d<end;});
+}
+function getWeekStart(date){
+  var d=new Date(date); var day=d.getDay(); var diff=day===0?6:day-1;
+  d.setDate(d.getDate()-diff); d.setHours(0,0,0,0); return d;
+}
+function getAdherenceWeeks(sessions, numWeeks){
+  var weeks=[];
+  var now=new Date();
+  var currentWeekStart=getWeekStart(now);
+  for(var i=0;i<numWeeks;i++){
+    var ws=new Date(currentWeekStart);
+    ws.setDate(ws.getDate()-i*7);
+    var weekSess=getWeekSessions(sessions,ws);
+    weeks.unshift({start:ws,sessions:weekSess,count:weekSess.length});
+  }
+  return weeks;
+}
+function getDayTrainingMap(sessions, weekStartDate){
+  var map=[false,false,false,false,false,false,false];
+  var start=new Date(weekStartDate); start.setHours(0,0,0,0);
+  sessions.forEach(function(s){
+    var d=new Date(s.t0);
+    var ws=getWeekStart(d);
+    if(ws.getTime()===start.getTime()){
+      var day=d.getDay();
+      var idx=day===0?6:day-1;
+      map[idx]=true;
+    }
+  });
+  return map;
 }
 
 /* PR detection: trova il miglior tonnellaggio per serie (peso×reps) o e1RM mai fatto per quell'esercizio */
@@ -1712,7 +1771,7 @@ function TipCard(p){
 
 /* ── nav (with iOS safe-area bottom inset) ── */
 function Nav(p){
-  var tabs=[['home',IC.home,'Casa'],['start',IC.train,'Allena'],['log',IC.history,'Storico'],['stats',IC.stats,'Stats'],['scheda',IC.scheda,'Scheda']];
+  var tabs=[['home',IC.home,'Home'],['start',IC.train,'Pump'],['log',IC.history,'Log'],['stats',IC.stats,'Stats'],['scheda',IC.scheda,'Scheda']];
   return h('nav',{role:'navigation','aria-label':'Navigazione principale',style:{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:440,background:SURF,borderTop:'1px solid '+BORD,display:'flex',zIndex:99,paddingBottom:'env(safe-area-inset-bottom, 0)'}},
     tabs.map(function(t){
       var on=p.cur===t[0]||((p.cur==='live'||p.cur==='callive')&&t[0]==='start');
@@ -1732,7 +1791,7 @@ function Nav(p){
 
 /* ── profile setup ── */
 function ProfileSetup(p){
-  var _1=useState({nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio'});
+  var _1=useState({nome:'',dataNascita:'',peso:'',altezza:'',obiettivo:'Ipertrofia',livello:'Intermedio',giorniTarget:3});
   var form=_1[0];var setForm=_1[1];
   var _2=useState(0);var step=_2[0];var setStep=_2[1]; // 0=profilo, 1=template
   function set(k,v){setForm(function(prev){var u=Object.assign({},prev);u[k]=v;return u;});}
@@ -1742,8 +1801,8 @@ function ProfileSetup(p){
   if(step === 0){
     return h('div',{style:{padding:'32px 16px',minHeight:'100vh',display:'flex',flexDirection:'column'}},
       h('div',{style:{flex:1}},
-        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:42,letterSpacing:'0.03em',lineHeight:1,color:ACC,marginBottom:4}},'Il tuo profilo'),
-        h('div',{style:{fontSize:14,color:MUTED,marginBottom:28}},'Step 1 di 2 · Personalizza la tua esperienza'),
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:42,letterSpacing:'0.03em',lineHeight:1,color:ACC,marginBottom:4}},'Setup PumpLog'),
+        h('div',{style:{fontSize:14,color:MUTED,marginBottom:28}},'Step 1 di 2 · Dicci chi sei, noi ci occupiamo del resto'),
         h('input',{value:form.nome||'',onChange:function(e){set('nome',e.target.value);},placeholder:'Come ti chiami?','aria-label':'Nome',style:inp,autoFocus:true}),
         h(Lbl,null,'Data di nascita'),
         h('input',{type:'date',value:form.dataNascita||'',onChange:function(e){set('dataNascita',e.target.value);},'aria-label':'Data di nascita',style:Object.assign({},inp,{marginBottom:12})}),
@@ -1772,10 +1831,17 @@ function ProfileSetup(p){
           })
         ),
         h(Lbl,null,'Livello'),
-        h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:32}},
+        h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}},
           ['Principiante','Intermedio','Avanzato'].map(function(v){
             var on=form.livello===v;
             return h('button',{key:v,onClick:function(){hap(8);set('livello',v);},style:{padding:'8px 14px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:13,cursor:'pointer'}},v);
+          })
+        ),
+        h(Lbl,null,'Allenamenti a settimana'),
+        h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',marginBottom:32}},
+          [2,3,4,5,6].map(function(v){
+            var on=(form.giorniTarget||3)===v;
+            return h('button',{key:v,onClick:function(){hap(8);set('giorniTarget',v);},style:{width:44,height:44,borderRadius:'50%',border:'2px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:"'Roboto Mono',monospace",display:'flex',alignItems:'center',justifyContent:'center'}},String(v));
           })
         )
       ),
@@ -1850,7 +1916,7 @@ function Settings(p){
     if(!fbMsg.trim()){ alert('Scrivi qualcosa prima di inviare'); return; }
     setFbSending(true); setFbOk('');
     try{
-      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'1.9.2'});
+      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'2.0.0'});
       if(r.error) throw r.error;
       setFbMsg(''); setFbOk('Grazie! Feedback ricevuto.');
       setTimeout(function(){ setFbOk(''); }, 3500);
@@ -2015,7 +2081,7 @@ function Settings(p){
       L.push('');
     }
     L.push('================================================');
-    L.push('Generato da GymTracker — '+new Date().toLocaleString('it-IT'));
+    L.push('Generato da PumpLog — '+new Date().toLocaleString('it-IT'));
     downloadFile('gymtracker-nutrizionista-'+todayISO()+'.txt', L.join('\n'), 'text/plain;charset=utf-8');
   }
   function handleImport(ev){
@@ -2095,7 +2161,7 @@ function Settings(p){
     h(Lbl,null,'Backup dati'),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
       h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Esporta tutti i dati'),
-      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Scarica un file JSON con schede, sessioni, profilo e tema. Conservalo come backup o per trasferire i dati su un altro dispositivo.'),
+      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10}},'Esporta tutti i tuoi dati PumpLog in un file JSON. Backup sicuro dei tuoi progressi.'),
       h(Btn,{full:true,sm:true,onClick:handleExport},'⬇  Esporta backup (.json)')
     ),
     h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
@@ -2130,7 +2196,7 @@ function Settings(p){
         }},'Copia report'),
         h(Btn,{sm:true,full:true,sec:true,onClick:function(){
           var txt=gtLogExport();
-          var subject=encodeURIComponent('GymTracker — Segnalazione problema');
+          var subject=encodeURIComponent('PumpLog — Segnalazione problema');
           var body=encodeURIComponent(txt);
           var maxLen=1800;
           if(body.length>maxLen)body=encodeURIComponent(txt.slice(0,1500)+'\n\n[…report troncato, usa "Copia report" per il completo]');
@@ -2166,10 +2232,18 @@ function Settings(p){
       })
     ),
     h(Lbl,null,'Livello'),
-    h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:22}},
+    h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}},
       ['Principiante','Intermedio','Avanzato'].map(function(v){
         var on=form.livello===v;
         return h('button',{key:v,onClick:function(){set('livello',v);},'aria-pressed':on,style:{padding:'7px 12px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},v);
+      })
+    ),
+    h(Lbl,null,'Allenamenti a settimana'),
+    h('div',{style:{fontSize:11,color:MUTED,marginBottom:8,lineHeight:1.4}},'Quante volte alla settimana vuoi allenarti? Serve per monitorare la tua costanza.'),
+    h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:22}},
+      [2,3,4,5,6,7].map(function(v){
+        var on=(form.giorniTarget||3)===v;
+        return h('button',{key:v,onClick:function(){set('giorniTarget',v);},'aria-pressed':on,style:{width:44,height:44,borderRadius:'50%',border:'2px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:"'Roboto Mono',monospace",display:'flex',alignItems:'center',justifyContent:'center'}},String(v));
       })
     ),
     h(Btn,{full:true,onClick:function(){onProfile(form);go('home');}},'Salva')
@@ -2194,20 +2268,20 @@ function Home(p){
   if(sessions.length===0)return h('div',{style:{padding:'40px 20px',textAlign:'center',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'center'}},
     h('div',{style:{position:'absolute',top:20,right:16}},h('button',{onClick:function(){go('settings');},'aria-label':'Impostazioni',style:{background:'rgba(255,255,255,0.06)',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,padding:8,cursor:'pointer'}},h(Icon,{n:'settings',sz:18,c:MUTED}))),
     h('div',{style:{fontSize:46,marginBottom:14}},'💪'),
-    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:46,letterSpacing:'0.03em',color:ACC,lineHeight:1,marginBottom:10}},nome?'Ciao, '+nome+'!':'Benvenuto'),
-    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.04em',color:TEXT,marginBottom:8,lineHeight:1.1}},'Pronto a fare sul serio?'),
-    h('div',{style:{fontSize:13,color:MUTED,marginBottom:32,lineHeight:1.55,maxWidth:300,margin:'0 auto 32px'}},'Crea la tua prima scheda e inizia a tracciare i progressi. Bastano 10 minuti.'),
-    h(Btn,{full:true,onClick:function(){go('start');}},'Inizia ad allenarti →'),
+    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:46,letterSpacing:'0.03em',color:ACC,lineHeight:1,marginBottom:10}},nome?'Ciao, '+nome+'!':'Benvenuto su PumpLog'),
+    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.04em',color:TEXT,marginBottom:8,lineHeight:1.1}},'Ogni serie conta. Inizia a loggarle.'),
+    h('div',{style:{fontSize:13,color:MUTED,marginBottom:32,lineHeight:1.55,maxWidth:300,margin:'0 auto 32px'}},'Crea la tua prima scheda e traccia ogni rep, ogni PR, ogni progresso. Il tuo diario di allenamento ti aspetta.'),
+    h(Btn,{full:true,onClick:function(){go('start');}},'Primo allenamento →'),
     h('div',{style:{marginTop:18,fontSize:12,color:MUTED}},
       'Hai già una scheda? ',
-      h('button',{onClick:function(){go('scheda');},style:{background:'none',border:'none',color:ACC,fontSize:12,fontWeight:600,cursor:'pointer',padding:0,textDecoration:'underline'}},'Caricala qui')
+      h('button',{onClick:function(){go('scheda');},style:{background:'none',border:'none',color:ACC,fontSize:12,fontWeight:600,cursor:'pointer',padding:0,textDecoration:'underline'}},'Importala')
     )
   );
   return h('div',{style:{padding:'24px 16px'}},
     h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:22}},
       h('div',null,
         h('div',{style:{fontSize:12,color:MUTED}},'Questa settimana'),
-        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:34,letterSpacing:'0.03em',lineHeight:1}},nome?'Ciao, '+nome:'Il tuo riepilogo')
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:34,letterSpacing:'0.03em',lineHeight:1}},nome?'Ciao, '+nome:'Il tuo pump')
       ),
       h('div',{style:{display:'flex',alignItems:'center',gap:8}},
         (function(){
@@ -2250,13 +2324,58 @@ function Home(p){
       })
     ),
     h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginBottom:14,marginTop:-4}},'Tocca una metrica per scoprire cosa significa'),
+
+    /* Weekly adherence calendar */
+    (function(){
+      var target=profile&&profile.giorniTarget?profile.giorniTarget:3;
+      var thisWeekStart=getWeekStart(new Date());
+      var dayMap=getDayTrainingMap(sessions,thisWeekStart);
+      var today=new Date();var todayIdx=today.getDay()===0?6:today.getDay()-1;
+      var dayNames=['L','M','M','G','V','S','D'];
+      var doneCount=dayMap.filter(function(d){return d;}).length;
+      var adherencePct=Math.min(100,Math.round(doneCount/target*100));
+      var missedDays=0;
+      for(var di=0;di<todayIdx;di++){if(!dayMap[di])missedDays++;}
+      var remainingDays=6-todayIdx;
+      var canStillHit=doneCount+remainingDays+(dayMap[todayIdx]?0:1)>=target;
+      var statusColor=doneCount>=target?'var(--success)':canStillHit?ACC:'var(--danger)';
+      var statusText=doneCount>=target?'Obiettivo raggiunto!':canStillHit?(target-doneCount)+' session'+(target-doneCount>1?'i':'e')+' rimast'+(target-doneCount>1?'e':'a'):'Obiettivo mancato';
+      return h('div',{style:{background:SURF2,borderRadius:14,padding:'14px 16px',marginBottom:12,border:'0.5px solid '+BORD}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}},
+          h('div',{style:{fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:MUTED}},'Questa settimana'),
+          h('div',{style:{fontSize:11,fontFamily:"'Roboto Mono',monospace",fontWeight:700,color:statusColor}},doneCount+'/'+target)
+        ),
+        h('div',{style:{display:'flex',justifyContent:'space-between',gap:4,marginBottom:10}},
+          dayNames.map(function(name,i){
+            var trained=dayMap[i];
+            var isPast=i<todayIdx;
+            var isToday=i===todayIdx;
+            var missed=isPast&&!trained;
+            var dotBg=trained?'var(--success)':isToday?ACC2:missed?'rgba(239,68,68,0.15)':'rgba(255,255,255,0.04)';
+            var dotBorder=trained?'var(--success)':isToday?ACC:missed?'rgba(239,68,68,0.4)':'rgba(255,255,255,0.08)';
+            var textCol=trained?'var(--act)':isToday?ACC:missed?'var(--danger)':'rgba(255,255,255,0.25)';
+            return h('div',{key:i,style:{flex:1,textAlign:'center'}},
+              h('div',{style:{fontSize:9,color:isToday?ACC:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:4}},name),
+              h('div',{style:{width:32,height:32,borderRadius:'50%',background:dotBg,border:'2px solid '+dotBorder,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto',transition:'all .2s'}},
+                trained?h(Icon,{n:'check',sz:12,c:'var(--act)'}):missed?h('span',{style:{fontSize:10,color:'var(--danger)',fontWeight:700}},'✕'):isToday?h('span',{style:{width:6,height:6,borderRadius:'50%',background:ACC}}):null
+              )
+            );
+          })
+        ),
+        h('div',{style:{width:'100%',height:4,borderRadius:2,background:'rgba(255,255,255,0.06)',overflow:'hidden',marginBottom:6}},
+          h('div',{style:{width:adherencePct+'%',height:'100%',borderRadius:2,background:statusColor,transition:'width .4s ease'}})
+        ),
+        h('div',{style:{fontSize:11,color:statusColor,fontWeight:600,textAlign:'center'}},statusText)
+      );
+    })(),
+
     calCount>0&&h('div',{style:{background:SURF2,borderRadius:10,padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',gap:10}},
       h('span',{style:{fontSize:18}},'🤸'),
       h('div',null,h('div',{style:{fontSize:13,fontWeight:500}},'Calisthenics questa settimana'),h('div',{style:{fontSize:11,color:MUTED}},calCount+' session'+(calCount>1?'i':'e')))
     ),
     h('div',{style:{display:'flex',gap:8,marginBottom:20}},
-      h(Btn,{full:true,onClick:function(){go('start');}},'▶  Allena'),
-      h(Btn,{sec:true,onClick:function(){go('log');}},'Storico')
+      h(Btn,{full:true,onClick:function(){go('start');}},'Allena'),
+      h(Btn,{sec:true,onClick:function(){go('log');}},'Il tuo Log')
     ),
     h(Lbl,null,'Ultime sessioni'),
     sorted.slice(0,4).map(function(s){
@@ -2264,16 +2383,22 @@ function Home(p){
       var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
       var isCal=s.tipo==='cal';
       var totalReps=s.es.reduce(function(t,e){return t+e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);},0);
-      return h(Card,{key:s.id,onClick:function(){go('det',{s:s});},style:{cursor:'pointer'}},
+      var cRate=sessionCompletionRate(s);
+      var cInfo=completionLabel(cRate);
+      return h(Card,{key:s.id,onClick:function(){go('det',{s:s});},style:{cursor:'pointer',borderLeft:'3px solid '+cInfo.color}},
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
-          h('div',null,
+          h('div',{style:{flex:1,minWidth:0}},
             h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
               isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
-              h('div',{style:{fontSize:13,fontWeight:500}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sala pesi'))
+              h('div',{style:{fontSize:13,fontWeight:500}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sala pesi')),
+              cRate<100&&h('span',{style:{fontSize:9,padding:'1px 6px',borderRadius:20,background:cRate>=50?'rgba(245,158,11,0.12)':'rgba(239,68,68,0.12)',color:cInfo.color,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},cInfo.text)
             ),
             h('div',{style:{fontSize:11,color:MUTED}},fmtD(s.t0)+' · '+s.dur+'min')
           ),
-          h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:15}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg'))
+          h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+            cRate>=100&&h('div',{style:{width:18,height:18,borderRadius:'50%',background:'rgba(34,197,94,0.15)',display:'flex',alignItems:'center',justifyContent:'center'}},h(Icon,{n:'check',sz:10,c:'var(--success)'})),
+            h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:15}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg'))
+          )
         )
       );
     })
@@ -2289,8 +2414,8 @@ function Start(p){
   var noActive=schede.length>0&&attive.length===0;
   var noSchede=schede.length===0;
   return h('div',{style:{padding:'24px 16px'}},
-    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',marginBottom:6}},'Allena'),
-    h('div',{style:{fontSize:13,color:MUTED,marginBottom:24}},'Scegli la modalità per oggi'),
+    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',marginBottom:6}},'Pump Time'),
+    h('div',{style:{fontSize:13,color:MUTED,marginBottom:24}},'Scegli come vuoi allenarti oggi'),
     h(Card,{onClick:function(){go('pesiblocks');},style:{cursor:'pointer',marginBottom:12,border:'0.5px solid '+BORD,opacity:noActive?0.6:1}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14}},
         h('div',{style:{width:52,height:52,borderRadius:12,background:ACC5,border:'1px solid '+ACC3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},h(Icon,{n:'dumbbell',sz:22,c:ACC})),
@@ -2546,7 +2671,7 @@ function PesiLive(p){
   var _fbr=useState(0);var fbRating=_fbr[0];var setFbRating=_fbr[1];
   var _fbt=useState('');var fbText=_fbt[0];var setFbText=_fbt[1];
   var _fbs2=useState('idle');var fbState=_fbs2[0];var setFbState=_fbs2[1];
-  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'1.9.2'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
+  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'2.0.0'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
   function fbDismiss(){setFbState('done');}
   var fbProps=fbEligible?{show:true,state:fbState,rating:fbRating,text:fbText,onRate:setFbRating,onText:setFbText,onSend:fbSend,onDismiss:fbDismiss}:null;
 
@@ -2808,7 +2933,7 @@ function CalLive(p){
   var _cfbr=useState(0);var calFbRating=_cfbr[0];var setCalFbRating=_cfbr[1];
   var _cfbt=useState('');var calFbText=_cfbt[0];var setCalFbText=_cfbt[1];
   var _cfbs=useState('idle');var calFbState=_cfbs[0];var setCalFbState=_cfbs[1];
-  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'1.9.2'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
+  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'2.0.0'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
   function calFbDismiss(){setCalFbState('done');}
   var calFbProps=calFbEligible?{show:true,state:calFbState,rating:calFbRating,text:calFbText,onRate:setCalFbRating,onText:setCalFbText,onSend:calFbSend,onDismiss:calFbDismiss}:null;
 
@@ -3032,14 +3157,14 @@ function Log(p){
   ];
 
   return h('div',{style:{padding:'24px 16px 100px'}},
-    h(PageHeader,{title:'Storico',sub:sessions.length+' allenament'+(sessions.length===1?'o':'i')}),
+    h(PageHeader,{title:'Il tuo Log',sub:sessions.length+' session'+(sessions.length===1?'e':'i')+' registrat'+(sessions.length===1?'a':'e')}),
 
     /* Ricerca */
     sessions.length > 0 && h('div',{style:{marginBottom:10}},
       h('input',{
         type:'search',
         value: search,
-        placeholder: 'Cerca per scheda, esercizio o nota…',
+        placeholder: 'Cerca sessione, esercizio o nota…',
         onChange: function(e){ setSearch(e.target.value); },
         style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'11px 14px',color:TEXT,fontSize:14}
       })
@@ -3060,9 +3185,9 @@ function Log(p){
     /* C7: Empty state caldo */
     sessions.length===0 && h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
       h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📒'),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessun allenamento ancora'),
-      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Tutti i tuoi allenamenti finiranno qui.',h('br'),'Inizia oggi e costruisci la tua storia.'),
-      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Allena ora →')
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Il tuo log è vuoto'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Ogni sessione che completi finisce qui — peso, serie, rep, tutto.',h('br'),'Il primo passo? Iniziare.'),
+      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Logga il primo pump →')
     ),
 
     /* Sessioni filtrate: messaggio se i filtri non producono risultati */
@@ -3082,18 +3207,29 @@ function Log(p){
           var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
           var isCal=s.tipo==='cal';
           var totalReps=s.es.reduce(function(t,e){return t+e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);},0);
-          return h(Card,{key:s.id,onClick:function(){go('det',{s:s});}},
+          var cRate=sessionCompletionRate(s);
+          var cInfo=completionLabel(cRate);
+          return h(Card,{key:s.id,onClick:function(){go('det',{s:s});},style:{borderLeft:'3px solid '+cInfo.color}},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}},
-              h('div',null,
+              h('div',{style:{flex:1,minWidth:0}},
                 h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
                   isCal&&h('span',{style:{fontSize:10,background:ACC5,color:ACC,padding:'2px 7px',borderRadius:20,border:'1px solid '+ACC3,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},'CAL'),
-                  h('div',{style:{fontWeight:500,fontSize:14}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sessione'))
+                  h('div',{style:{fontWeight:500,fontSize:14}},isCal?'Calisthenics':(bl?bl.nome:sc?sc.nome:'Sessione')),
+                  cRate<100&&h('span',{style:{fontSize:9,padding:'2px 7px',borderRadius:20,background:cRate>=50?'rgba(245,158,11,0.12)':'rgba(239,68,68,0.12)',color:cInfo.color,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,border:'1px solid '+(cRate>=50?'rgba(245,158,11,0.25)':'rgba(239,68,68,0.25)')}},cInfo.text)
                 ),
                 h('div',{style:{fontSize:11,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})+' · '+s.dur+'min')
               ),
-              h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:14,fontVariantNumeric:'tabular-nums'}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg'))
+              h('div',{style:{textAlign:'right'}},
+                h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:14,fontVariantNumeric:'tabular-nums'}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg')),
+                cRate>=100&&h('div',{style:{fontSize:9,color:'var(--success)',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginTop:2}},'COMPLETATO')
+              )
             ),
-            h('div',{style:{fontSize:11,color:MUTED}},s.es.length+' esercizi · '+s.es.reduce(function(a,e){return a+e.serie.filter(function(sr){return sr.ok;}).length;},0)+' serie')
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+              h('div',{style:{fontSize:11,color:MUTED}},s.es.length+' esercizi · '+s.es.reduce(function(a,e){return a+e.serie.filter(function(sr){return sr.ok;}).length;},0)+' serie'),
+              h('div',{style:{width:40,height:4,borderRadius:2,background:'rgba(255,255,255,0.08)',overflow:'hidden'}},
+                h('div',{style:{width:cRate+'%',height:'100%',borderRadius:2,background:cInfo.color,transition:'width .3s'}})
+              )
+            )
           );
         })
       );
@@ -3106,11 +3242,28 @@ function Det(p){
   var s=p.s,schede=p.schede,go=p.go;
   var sc=schede.find(function(x){return x.id===s.sId;});
   var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
+  var cRate=sessionCompletionRate(s);
+  var cInfo=completionLabel(cRate);
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(Back,{onClick:function(){go('log');}}),
     h('div',{style:{margin:'14px 0 18px'}},
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1,marginBottom:4}},s.tipo==='cal'?'Calisthenics':(bl?bl.nome:'Sessione')),
       h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+'min · '+Math.round(ton(s.es))+'kg')
+    ),
+    /* Completion rate bar */
+    h('div',{style:{background:SURF2,borderRadius:12,padding:'12px 14px',marginBottom:14,border:'0.5px solid '+BORD}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+        h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:MUTED}},'Completamento sessione'),
+        h('div',{style:{fontSize:14,fontFamily:"'Roboto Mono',monospace",fontWeight:700,color:cInfo.color}},cRate+'%')
+      ),
+      h('div',{style:{width:'100%',height:6,borderRadius:3,background:'rgba(255,255,255,0.08)',overflow:'hidden'}},
+        h('div',{style:{width:cRate+'%',height:'100%',borderRadius:3,background:cInfo.color,transition:'width .4s ease'}})
+      ),
+      cRate<100&&h('div',{style:{fontSize:11,color:MUTED,marginTop:6}},(function(){
+        var totalS=0,doneS=0;
+        s.es.forEach(function(e){if(e.tipo==='riscaldamento'){totalS++;if(e.fatto)doneS++;}else{var sr=e.serie||[];totalS+=sr.length;doneS+=sr.filter(function(x){return x.ok;}).length;}});
+        return doneS+'/'+totalS+' serie completate';
+      })())
     ),
     s.umore&&h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:14}},h('span',{style:{fontSize:24}},['😫','😕','😐','😊','💪'][s.umore-1]),h('span',{style:{fontSize:13,color:MUTED}},['Molto faticosa','Faticosa','Normale','Bene','Top!'][s.umore-1])),
     s.nota&&h(Card,null,h('div',{style:{fontSize:13,color:TEXT,lineHeight:1.6}},s.nota)),
@@ -3148,6 +3301,13 @@ function Stats(p){
   /* Misure corporee (per il pannello "Corpo") */
   var _bm=useState(loadBodyLog());var bodyLog=_bm[0];var setBodyLog=_bm[1];
 
+  if(tab==='adherence'){
+    return h('div',{style:{padding:'24px 16px 100px'}},
+      h(PageHeader,{title:'Statistiche'}),
+      h(StatsTabs,{tab:tab,setTab:setTab}),
+      h(AdherenceView,{sessions:sessions,profile:p.profile})
+    );
+  }
   if(tab==='body'){
     return h('div',{style:{padding:'24px 16px 100px'}},
       h(PageHeader,{title:'Statistiche'}),
@@ -3224,9 +3384,9 @@ function Stats(p){
     /* C7: Empty state caldo */
     data.length===0&&h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
       h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📊'),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Ancora nulla qui'),
-      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'I tuoi numeri appariranno dopo la prima sessione.',h('br'),'Bastano 10 minuti di allenamento.'),
-      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Allena ora →')
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessun dato ancora'),
+      h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Completa il primo allenamento e PumpLog farà il resto:',h('br'),'grafici, trend, PR — tutto calcolato per te.'),
+      h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Inizia a pompare →')
     ),
     data.length>0&&h('div',null,
       /* KPI con delta */
@@ -3246,6 +3406,53 @@ function Stats(p){
         })
       ),
       h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginBottom:16}},'Tocca una metrica per la spiegazione'),
+
+      /* Completion rate ring + Weekly adherence bar chart */
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:18}},
+        /* Completion ring */
+        (function(){
+          var avgRate=data.length?Math.round(data.reduce(function(t,s){return t+sessionCompletionRate(s);},0)/data.length):0;
+          var ci=completionLabel(avgRate);
+          var circumference=2*Math.PI*36;
+          var offset=circumference-(avgRate/100)*circumference;
+          return h('div',{style:{background:SURF2,borderRadius:14,padding:'16px 12px',textAlign:'center',border:'0.5px solid '+BORD}},
+            h('div',{style:{fontSize:10,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:MUTED,marginBottom:10}},'COMPLETAMENTO'),
+            h('div',{style:{position:'relative',width:80,height:80,margin:'0 auto 8px'}},
+              h('svg',{width:80,height:80,viewBox:'0 0 80 80'},
+                h('circle',{cx:40,cy:40,r:36,fill:'none',stroke:'rgba(255,255,255,0.06)',strokeWidth:6}),
+                h('circle',{cx:40,cy:40,r:36,fill:'none',stroke:ci.color,strokeWidth:6,strokeLinecap:'round',strokeDasharray:circumference,strokeDashoffset:offset,transform:'rotate(-90 40 40)',style:{transition:'stroke-dashoffset .6s ease'}})
+              ),
+              h('div',{style:{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',fontFamily:"'Bebas Neue',cursive",fontSize:22,color:ci.color}},avgRate+'%')
+            ),
+            h('div',{style:{fontSize:10,color:MUTED}},avgRate>=90?'Sessioni solide':'Margine di miglioramento')
+          );
+        })(),
+        /* Adherence vs target */
+        (function(){
+          var target=p.profile&&p.profile.giorniTarget?p.profile.giorniTarget:3;
+          var weeks=getAdherenceWeeks(sessions,Math.min(Math.ceil(range/7),8));
+          var maxCount=Math.max(target,Math.max.apply(null,weeks.map(function(w){return w.count;}).concat([1])));
+          return h('div',{style:{background:SURF2,borderRadius:14,padding:'16px 12px',border:'0.5px solid '+BORD}},
+            h('div',{style:{fontSize:10,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:MUTED,marginBottom:10,textAlign:'center'}},'COSTANZA'),
+            h('div',{style:{display:'flex',alignItems:'flex-end',justifyContent:'center',gap:3,height:60,marginBottom:8}},
+              weeks.map(function(w,i){
+                var pct=Math.max(8,Math.round(w.count/maxCount*100));
+                var hit=w.count>=target;
+                return h('div',{key:i,style:{flex:1,maxWidth:16,display:'flex',flexDirection:'column',alignItems:'center',gap:2}},
+                  h('div',{style:{width:'100%',height:pct*0.55+'px',minHeight:4,borderRadius:3,background:hit?'var(--success)':w.count>0?'var(--warning)':'rgba(239,68,68,0.3)',transition:'height .3s'}}),
+                  h('div',{style:{fontSize:7,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},w.count)
+                );
+              })
+            ),
+            h('div',{style:{height:1,background:BORD,margin:'0 0 6px',position:'relative'}},
+              h('div',{style:{position:'absolute',top:-1,right:0,fontSize:8,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'target: '+target)
+            ),
+            h('div',{style:{fontSize:10,color:MUTED,textAlign:'center'}},
+              (function(){var hitWeeks=weeks.filter(function(w){return w.count>=target;}).length;return hitWeeks+'/'+weeks.length+' settimane in target';})()
+            )
+          );
+        })()
+      ),
 
       /* B2: Volume settimanale per gruppo muscolare con zone MEV/MAV/MRV */
       hasVolData && h('div',{style:{marginBottom:22}},
@@ -3472,12 +3679,139 @@ function EsDetail(p){
 /* ── StatsTabs: switcher Allenamenti / Corpo ── */
 function StatsTabs(p){
   var tab = p.tab, setTab = p.setTab;
-  var items = [['train','💪 Allenamenti'],['body','📏 Corpo & misure']];
+  var items = [['train','Allenamenti'],['adherence','Costanza'],['body','Corpo']];
   return h('div',{style:{display:'flex',gap:4,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:4,marginBottom:14}},
     items.map(function(it){
       var on = tab === it[0];
       return h('button',{key:it[0],onClick:function(){hap(8);setTab(it[0]);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:7,border:'none',background:on?ACC:'transparent',color:on?ACT:MUTED,fontSize:12,fontWeight:on?700:500,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.06em',textTransform:'uppercase'}},it[1]);
     })
+  );
+}
+
+/* ── Adherence stats tab: costanza, streak, muscle heatmap ── */
+function AdherenceView(p){
+  var sessions=p.sessions,profile=p.profile;
+  var target=profile&&profile.giorniTarget?profile.giorniTarget:3;
+  var weeks=getAdherenceWeeks(sessions,8);
+  var maxBarCount=Math.max(target,Math.max.apply(null,weeks.map(function(w){return w.count;}).concat([1])));
+
+  /* Streak calculation (consecutive weeks hitting target) */
+  var weekStreak=0;
+  for(var wi=weeks.length-1;wi>=0;wi--){
+    if(weeks[wi].count>=target) weekStreak++;
+    else break;
+  }
+
+  /* Muscle coverage for last 7 days */
+  var now=Date.now();
+  var recentSessions=sessions.filter(function(s){return new Date(s.t0).getTime()>=now-7*86400000;});
+  var muscleHits={};
+  recentSessions.forEach(function(s){
+    s.es.forEach(function(e){
+      if(e.tipo==='riscaldamento'||!e.gr) return;
+      var sets=(e.serie||[]).filter(function(sr){return sr.ok;}).length;
+      if(sets>0){
+        var key=(e.gr==='Bicipiti'||e.gr==='Tricipiti')?'Braccia':e.gr;
+        muscleHits[key]=(muscleHits[key]||0)+sets;
+      }
+    });
+  });
+  var allMuscles=['Petto','Schiena','Spalle','Braccia','Gambe','Core'];
+  var maxMuscle=Math.max.apply(null,allMuscles.map(function(m){return muscleHits[m]||0;}).concat([1]));
+
+  /* Average completion rate */
+  var avgCompletion=sessions.length?Math.round(sessions.slice(-20).reduce(function(t,s){return t+sessionCompletionRate(s);},0)/Math.min(sessions.length,20)):0;
+
+  /* Skipped weeks (0 sessions) in last 8 */
+  var skippedWeeks=weeks.filter(function(w){return w.count===0;}).length;
+
+  return h('div',null,
+    /* Top KPI row */
+    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:16}},
+      h('div',{style:{background:SURF2,borderRadius:12,padding:'14px 6px 11px',textAlign:'center',border:'0.5px solid '+BORD}},
+        h('div',{className:'gt-stat-num',style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,color:weekStreak>0?'var(--success)':MUTED,lineHeight:1}},weekStreak),
+        h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',marginTop:4}},'SETT. STREAK')
+      ),
+      h('div',{style:{background:SURF2,borderRadius:12,padding:'14px 6px 11px',textAlign:'center',border:'0.5px solid '+BORD}},
+        h('div',{className:'gt-stat-num',style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,color:avgCompletion>=80?'var(--success)':avgCompletion>=50?'var(--warning)':'var(--danger)',lineHeight:1}},avgCompletion+'%'),
+        h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',marginTop:4}},'COMPLETAMENTO')
+      ),
+      h('div',{style:{background:SURF2,borderRadius:12,padding:'14px 6px 11px',textAlign:'center',border:'0.5px solid '+BORD}},
+        h('div',{className:'gt-stat-num',style:{fontFamily:"'Bebas Neue',cursive",fontSize:28,color:skippedWeeks===0?'var(--success)':skippedWeeks<=2?'var(--warning)':'var(--danger)',lineHeight:1}},skippedWeeks),
+        h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',marginTop:4}},'SETT. SALTATE')
+      )
+    ),
+
+    /* Weekly adherence chart (last 8 weeks) */
+    h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+        h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT}},'Ultime 8 settimane'),
+        h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},'target: '+target+'/sett')
+      ),
+      h('div',{style:{display:'flex',alignItems:'flex-end',gap:6,height:90,marginBottom:8}},
+        weeks.map(function(w,i){
+          var barH=Math.max(6,Math.round(w.count/maxBarCount*80));
+          var hit=w.count>=target;
+          var weekLbl=w.start.toLocaleDateString('it-IT',{day:'numeric',month:'short'});
+          return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},
+            h('div',{style:{fontSize:9,fontFamily:"'Roboto Mono',monospace",color:hit?'var(--success)':w.count>0?TEXT:MUTED,fontWeight:700}},w.count),
+            h('div',{style:{width:'100%',height:barH,borderRadius:4,background:hit?'var(--success)':w.count>0?'var(--warning)':'rgba(239,68,68,0.25)',transition:'height .3s'}}),
+            h('div',{style:{fontSize:7,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",whiteSpace:'nowrap'}},weekLbl)
+          );
+        })
+      ),
+      h('div',{style:{height:1,background:'rgba(255,255,255,0.06)',position:'relative',marginBottom:4}},
+        h('div',{style:{position:'absolute',top:-10,left:0,right:0,height:1,borderTop:'1px dashed rgba(200,255,0,0.2)'}})
+      )
+    ),
+
+    /* Muscle coverage heatmap */
+    h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
+      h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT,marginBottom:4}},'Copertura muscolare'),
+      h('div',{style:{fontSize:10,color:MUTED,marginBottom:12}},'Gruppi muscolari allenati negli ultimi 7 giorni'),
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
+        allMuscles.map(function(m){
+          var hits=muscleHits[m]||0;
+          var intensity=hits>0?Math.min(1,hits/maxMuscle):0;
+          var bg=hits===0?'rgba(239,68,68,0.08)':
+                 intensity<0.4?'rgba(245,158,11,0.12)':
+                 intensity<0.7?'rgba(200,255,0,0.12)':'rgba(34,197,94,0.12)';
+          var borderC=hits===0?'rgba(239,68,68,0.25)':
+                      intensity<0.4?'rgba(245,158,11,0.3)':
+                      intensity<0.7?'rgba(200,255,0,0.25)':'rgba(34,197,94,0.3)';
+          var textC=hits===0?'var(--danger)':
+                    intensity<0.4?'var(--warning)':
+                    intensity<0.7?ACC:'var(--success)';
+          return h('div',{key:m,style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderRadius:10,background:bg,border:'1px solid '+borderC}},
+            h('div',null,
+              h('div',{style:{fontSize:13,fontWeight:600,color:TEXT}},m),
+              h('div',{style:{fontSize:10,color:MUTED}},hits>0?hits+' serie':'Non allenato')
+            ),
+            h('div',{style:{width:28,height:28,borderRadius:'50%',background:hits===0?'rgba(239,68,68,0.15)':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center'}},
+              hits===0?h('span',{style:{fontSize:12,color:'var(--danger)'}},'✕'):
+              h('div',{style:{width:12+intensity*8,height:12+intensity*8,borderRadius:'50%',background:textC,opacity:0.6+intensity*0.4}})
+            )
+          );
+        })
+      ),
+      Object.keys(muscleHits).length===0&&h('div',{style:{textAlign:'center',padding:'12px 0',color:MUTED,fontSize:12}},'Nessun dato — allenati per vedere la copertura')
+    ),
+
+    /* Completion trend (last 10 sessions) */
+    sessions.length>=3&&h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',border:'0.5px solid '+BORD}},
+      h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT,marginBottom:4}},'Trend completamento'),
+      h('div',{style:{fontSize:10,color:MUTED,marginBottom:12}},'Percentuale di serie completate per sessione'),
+      h('div',{style:{display:'flex',alignItems:'flex-end',gap:4,height:50}},
+        sessions.slice(-10).map(function(s,i){
+          var rate=sessionCompletionRate(s);
+          var ci=completionLabel(rate);
+          return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}},
+            h('div',{style:{width:'100%',height:Math.max(4,rate*0.45),borderRadius:3,background:ci.color,transition:'height .3s'}}),
+            h('div',{style:{fontSize:7,color:MUTED,fontFamily:"'Roboto Mono',monospace"}},rate+'%')
+          );
+        })
+      )
+    )
   );
 }
 
@@ -4021,11 +4355,11 @@ function LoginScreen(p){
   return h('div',{style:{padding:'40px 18px 32px',minHeight:'100vh',display:'flex',flexDirection:'column',maxWidth:440,margin:'0 auto'}},
     h('div',{style:{flex:'0 0 auto',marginBottom:24}},
       h('div',{className:'gt-logo-pulse',style:{width:56,height:56,borderRadius:14,background:ACC,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:14,boxShadow:'0 8px 24px '+ACC3}},
-        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:36,color:ACT,lineHeight:1}},'GT')
+        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:36,color:ACT,lineHeight:1}},'PL')
       ),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:42,letterSpacing:'0.03em',lineHeight:1,color:TEXT,marginBottom:8}},'Benvenuto'),
-      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:'0.15em',lineHeight:1,color:ACC,marginBottom:12}},'ALLENA · TRACCIA · CRESCI'),
-      h('div',{style:{fontSize:13,color:MUTED,lineHeight:1.5}},'La tua palestra in tasca. Schede, sessioni e progressi su tutti i dispositivi.')
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:42,letterSpacing:'0.03em',lineHeight:1,color:TEXT,marginBottom:4}},'PUMPLOG'),
+      h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:'0.15em',lineHeight:1,color:ACC,marginBottom:12}},'LOGGA · TRACCIA · CRESCI'),
+      h('div',{style:{fontSize:13,color:MUTED,lineHeight:1.5}},'Il tuo diario di allenamento. Ogni rep, ogni serie, ogni progresso — sempre con te.')
     ),
     h('div',{style:{flex:1}},
       /* Google — disabilitato in attesa di setup OAuth (verifica Google + dominio) */
@@ -4396,7 +4730,7 @@ var ErrorBoundary = (function(){
   EB.prototype.constructor = EB;
   EB.getDerivedStateFromError = function(error){ return {err: error}; };
   EB.prototype.componentDidCatch = function(error, info){
-    try{ console.error('GymTracker crash:', error, info); }catch(e){}
+    try{ console.error('PumpLog crash:', error, info); }catch(e){}
   };
   EB.prototype.render = function(){
     var self = this;
