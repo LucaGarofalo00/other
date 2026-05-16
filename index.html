@@ -2360,34 +2360,7 @@ function Home(p){
   var schede=p.schede,sessions=p.sessions,profile=p.profile,go=p.go;
   /* Promemoria settimanali: letti da localStorage. Refresh via prop key per forzare re-render dopo edit. */
   var remindersList = loadReminders();
-  var now=new Date(),weekAgo=new Date(now-7*86400000),twoWeeksAgo=new Date(now-14*86400000);
-  var wk=sessions.filter(function(s){return new Date(s.t0)>=weekAgo;});
-  var prevWk=sessions.filter(function(s){var d=new Date(s.t0);return d>=twoWeeksAgo && d<weekAgo;});
   var sorted=sessions.slice().sort(function(a,b){return new Date(b.t0)-new Date(a.t0);});
-  /* Tonnellaggio: solo sessioni pesi pure. Cardio/cal non contribuiscono perché non c'è kg×reps significativo. */
-  var pesiWk = wk.filter(function(s){return sessionDiscipline(s)==='pesi';});
-  var pesiPrevWk = prevWk.filter(function(s){return sessionDiscipline(s)==='pesi';});
-  var totalTon = pesiWk.reduce(function(t,s){return t+ton(s.es);},0);
-  var prevTon  = pesiPrevWk.reduce(function(t,s){return t+ton(s.es);},0);
-  /* Volume sets settimanale: numero totale di serie effettive completate (pesi+cal) — più universale del tonnage */
-  function countWorkSets(s){
-    if(!s || !s.es) return 0;
-    return s.es.reduce(function(a,e){
-      if(e.tipo==='riscaldamento') return a;
-      return a + (e.serie||[]).filter(function(sr){return sr.ok;}).length;
-    },0);
-  }
-  var totalSets = wk.filter(function(s){return s.tipo!=='cardio';}).reduce(function(t,s){return t+countWorkSets(s);},0);
-  var prevSets  = prevWk.filter(function(s){return s.tipo!=='cardio';}).reduce(function(t,s){return t+countWorkSets(s);},0);
-  var sesDelta=wk.length-prevWk.length;
-  var tonDelta=Math.round((totalTon-prevTon)/100)/10;
-  var setsDelta = totalSets - prevSets;
-  var calCount=wk.filter(function(s){return s.tipo==='cal';}).length;
-  /* Decide quale KPI mostrare al centro: se l'utente fa quasi solo cardio/cal, le serie hanno più senso del tonnellaggio.
-     Se >=2 sessioni pesi in 7 giorni, tonnellaggio è informativo. Altrimenti mostriamo "Serie totali". */
-  var showTonnage = pesiWk.length >= 2;
-  var streak=0,chk=new Date();chk.setHours(0,0,0,0);
-  for(var i=0;i<sorted.length;i++){var sd=new Date(sorted[i].t0);sd.setHours(0,0,0,0);if((chk-sd)/86400000<=1){streak++;chk=sd;}else break;}
   var nome=profile&&profile.nome?profile.nome.split(' ')[0]:'';
   if(sessions.length===0)return h('div',{style:{padding:'40px 20px',textAlign:'center',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'center'}},
     h('div',{style:{position:'absolute',top:20,right:16}},h('button',{onClick:function(){go('settings');},'aria-label':'Impostazioni',style:{background:'rgba(255,255,255,0.06)',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:10,padding:8,cursor:'pointer'}},h(Icon,{n:'settings',sz:18,c:MUTED}))),
@@ -2426,31 +2399,6 @@ function Home(p){
         h('button',{onClick:function(){go('settings');},'aria-label':'Impostazioni',style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:10,padding:8,cursor:'pointer'}},h(Icon,{n:'settings',sz:18,c:MUTED}))
       )
     ),
-    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}},
-      [
-        {n:wk.length, lbl:'SESSIONI', tip:'Quante volte ti sei allenato negli ultimi 7 giorni — include sala pesi, calisthenics e cardio.', delta:(prevWk.length>0?sesDelta:null), deltaSuffix:''},
-        showTonnage
-          ? {n:Math.round(totalTon/100)/10+'t', lbl:'TONNELLAGGIO', tip:'Tonnellaggio = somma di kg × ripetizioni delle sessioni pesi (1t = 1000kg).\n\nUtile per: tracciare il sovraccarico progressivo settimana dopo settimana.\nLimiti: dipende dal range di reps (10×100kg = 5×200kg = stesso valore, stimolo diverso) e NON conta cal/cardio. Per il quadro completo, vai su Stats → volume per gruppo muscolare.', delta:(prevTon>0?tonDelta:null), deltaSuffix:'t'}
-          : {n:String(totalSets), lbl:'SERIE TOTALI', tip:'Serie effettivamente completate in 7 giorni (pesi + cal, escluso riscaldamento).\n\nLa "volume per gruppo muscolare" è il driver principale per ipertrofia secondo Schoenfeld/Israetel — 10-20 serie per gruppo muscolare/sett. Dettaglio completo in Stats → Allenamenti.', delta:(prevSets>0?setsDelta:null), deltaSuffix:''},
-        {n:(streak>0?'🔥 ':'')+streak+'gg', lbl:'STREAK', tip:'Giorni consecutivi di allenamento (qualsiasi tipo). Salta un giorno e riparte da zero.', delta:null, deltaSuffix:''}
-      ].map(function(s){
-        var deltaTxt=null, deltaCol=MUTED;
-        if(s.delta!=null && s.delta!==0){
-          var arrow=s.delta>0?'▲':'▼';
-          deltaCol=s.delta>0?'var(--success)':'var(--danger)';
-          deltaTxt=arrow+' '+(s.delta>0?'+':'')+s.delta+s.deltaSuffix;
-        } else if(s.delta===0){
-          deltaTxt='= invariato';
-        }
-        return h('div',{key:s.lbl,onClick:function(){alert(s.lbl+'\n\n'+s.tip);},style:{background:SURF2,borderRadius:14,padding:'14px 8px 12px',textAlign:'center',cursor:'pointer',border:'0.5px solid '+BORD}},
-          h('div',{className:'gt-stat-num',style:{fontFamily:"'Bebas Neue',cursive",fontSize:34,letterSpacing:'0.02em',color:ACC,lineHeight:1}},s.n),
-          h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',marginTop:4}},s.lbl),
-          deltaTxt && h('div',{style:{fontSize:10,marginTop:4,color:deltaCol,fontFamily:"'Roboto Mono',monospace",fontWeight:700,fontVariantNumeric:'tabular-nums'}},deltaTxt)
-        );
-      })
-    ),
-    h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginBottom:14,marginTop:-4}},'Tocca una metrica per scoprire cosa significa'),
-
     /* Promemoria settimanali: appuntamenti nutrizionista, chiusure palestra, eventi */
     h(RemindersWidget,{reminders:remindersList, go:go}),
 
@@ -2522,12 +2470,22 @@ function Home(p){
     /* Volume gruppi muscolari (top 3) · ultimi 7 giorni
        Driver #1 per ipertrofia secondo Schoenfeld/Israetel: serie effettive per gruppo/sett.
        Range MEV (minimo per crescere) - MAV (zona ottimale) - MRV (limite recupero).
-       Tocca per il dettaglio in Stats. */
+       Include set equivalenti da sessioni cardio (spinning/bici → gambe, vogatore → schiena, ecc.)
+       calcolati da durata × intensità (umore). Tocca per il dettaglio in Stats. */
     (function(){
       var weekAgoTs = Date.now() - 7*86400000;
-      var recentSess = sessions.filter(function(s){ return new Date(s.t0).getTime() >= weekAgoTs && s.tipo !== 'cardio'; });
+      var recentSess = sessions.filter(function(s){ return new Date(s.t0).getTime() >= weekAgoTs; });
       var hits = {};
+      var cardioHits = {};
       recentSess.forEach(function(s){
+        if(s.tipo === 'cardio'){
+          var ch = cardioMuscleHits(s);
+          Object.keys(ch).forEach(function(gr){
+            hits[gr] = (hits[gr]||0) + ch[gr];
+            cardioHits[gr] = (cardioHits[gr]||0) + ch[gr];
+          });
+          return;
+        }
         (s.es||[]).forEach(function(e){
           if(e.tipo==='riscaldamento' || !e.gr) return;
           var sets = (e.serie||[]).filter(function(sr){return sr.ok;}).length;
@@ -2567,9 +2525,10 @@ function Home(p){
           h('div',{style:{fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:MUTED}},'Volume gruppi muscolari · 7g'),
           h('div',{style:{fontSize:11,color:ACC}},'Dettaglio →')
         ),
-        h('div',{style:{fontSize:10,color:MUTED,marginBottom:10,lineHeight:1.4}}, 'Serie effettive per gruppo · zone ottimali da scienza del muscolo'),
+        h('div',{style:{fontSize:10,color:MUTED,marginBottom:10,lineHeight:1.4}}, 'Serie pesi + equivalenti cardio (spinning/bici/corsa → gambe) · zone ottimali da scienza del muscolo'),
         top.map(function(entry){
           var gr = entry[0], sets = entry[1];
+          var ch = cardioHits[gr] || 0;
           var st = statusFor(gr, sets);
           var r = GR_RANGES[gr];
           var maxScale = r ? Math.max(r.mrv + 4, sets + 2) : Math.max(sets+4, 20);
@@ -2579,7 +2538,10 @@ function Home(p){
           var mrvPct = r ? r.mrv/maxScale * 100 : 0;
           return h('div',{key:gr,style:{marginBottom:9}},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4,gap:8}},
-              h('div',{style:{fontSize:13,fontWeight:600,color:TEXT}}, gr),
+              h('div',{style:{display:'flex',alignItems:'baseline',gap:6}},
+                h('div',{style:{fontSize:13,fontWeight:600,color:TEXT}}, gr),
+                ch>0 && h('span',{title:ch+' set equivalenti da cardio',style:{fontSize:9,color:'#00F0FF',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em'}}, '+ '+ch+' cardio')
+              ),
               h('div',{style:{display:'flex',alignItems:'baseline',gap:6,flexShrink:0}},
                 st.label && h('span',{style:{fontSize:9,color:st.color,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase'}}, st.label),
                 h('span',{style:{fontFamily:"'Roboto Mono',monospace",fontWeight:700,fontSize:13,color:st.color}}, sets+' set')
@@ -3520,6 +3482,68 @@ var CARDIO_TIPI = [
   {id:'altro',     label:'Altro',         emoji:'⏱️',  fields:['distanza','kcal','fcMedia','fcMax']}
 ];
 function getCardioTipo(id){ return CARDIO_TIPI.find(function(t){return t.id===id;}) || CARDIO_TIPI[0]; }
+
+/* ── cardio → muscle volume mapping ──
+   Converte una sessione cardio in "set equivalenti" per gruppo muscolare, così le sessioni di
+   spinning, bici, corsa ecc. contribuiscono al volume settimanale (e non lasciano "Gambe" a 0).
+   La stima è grossolana ma onesta: usa la durata e l'intensità percepita (umore 1-5) come proxy.
+   Per ogni tipo cardio definiamo:
+     - muscoli: lista di {gr, minPerSet} — quanti minuti di lavoro = 1 set equivalente.
+   Riferimenti: per ipertrofia il cardio NON sostituisce il lavoro coi pesi, ma per chi traccia
+   l'attività complessiva ha senso che spinning/bici/corsa "contino" sulle gambe. I rapporti sono
+   conservativi (es. 1 set leg = 6 min spinning a intensità media) basati su consenso pratico —
+   l'utente può sempre integrare con lavoro pesi per stimolo ipertrofico mirato. */
+var CARDIO_MUSCLE_MAP = {
+  /* Pure leg cardio — bici-based */
+  spinning:  [{gr:'Gambe', minPerSet:6}],
+  cyclette:  [{gr:'Gambe', minPerSet:6}],
+  mtb:       [{gr:'Gambe', minPerSet:6}],
+  strada:    [{gr:'Gambe', minPerSet:6}],
+  /* Running cardio — leg stimulus + meno specifico per ipertrofia */
+  corsa:     [{gr:'Gambe', minPerSet:8}],
+  tapis:     [{gr:'Gambe', minPerSet:8}],
+  camminata: [{gr:'Gambe', minPerSet:12}],
+  /* Step/scale — molto leg-intensive (glutei, polpacci) */
+  scale:     [{gr:'Gambe', minPerSet:5}],
+  /* Ellittica — gambe primarie + braccia secondarie */
+  ellittica: [{gr:'Gambe', minPerSet:8}, {gr:'Braccia', minPerSet:18}],
+  /* Vogatore — full body con focus posteriore */
+  vogatore:  [{gr:'Schiena', minPerSet:6}, {gr:'Gambe', minPerSet:9}, {gr:'Braccia', minPerSet:12}],
+  /* Piscina — full body, dipende dallo stile ma in media: dorso/spalle/gambe/core */
+  piscina:   [{gr:'Schiena', minPerSet:7}, {gr:'Spalle', minPerSet:8}, {gr:'Gambe', minPerSet:10}, {gr:'Core', minPerSet:10}],
+  /* HIIT — distribuito full body */
+  hiit:      [{gr:'Gambe', minPerSet:7}, {gr:'Core', minPerSet:9}, {gr:'Petto', minPerSet:14}, {gr:'Spalle', minPerSet:14}],
+  /* Yoga/Pilates — core e flessibilità */
+  yoga:      [{gr:'Core', minPerSet:12}],
+  pilates:   [{gr:'Core', minPerSet:9}],
+  /* Stretching: 0 — solo recupero/mobilità */
+  stretching:[],
+  /* Altro — fallback generico leggero */
+  altro:     [{gr:'Gambe', minPerSet:12}]
+};
+
+/* Fattore intensità da umore (1-5). L'umore è "come ti sei sentito" che usiamo come proxy:
+   chi spinge forte di solito si sente "Ottimo 💪", chi va piano "Pessimo 😫" o "Neutro 😐". */
+var CARDIO_INTENSITY_FACTOR = {1:0.6, 2:0.8, 3:1.0, 4:1.2, 5:1.4};
+
+/* Calcola i set equivalenti per gruppo muscolare di una sessione cardio.
+   Ritorna {gr1: setCount, gr2: setCount, ...} oppure {} se non applicabile.
+   Non viene mai ritornato 0: se il calcolo dà <0.5 set il gruppo viene omesso (rumore). */
+function cardioMuscleHits(s){
+  if(!s || s.tipo !== 'cardio') return {};
+  var map = CARDIO_MUSCLE_MAP[s.cardioTipo];
+  if(!map || map.length===0) return {};
+  var dur = parseInt(s.dur)||0;
+  if(dur<=0) return {};
+  var intensity = CARDIO_INTENSITY_FACTOR[s.umore||3] || 1.0;
+  var hits = {};
+  map.forEach(function(m){
+    var sets = dur * intensity / m.minPerSet;
+    if(sets >= 0.5) hits[m.gr] = Math.round(sets);
+  });
+  return hits;
+}
+
 var CARDIO_FIELD_META = {
   distanza:  {lbl:'Distanza',     unit:'km',     ph:'5.0',  step:'0.1', decimal:true},
   passo:     {lbl:'Passo',        unit:'min/km', ph:'5:30', text:true},
@@ -4658,12 +4682,15 @@ function Stats(p){
   }
   var cutoff=new Date(Date.now()-range*86400000);
   var prevCutoff=new Date(Date.now()-range*2*86400000);
-  /* Per la tab Allenamenti escludiamo le sessioni cardio: hanno una semantica diversa
-     (durata/distanza/kcal vs peso/reps) e finirebbero a inquinare tonnellaggio e top esercizi. */
+  /* Per top esercizi e tonnellaggio escludiamo cardio (semantica diversa: durata/kcal vs peso/reps).
+     Ma per KPI di alto livello (sessioni totali, durata, volume per gruppo) consideriamo TUTTO. */
   var data=sessions.filter(function(s){return new Date(s.t0)>=cutoff && s.tipo!=='cardio';});
+  var allData=sessions.filter(function(s){return new Date(s.t0)>=cutoff;});
   var prevData=sessions.filter(function(s){var t=new Date(s.t0);return t>=prevCutoff && t<cutoff && s.tipo!=='cardio';});
+  var prevAllData=sessions.filter(function(s){var t=new Date(s.t0);return t>=prevCutoff && t<cutoff;});
   var pesiData=data.filter(function(s){return s.tipo!=='cal';});
   var calData=data.filter(function(s){return s.tipo==='cal';});
+  var cardioData=allData.filter(function(s){return s.tipo==='cardio';});
 
   var byEx={};
   pesiData.forEach(function(s){s.es.forEach(function(e){if(e.tipo==='riscaldamento')return;var t=ton([e]);if(t>0){byEx[e.nome]=(byEx[e.nome]||0)+t;}});});
@@ -4674,8 +4701,12 @@ function Stats(p){
   calData.forEach(function(s){s.es.forEach(function(e){var reps=e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);if(reps>0)calByEx[e.nome]=(calByEx[e.nome]||0)+reps;});});
 
   /* B2: Volume per gruppo muscolare (set completati per gruppo) */
-  /* Bicipiti/Tricipiti vengono uniti sotto Braccia per il grafico MEV/MAV/MRV */
+  /* Bicipiti/Tricipiti vengono uniti sotto Braccia per il grafico MEV/MAV/MRV.
+     Includiamo anche le sessioni cardio (escluse da `data` per il resto della tab) convertendo
+     durata+intensità in "set equivalenti" — vedi cardioMuscleHits. Senza questo, chi fa solo
+     spinning/bici si troverebbe "Gambe" a 0 anche dopo 4 ore di pedalata. */
   var volByGr={};
+  var cardioVolByGr={};
   data.forEach(function(s){
     s.es.forEach(function(e){
       if(e.tipo==='riscaldamento' || !e.gr) return;
@@ -4683,6 +4714,15 @@ function Stats(p){
       if(sets<=0) return;
       var key = (e.gr==='Bicipiti'||e.gr==='Tricipiti') ? 'Braccia' : e.gr;
       volByGr[key] = (volByGr[key]||0) + sets;
+    });
+  });
+  /* Contributi da cardio: filtriamo dal sessions originale per stesso range, NON da `data`
+     (che esclude il cardio per design negli altri grafici). */
+  sessions.filter(function(s){return new Date(s.t0)>=cutoff && s.tipo==='cardio';}).forEach(function(s){
+    var ch = cardioMuscleHits(s);
+    Object.keys(ch).forEach(function(gr){
+      volByGr[gr] = (volByGr[gr]||0) + ch[gr];
+      cardioVolByGr[gr] = (cardioVolByGr[gr]||0) + ch[gr];
     });
   });
   /* MEV/MAV/MRV settimanali (Schoenfeld + Israetel guidelines, semplificati) */
@@ -4710,9 +4750,9 @@ function Stats(p){
     return pct;
   }
   function deltaSessions(){
-    var prv = prevData.length;
+    var prv = prevAllData.length;
     if(prv === 0) return null;
-    return data.length - prv;
+    return allData.length - prv;
   }
   var dTon = deltaTon();
   var dSes = deltaSessions();
@@ -4724,19 +4764,19 @@ function Stats(p){
       ranges.map(function(r){return h('button',{key:r[0],onClick:function(){hap(8);setRange(r[0]);},style:{padding:'8px 14px',borderRadius:20,border:'1px solid '+(range===r[0]?ACC:BORD),background:range===r[0]?ACC2:'transparent',color:range===r[0]?ACC:MUTED,fontSize:13,cursor:'pointer',fontWeight:range===r[0]?700:400}},r[1]);})
     ),
     /* C7: Empty state caldo */
-    data.length===0&&h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
+    allData.length===0&&h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
       h('div',{style:{fontSize:54,marginBottom:14,opacity:0.6}},'📊'),
       h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em',color:TEXT,marginBottom:6}},'Nessun dato ancora'),
       h('div',{style:{fontSize:13,lineHeight:1.55,marginBottom:18}},'Completa il primo allenamento e PumpLog farà il resto:',h('br'),'grafici, trend, PR — tutto calcolato per te.'),
       h('button',{onClick:function(){go('start');},style:{padding:'12px 22px',background:ACC,color:ACT,border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:'0.02em'}},'Inizia a pompare →')
     ),
-    data.length>0&&h('div',null,
-      /* KPI con delta */
+    allData.length>0&&h('div',null,
+      /* KPI con delta — Sessioni e Durata includono anche cardio, Volume (tonnellaggio) solo pesi */
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:6}},
         [
-          {n:data.length, lbl:'Sessioni', d:dSes, tip:'Numero di allenamenti registrati nel periodo selezionato.'},
-          {n:Math.round(pesiData.reduce(function(t,s){return t+ton(s.es);},0)/100)/10+'t', lbl:'Volume', d:(dTon ? (dTon>0?'+':'')+dTon+'%' : null), tip:'Peso totale sollevato (kg × ripetizioni di tutte le serie). 1t = 1000kg. Cresce quando ti alleni di più o con carichi più pesanti.'},
-          {n:Math.round(data.reduce(function(t,s){return t+s.dur;},0)/60)+'h', lbl:'Durata', d:null, tip:'Tempo totale passato ad allenarsi nel periodo.'}
+          {n:allData.length, lbl:'Sessioni', d:dSes, tip:'Numero di allenamenti registrati nel periodo (include pesi, cal e cardio).'},
+          {n:Math.round(pesiData.reduce(function(t,s){return t+ton(s.es);},0)/100)/10+'t', lbl:'Volume', d:(dTon ? (dTon>0?'+':'')+dTon+'%' : null), tip:'Peso totale sollevato (kg × ripetizioni di tutte le serie). 1t = 1000kg. Solo sessioni pesi — cardio e cal non hanno tonnellaggio significativo.'},
+          {n:Math.round(allData.reduce(function(t,s){return t+s.dur;},0)/60)+'h', lbl:'Durata', d:null, tip:'Tempo totale passato ad allenarsi nel periodo (include pesi, cal e cardio).'}
         ].map(function(v){
           return h('div',{key:v.lbl,onClick:function(){alert(v.lbl.toUpperCase()+'\n\n'+v.tip);},style:{background:SURF2,borderRadius:12,padding:'13px 6px 11px',textAlign:'center',cursor:'pointer',border:'0.5px solid '+BORD}},
             h('div',{className:'gt-stat-num',style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,letterSpacing:'0.02em',color:ACC,lineHeight:1}},v.n),
@@ -4803,7 +4843,7 @@ function Stats(p){
           h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em'}},'serie / settimana')
         ),
         h('div',{style:{fontSize:11,color:MUTED,marginBottom:10,lineHeight:1.5}},
-          'Quante serie alleni per ogni gruppo muscolare ogni settimana. Le zone colorate ti dicono se stai facendo poco, abbastanza o troppo.'
+          'Quante serie alleni per ogni gruppo muscolare ogni settimana — pesi/cal + equivalenti cardio (spinning/bici → gambe, vogatore → schiena, ecc.) calcolati da durata × intensità. Le zone colorate ti dicono se stai facendo poco, abbastanza o troppo.'
         ),
         h('div',{style:{display:'flex',flexWrap:'wrap',gap:8,marginBottom:8,fontSize:10}},
           h('span',{style:{display:'inline-flex',alignItems:'center',gap:5}},
@@ -4833,6 +4873,7 @@ function Stats(p){
         ),
         gruppiOrder.filter(function(gr){return weeklyVol[gr] !== undefined;}).map(function(gr){
           var v = weeklyVol[gr];
+          var cardioWeekly = cardioVolByGr[gr] ? Math.round(cardioVolByGr[gr]/weeks) : 0;
           var rg = grRanges[gr] || {mev:8, mav:18, mrv:25};
           var color, label;
           if(v < rg.mev){ color='#94A3B8'; label='poco stimolo'; }
@@ -4847,7 +4888,10 @@ function Stats(p){
           var valPct = Math.min(100, (v/scale)*100);
           return h('div',{key:gr,style:{marginBottom:11}},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}},
-              h('div',{style:{fontSize:13,fontWeight:500}},gr),
+              h('div',{style:{display:'flex',alignItems:'baseline',gap:6}},
+                h('span',{style:{fontSize:13,fontWeight:500}},gr),
+                cardioWeekly>0 && h('span',{title:cardioWeekly+' set/sett. da cardio (stima durata × intensità)',style:{fontSize:9,color:'#00F0FF',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em'}}, '+'+cardioWeekly+' cardio')
+              ),
               h('div',{style:{display:'flex',alignItems:'baseline',gap:6}},
                 h('span',{style:{fontFamily:"'Roboto Mono',monospace",fontSize:13,fontWeight:700,color:color,fontVariantNumeric:'tabular-nums'}},v),
                 h('span',{style:{fontSize:9,color:MUTED}},'·  '+label)
@@ -5134,11 +5178,22 @@ function AdherenceView(p){
   if(weeks.length && weeks[weeks.length-1].count>=target) weekStreak++;
 
   /* Muscle coverage: SEMPRE ultimi 7 giorni — è uno snapshot dello stato attuale,
-     non un'analisi storica. Indipendente dal selettore periodo. */
+     non un'analisi storica. Indipendente dal selettore periodo.
+     Include set equivalenti da cardio (vedi cardioMuscleHits) così spinning/bici contribuiscono
+     a "Gambe" invece di lasciarlo a 0 quando l'utente fa cardio + qualche allenamento pesi. */
   var now=Date.now();
   var recentSessions=sessions.filter(function(s){return new Date(s.t0).getTime()>=now-7*86400000;});
   var muscleHits={};
+  var muscleCardioHits={};
   recentSessions.forEach(function(s){
+    if(s.tipo==='cardio'){
+      var ch=cardioMuscleHits(s);
+      Object.keys(ch).forEach(function(gr){
+        muscleHits[gr]=(muscleHits[gr]||0)+ch[gr];
+        muscleCardioHits[gr]=(muscleCardioHits[gr]||0)+ch[gr];
+      });
+      return;
+    }
     (s.es||[]).forEach(function(e){
       if(e.tipo==='riscaldamento'||!e.gr) return;
       var sets=(e.serie||[]).filter(function(sr){return sr.ok;}).length;
@@ -5281,10 +5336,11 @@ function AdherenceView(p){
     /* Muscle coverage heatmap */
     h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',marginBottom:16,border:'0.5px solid '+BORD}},
       h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT,marginBottom:4}},'Copertura muscolare'),
-      h('div',{style:{fontSize:10,color:MUTED,marginBottom:12}},'Gruppi muscolari allenati negli ultimi 7 giorni'),
+      h('div',{style:{fontSize:10,color:MUTED,marginBottom:12}},'Gruppi allenati ultimi 7 giorni · pesi/cal + equivalenti cardio (spinning/bici → gambe)'),
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
         allMuscles.map(function(m){
           var hits=muscleHits[m]||0;
+          var fromCardio=muscleCardioHits[m]||0;
           var intensity=hits>0?Math.min(1,hits/maxMuscle):0;
           var bg=hits===0?'rgba(239,68,68,0.08)':
                  intensity<0.4?'rgba(245,158,11,0.12)':
@@ -5295,10 +5351,13 @@ function AdherenceView(p){
           var textC=hits===0?'var(--danger)':
                     intensity<0.4?'var(--warning)':
                     intensity<0.7?ACC:'var(--success)';
+          var subLabel=hits>0
+            ? (fromCardio>0 ? (hits+' serie · '+fromCardio+' da cardio') : (hits+' serie'))
+            : 'Non allenato';
           return h('div',{key:m,style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderRadius:10,background:bg,border:'1px solid '+borderC}},
             h('div',null,
               h('div',{style:{fontSize:13,fontWeight:600,color:TEXT}},m),
-              h('div',{style:{fontSize:10,color:MUTED}},hits>0?hits+' serie':'Non allenato')
+              h('div',{style:{fontSize:10,color:MUTED}},subLabel)
             ),
             h('div',{style:{width:28,height:28,borderRadius:'50%',background:hits===0?'rgba(239,68,68,0.15)':'rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'center'}},
               hits===0?h('span',{style:{fontSize:12,color:'var(--danger)'}},'✕'):
