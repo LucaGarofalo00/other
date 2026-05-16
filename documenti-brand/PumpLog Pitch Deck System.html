@@ -1,0 +1,1778 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Pitch Deck Design System · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C0C0D;
+  --bg-2:      #161618;
+  --bg-3:      #202022;
+  --rule:      #2A2A2D;
+  --rule-2:    #353539;
+  --ink:       #F0EFE8;
+  --ink-2:     rgba(240,239,232,0.55);
+  --ink-3:     rgba(240,239,232,0.32);
+  --accent:    #C8FF00;
+  --accent-ink:#000000;
+  --danger:    #EF4444;
+  --warning:   #F59E0B;
+
+  --f-display: "Bebas Neue", Impact, sans-serif;
+  --f-condensed: "Barlow Condensed", "Bebas Neue", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-mono: "Roboto Mono", ui-monospace, monospace;
+
+  --max: 1320px;
+  --gutter: 32px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 16px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* TOPBAR */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(12,12,13,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar .lockup { color: var(--ink); display: flex; align-items: center; gap: 12px; }
+.topbar .lockup .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+
+/* HERO */
+.hero { padding: 56px 0 80px; border-bottom: 1px solid var(--rule); }
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3);
+  padding-bottom: 32px; border-bottom: 1px solid var(--rule); margin-bottom: 48px;
+}
+.hero-meta b { display: block; font-family: var(--f-body); font-weight: 500; font-size: 14px; color: var(--ink); margin-top: 6px; letter-spacing: 0; text-transform: none; }
+.hero h1 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(64px, 11vw, 160px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  max-width: 14ch; text-wrap: balance;
+}
+.hero h1 .acc { color: var(--accent); }
+.hero .sub {
+  margin-top: 32px;
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 62ch;
+}
+.hero .sub b { color: var(--ink); font-weight: 600; }
+.hero .sub .lime { color: var(--accent); font-weight: 600; }
+
+/* SECTION */
+.section { border-top: 1px solid var(--rule); padding: 88px 0; }
+.section-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding-bottom: 16px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+.section-head { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; align-items: end; margin-bottom: 56px; }
+.section-head .num { font-family: var(--f-mono); font-size: 13px; color: var(--accent); letter-spacing: 0.16em; margin-bottom: 14px; }
+.section-head h2 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(56px, 8vw, 112px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  text-wrap: balance;
+}
+.section-head h2 .acc { color: var(--accent); }
+.section-head .essence {
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 56ch;
+}
+.section-head .essence b { color: var(--ink); font-weight: 600; }
+
+/* ==================== */
+/* SLIDE COMPONENT 16:9 */
+/* ==================== */
+.slide {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--bg);
+  color: var(--ink);
+  position: relative;
+  overflow: hidden;
+  font-family: var(--f-body);
+  border: 1px solid var(--rule);
+}
+.slide.surface { background: var(--bg-2); }
+.slide.lime { background: var(--accent); color: var(--accent-ink); }
+
+/* slide chrome */
+.slide .s-header {
+  position: absolute;
+  top: 4.5%; left: 5%; right: 5%;
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 2%; border-bottom: 1px solid var(--rule);
+}
+.slide.lime .s-header { border-bottom-color: rgba(0,0,0,0.2); }
+.slide .s-header .wm {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 2.4cqw; letter-spacing: 0.005em; text-transform: uppercase;
+  color: var(--ink);
+}
+.slide.lime .s-header .wm { color: var(--accent-ink); }
+.slide .s-header .wm .acc { color: var(--accent); }
+.slide.lime .s-header .wm .acc { color: var(--accent-ink); }
+.slide .s-header .meta {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 0.95cqw; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.slide.lime .s-header .meta { color: rgba(0,0,0,0.5); }
+
+.slide .s-footer {
+  position: absolute;
+  bottom: 3%; left: 5%; right: 5%;
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-top: 1.5%; border-top: 1px solid var(--rule);
+}
+.slide.lime .s-footer { border-top-color: rgba(0,0,0,0.2); }
+.slide .s-footer .lbl {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 0.95cqw; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.slide.lime .s-footer .lbl { color: rgba(0,0,0,0.5); }
+.slide .s-footer .pg {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 0.95cqw; color: var(--ink-2);
+}
+.slide.lime .s-footer .pg { color: rgba(0,0,0,0.55); }
+.slide .s-footer .pg .cur { color: var(--accent); }
+.slide.lime .s-footer .pg .cur { color: var(--accent-ink); font-weight: 600; }
+
+.slide-canvas {
+  position: absolute;
+  top: 12%; left: 5%; right: 5%; bottom: 10%;
+  container-type: inline-size;
+}
+
+/* container-query font scaling on slide */
+.slide { container-type: inline-size; }
+
+/* ==================== */
+/* 10 SLIDES LIBRARY    */
+/* ==================== */
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+}
+.lib-card {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.lib-card .lib-meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+}
+.lib-card .lib-meta .idx {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 12px; color: var(--accent); letter-spacing: 0.14em;
+}
+.lib-card .lib-meta .name {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 26px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.lib-card .lib-meta .role {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.lib-card p {
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+  margin-top: 6px;
+}
+.lib-card p b { color: var(--ink); font-weight: 600; }
+
+/* ============ */
+/* SLIDE 01 — COVER */
+/* ============ */
+.s01 {
+  padding: 0;
+}
+.s01.full {
+  display: flex; align-items: center; justify-content: center;
+}
+.s01 .s01-stage {
+  position: absolute;
+  inset: 0;
+  display: flex; flex-direction: column;
+  padding: 4.5% 5%;
+  justify-content: space-between;
+}
+.s01 .s01-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 0.95cqw; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.s01 .s01-top b { color: var(--accent); }
+.s01 .s01-center {
+  display: flex; flex-direction: column; gap: 2cqw;
+}
+.s01 .s01-h1 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 14cqw; line-height: 0.85; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.s01 .s01-h1 .acc { color: var(--accent); }
+.s01 .s01-tag {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 1.8cqw; color: var(--ink-2); letter-spacing: -0.005em;
+  max-width: 50ch;
+}
+.s01 .s01-tag b { color: var(--ink); }
+.s01 .s01-bottom {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding-top: 2%; border-top: 1px solid var(--rule);
+}
+.s01 .s01-bottom .who {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 1.2cqw; color: var(--ink); letter-spacing: -0.005em;
+}
+.s01 .s01-bottom .who small {
+  display: block;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 0.85cqw; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2); margin-top: 0.3cqw;
+}
+.s01 .s01-bottom .doc {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 0.9cqw; color: var(--ink-3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  text-align: right; line-height: 1.6;
+}
+.s01 .s01-bottom .doc b { color: var(--ink); font-weight: 500; }
+
+/* ============ */
+/* SLIDE 02 — PROBLEM */
+/* ============ */
+.s02 .s02-kicker {
+  position: absolute;
+  top: 12%; left: 5%;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 1.1cqw; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.s02 .s02-h {
+  position: absolute;
+  top: 18%; left: 5%; right: 50%;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 6cqw; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.s02 .s02-h .acc { color: var(--accent); }
+.s02 .s02-h .strike {
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+  text-decoration-thickness: 0.2cqw;
+  color: var(--ink-3);
+}
+.s02 .s02-bullets {
+  position: absolute;
+  top: 22%; right: 5%; width: 42%;
+  display: flex; flex-direction: column; gap: 2cqw;
+}
+.s02 .s02-bullet {
+  padding: 1.5cqw 1.8cqw;
+  background: var(--bg-2);
+  border-left: 0.25cqw solid var(--danger);
+  display: flex; flex-direction: column; gap: 0.4cqw;
+}
+.s02 .s02-bullet .lbl {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 0.85cqw; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--danger);
+}
+.s02 .s02-bullet .txt {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 1.3cqw; line-height: 1.3; color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.s02 .s02-bullet .txt b { color: var(--danger); font-weight: 600; }
+.s02 .s02-stat {
+  position: absolute;
+  bottom: 12%; left: 5%; width: 42%;
+  display: flex; align-items: baseline; gap: 1.2cqw;
+}
+.s02 .s02-stat .big {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 7cqw; line-height: 0.85; letter-spacing: 0.005em;
+  color: var(--accent);
+}
+.s02 .s02-stat .desc {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 1.1cqw; line-height: 1.4; color: var(--ink);
+  max-width: 22ch;
+}
+.s02 .s02-stat .desc small {
+  display: block;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 0.85cqw; color: var(--ink-3); letter-spacing: 0.04em;
+  margin-top: 0.4cqw;
+}
+
+/* ============ */
+/* SLIDE 03 — SOLUTION */
+/* ============ */
+.s03 .s03-kicker {
+  position: absolute;
+  top: 12%; left: 5%;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 1.1cqw; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.s03 .s03-h {
+  position: absolute;
+  top: 18%; left: 5%; right: 5%;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 5.5cqw; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+  max-width: 80%;
+}
+.s03 .s03-h .acc { color: var(--accent); }
+.s03 .s03-grid {
+  position: absolute;
+  bottom: 12%; left: 5%; right: 5%;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5cqw;
+}
+.s03 .s03-pillar {
+  padding: 1.8cqw;
+  background: var(--bg-2);
+  border-top: 0.25cqw solid var(--accent);
+  display: flex; flex-direction: column; gap: 1cqw;
+  min-height: 14cqw;
+}
+.s03 .s03-pillar .icon {
+  width: 3cqw; height: 3cqw;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+}
+.s03 .s03-pillar .icon svg {
+  width: 100%; height: 100%;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.s03 .s03-pillar .name {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 2cqw; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.s03 .s03-pillar .name .acc { color: var(--accent); }
+.s03 .s03-pillar .desc {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 1cqw; line-height: 1.45; color: var(--ink-2);
+  margin-top: auto;
+}
+.s03 .s03-pillar .desc b { color: var(--ink); font-weight: 600; }
+
+/* ============== */
+/* MINI SLIDES (preview library) */
+/* ============== */
+.mini-slide { font-size: 0.6em; }
+
+/* slide 04 — product */
+.mini-product { padding: 0; }
+.mini-product .mp-stage {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 4.5% 5%;
+  background:
+    linear-gradient(var(--bg-2) 1px, transparent 1px) 0 0/100% 6%,
+    linear-gradient(90deg, var(--bg-2) 1px, transparent 1px) 0 0/6% 100%,
+    var(--bg);
+}
+.mini-product .mp-phones {
+  display: flex; gap: 3cqw; align-items: center;
+}
+.mini-product .phone {
+  width: 10cqw; aspect-ratio: 9/19.5;
+  background: #000; border-radius: 2cqw; padding: 0.4cqw;
+}
+.mini-product .phone .screen {
+  width: 100%; height: 100%;
+  background: var(--bg); border-radius: 1.6cqw;
+  padding: 1cqw 0.8cqw;
+  display: flex; flex-direction: column;
+}
+.mini-product .ph-title {
+  font-family: var(--f-display); font-size: 1.4cqw; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); margin-bottom: 0.6cqw;
+}
+.mini-product .ph-row {
+  background: var(--bg-2); border-radius: 0.4cqw; padding: 0.5cqw; margin-bottom: 0.4cqw;
+  display: flex; justify-content: space-between;
+}
+.mini-product .ph-row .l { font-family: var(--f-body); font-weight: 500; font-size: 0.7cqw; color: var(--ink); }
+.mini-product .ph-row .v { font-family: var(--f-mono); font-weight: 500; font-size: 0.7cqw; color: var(--ink); }
+.mini-product .ph-row .v.acc { color: var(--accent); }
+.mini-product .mp-side {
+  position: absolute; top: 14%; left: 5%; max-width: 32%;
+}
+.mini-product .mp-side h3 {
+  font-family: var(--f-display); font-size: 4cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-product .mp-side h3 .acc { color: var(--accent); }
+.mini-product .mp-side p {
+  margin-top: 1.2cqw;
+  font-family: var(--f-body); font-size: 1cqw; line-height: 1.5; color: var(--ink-2);
+}
+
+/* slide 05 — market */
+.mini-market .m05-h {
+  position: absolute; top: 14%; left: 5%; right: 5%;
+  font-family: var(--f-display); font-size: 5cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-market .m05-h .acc { color: var(--accent); }
+.mini-market .stats {
+  position: absolute; bottom: 14%; left: 5%; right: 5%;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw;
+}
+.mini-market .stat-card {
+  padding: 1.6cqw; background: var(--bg-2); border-left: 0.25cqw solid var(--accent);
+}
+.mini-market .stat-card .v {
+  font-family: var(--f-display); font-size: 5cqw; line-height: 0.85; letter-spacing: 0.005em; color: var(--accent);
+}
+.mini-market .stat-card .v .u { font-family: var(--f-condensed); font-weight: 700; font-size: 1.3cqw; color: var(--ink-2); letter-spacing: 0.15em; margin-left: 0.5cqw; vertical-align: top; }
+.mini-market .stat-card .l {
+  font-family: var(--f-condensed); font-weight: 700; font-size: 0.85cqw; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-2); margin-top: 0.6cqw;
+}
+.mini-market .stat-card .d {
+  font-family: var(--f-body); font-size: 0.95cqw; line-height: 1.4; color: var(--ink-2); margin-top: 0.5cqw;
+}
+
+/* slide 06 — pricing */
+.mini-pricing .m06-h {
+  position: absolute; top: 14%; left: 5%; right: 5%;
+  font-family: var(--f-display); font-size: 5cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-pricing .m06-h .acc { color: var(--accent); }
+.mini-pricing .tiers {
+  position: absolute; bottom: 14%; left: 5%; right: 5%;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1cqw;
+}
+.mini-pricing .tier {
+  padding: 1.6cqw; background: var(--bg-2);
+  display: flex; flex-direction: column; gap: 0.6cqw;
+}
+.mini-pricing .tier.pro { background: var(--accent); color: var(--accent-ink); }
+.mini-pricing .tier .name {
+  font-family: var(--f-condensed); font-weight: 700; font-size: 1cqw; letter-spacing: 0.22em; text-transform: uppercase;
+}
+.mini-pricing .tier .price {
+  font-family: var(--f-display); font-size: 3.6cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+}
+.mini-pricing .tier .price .u { font-family: var(--f-condensed); font-weight: 700; font-size: 0.9cqw; letter-spacing: 0.15em; }
+.mini-pricing .tier .desc { font-family: var(--f-body); font-size: 0.85cqw; line-height: 1.4; color: var(--ink-2); margin-top: auto; }
+.mini-pricing .tier.pro .desc { color: rgba(0,0,0,0.7); }
+
+/* slide 07 — traction */
+.mini-traction .m07-h {
+  position: absolute; top: 14%; left: 5%; right: 5%;
+  font-family: var(--f-display); font-size: 5cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-traction .m07-h .acc { color: var(--accent); }
+.mini-traction .kpis {
+  position: absolute; bottom: 14%; left: 5%; right: 5%;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 1cqw;
+}
+.mini-traction .kpi {
+  padding: 1.4cqw; background: var(--bg-2); border-top: 0.18cqw solid var(--accent);
+}
+.mini-traction .kpi .v {
+  font-family: var(--f-display); font-size: 3.4cqw; line-height: 0.85; letter-spacing: 0.005em; color: var(--ink);
+}
+.mini-traction .kpi .v.acc { color: var(--accent); }
+.mini-traction .kpi .l {
+  font-family: var(--f-condensed); font-weight: 700; font-size: 0.7cqw; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-2); margin-top: 0.4cqw;
+}
+.mini-traction .kpi .d {
+  font-family: var(--f-mono); font-size: 0.7cqw; color: var(--ink-3); margin-top: 0.2cqw; letter-spacing: 0.04em;
+}
+
+/* slide 08 — competitors */
+.mini-comp .m08-h {
+  position: absolute; top: 12%; left: 5%; right: 5%;
+  font-family: var(--f-display); font-size: 4cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-comp .m08-h .acc { color: var(--accent); }
+.mini-comp .table {
+  position: absolute; bottom: 12%; left: 5%; right: 5%; top: 30%;
+  display: grid; grid-template-columns: 28% repeat(4, 1fr);
+  gap: 0;
+}
+.mini-comp .table > div {
+  padding: 0.7cqw 0.8cqw;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--f-mono); font-size: 0.85cqw;
+  color: var(--ink-2);
+  display: flex; align-items: center;
+}
+.mini-comp .table .h {
+  background: var(--bg-2);
+  color: var(--ink);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 0.8cqw; letter-spacing: 0.22em; text-transform: uppercase;
+}
+.mini-comp .table .h.us { color: var(--accent); }
+.mini-comp .table .us-cell { color: var(--ink); background: rgba(200,255,0,0.05); }
+.mini-comp .table .us-cell.yes { color: var(--accent); }
+.mini-comp .table .label { color: var(--ink); }
+
+/* slide 09 — team */
+.mini-team .m09-h {
+  position: absolute; top: 14%; left: 5%;
+  font-family: var(--f-display); font-size: 5cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-team .m09-h .acc { color: var(--accent); }
+.mini-team .founder {
+  position: absolute; top: 32%; left: 5%; width: 42%;
+  padding: 2cqw; background: var(--bg-2); border-left: 0.25cqw solid var(--accent);
+}
+.mini-team .founder .name {
+  font-family: var(--f-display); font-size: 3.2cqw; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-team .founder .role {
+  font-family: var(--f-condensed); font-weight: 700; font-size: 0.9cqw; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-top: 0.6cqw;
+}
+.mini-team .founder .bio {
+  font-family: var(--f-body); font-size: 0.95cqw; line-height: 1.55; color: var(--ink-2); margin-top: 1cqw;
+}
+.mini-team .roadmap {
+  position: absolute; top: 32%; right: 5%; width: 42%;
+}
+.mini-team .roadmap .h {
+  font-family: var(--f-condensed); font-weight: 700; font-size: 0.9cqw; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink); margin-bottom: 0.8cqw;
+}
+.mini-team .roadmap-row {
+  display: grid; grid-template-columns: 5cqw 1fr;
+  gap: 1cqw; padding: 0.7cqw 0; border-bottom: 1px solid var(--rule);
+  font-family: var(--f-mono); font-size: 0.85cqw;
+}
+.mini-team .roadmap-row:last-child { border-bottom: none; }
+.mini-team .roadmap-row .q { color: var(--accent); }
+.mini-team .roadmap-row .t { color: var(--ink); font-family: var(--f-body); font-weight: 500; }
+
+/* slide 10 — ask */
+.mini-ask .m10-kicker {
+  position: absolute; top: 14%; left: 5%;
+  font-family: var(--f-condensed); font-weight: 700; font-size: 1cqw; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent);
+}
+.mini-ask .m10-h {
+  position: absolute; top: 20%; left: 5%; right: 5%;
+  font-family: var(--f-display); font-size: 7cqw; line-height: 0.88; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.mini-ask .m10-h .acc { color: var(--accent); }
+.mini-ask .breakdown {
+  position: absolute; bottom: 14%; left: 5%; right: 5%;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5cqw;
+}
+.mini-ask .b-card { padding: 1.4cqw; background: var(--bg-2); border-top: 0.18cqw solid var(--accent); }
+.mini-ask .b-card .pct {
+  font-family: var(--f-display); font-size: 3.6cqw; line-height: 0.85; letter-spacing: 0.005em; color: var(--accent);
+}
+.mini-ask .b-card .what {
+  font-family: var(--f-body); font-weight: 600; font-size: 1cqw; color: var(--ink); margin-top: 0.5cqw; letter-spacing: -0.005em;
+}
+.mini-ask .b-card .desc { font-family: var(--f-body); font-size: 0.85cqw; color: var(--ink-2); margin-top: 0.4cqw; line-height: 1.4; }
+
+/* ==================== */
+/* DEEP DIVE container  */
+/* ==================== */
+.deepdive {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 40px;
+  align-items: start;
+}
+.deepdive .big-slide-wrap {
+  position: relative;
+}
+.deepdive .big-slide-wrap .meta {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 12px;
+  display: flex; gap: 14px;
+}
+.deepdive .big-slide-wrap .meta b { color: var(--accent); }
+
+.spec-sheet {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 28px; display: flex; flex-direction: column; gap: 18px;
+}
+.spec-sheet h3 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink); display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--rule);
+}
+.spec-sheet h3::before { content: ""; width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.spec-row {
+  display: grid; grid-template-columns: 100px 1fr;
+  gap: 12px; padding: 9px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.spec-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+.spec-row .k {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.spec-row .v {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 12px; color: var(--ink); line-height: 1.5;
+}
+.spec-row .v.mono { font-family: var(--f-mono); }
+.spec-row .v b { color: var(--accent); font-weight: 600; }
+
+/* ==================== */
+/* TYPE SCALE / COLORS / ICONS / CHART */
+/* ==================== */
+.tokens-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+.token-block {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 32px;
+}
+.token-block h4 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-2); margin-bottom: 22px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--rule);
+}
+.bg-row {
+  display: grid; grid-template-columns: 80px 1fr 1fr; gap: 16px;
+  padding: 12px 0; border-bottom: 1px solid var(--rule);
+  align-items: center;
+}
+.bg-row:last-child { border-bottom: none; }
+.bg-row .sw { aspect-ratio: 1.6/1; border: 1px solid var(--rule-2); border-radius: 2px; }
+.bg-row .name { font-family: var(--f-body); font-weight: 600; font-size: 13px; color: var(--ink); letter-spacing: -0.005em; }
+.bg-row .name small { display: block; font-family: var(--f-mono); font-size: 10px; color: var(--ink-2); margin-top: 2px; }
+.bg-row .use { font-family: var(--f-body); font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+
+.type-row {
+  display: grid; grid-template-columns: 90px 60px 1fr; gap: 14px;
+  padding: 12px 0; border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.type-row:last-child { border-bottom: none; }
+.type-row .role { font-family: var(--f-condensed); font-weight: 700; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-2); }
+.type-row .size { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); }
+.type-row .sample.h1 { font-family: var(--f-display); font-weight: 400; font-size: 32px; line-height: 1; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); }
+.type-row .sample.h2 { font-family: var(--f-display); font-weight: 400; font-size: 22px; line-height: 1; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); }
+.type-row .sample.lbl { font-family: var(--f-condensed); font-weight: 700; font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink); }
+.type-row .sample.body { font-family: var(--f-body); font-weight: 400; font-size: 14px; color: var(--ink); }
+.type-row .sample.bold { font-family: var(--f-body); font-weight: 600; font-size: 14px; color: var(--ink); }
+.type-row .sample.mono { font-family: var(--f-mono); font-weight: 500; font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.icons-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px;
+  margin-top: 8px;
+}
+.icon-cell {
+  aspect-ratio: 1;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px;
+  padding: 10px;
+}
+.icon-cell svg { width: 28px; height: 28px; stroke: var(--accent); stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.icon-cell .lbl { font-family: var(--f-condensed); font-weight: 700; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); text-align: center; }
+
+.chart-block { padding: 24px 0; }
+.chart-demo {
+  height: 220px;
+  display: flex; align-items: end; gap: 6px;
+  padding: 14px;
+  background: var(--bg); border: 1px solid var(--rule);
+}
+.chart-demo .bar { flex: 1; background: var(--ink-3); border-radius: 2px 2px 0 0; }
+.chart-demo .bar.b1 { background: var(--accent); }
+.chart-demo .bar.b2 { background: var(--ink); }
+.chart-demo .bar.b3 { background: rgba(240,239,232,0.55); }
+.chart-demo .bar.b4 { background: var(--warning); }
+
+.chart-legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+.chart-legend > div { display: flex; align-items: center; gap: 8px; font-family: var(--f-body); font-size: 11px; color: var(--ink); }
+.chart-legend > div::before { content: ""; width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.chart-legend .l1::before { background: var(--accent); }
+.chart-legend .l2::before { background: var(--ink); }
+.chart-legend .l3::before { background: rgba(240,239,232,0.55); }
+.chart-legend .l4::before { background: var(--warning); }
+.chart-legend small { display: block; color: var(--ink-3); font-family: var(--f-mono); font-size: 10px; }
+
+/* GRID overlay */
+.grid-stage {
+  position: relative;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  padding: 0;
+}
+.grid-overlay {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(200,255,0,0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,255,0,0.18) 1px, transparent 1px);
+  background-size: 8.33% 11.11%;
+}
+.grid-overlay::before {
+  content: ""; position: absolute;
+  inset: 5%;
+  border: 1px dashed rgba(200,255,0,0.6);
+}
+.grid-anno {
+  position: absolute;
+  font-family: var(--f-mono); font-size: 10px;
+  color: var(--accent); letter-spacing: 0.08em;
+  background: var(--bg); padding: 2px 6px;
+}
+
+/* HANDOFF */
+.handoff-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.handoff-card {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 28px;
+}
+.handoff-card .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px;
+}
+.handoff-card h4 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 24px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink); margin-bottom: 16px;
+}
+.handoff-card ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.handoff-card ul li {
+  display: grid; grid-template-columns: 20px 1fr; gap: 12px;
+  font-size: 13px; line-height: 1.55; color: var(--ink);
+  padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+}
+.handoff-card ul li:last-child { border-bottom: none; padding-bottom: 0; }
+.handoff-card ul li::before {
+  content: "□"; font-family: var(--f-mono);
+  color: var(--ink-3); font-size: 14px;
+}
+.handoff-card ul li b { color: var(--accent); font-weight: 600; }
+.handoff-card ul li .mono { font-family: var(--f-mono); font-weight: 500; color: var(--ink); }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.foot b {
+  display: block; font-family: var(--f-body); font-weight: 500;
+  font-size: 14px; color: var(--ink); margin-top: 6px;
+  letter-spacing: 0; text-transform: none;
+}
+
+@media (max-width: 1100px) {
+  .deepdive { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  :root { --gutter: 20px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+  .lib-grid { grid-template-columns: 1fr; }
+  .tokens-grid { grid-template-columns: 1fr; }
+  .icons-grid { grid-template-columns: repeat(3, 1fr); }
+  .handoff-grid { grid-template-columns: 1fr; }
+  .foot { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="00 Pitch Deck System">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="lockup">
+      <span class="dot"></span>
+      <span>PumpLog</span>
+      <span style="color: var(--ink-3);">/</span>
+      <span style="color: var(--ink-3);">Pitch Deck System v1</span>
+    </div>
+    <div style="display: flex; gap: 24px;">
+      <span>16:9 · 1920×1080</span>
+      <span style="color: var(--accent);">● HANDOFF</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <div>Documento<b>Pitch Deck Design System · v1</b></div>
+      <div>Formato<b>16:9 · 1920×1080 · export PDF/Keynote</b></div>
+      <div>Audience<b>Angel · pre-seed · partner</b></div>
+      <div>Slide<b>10 canoniche · 3 deep-dive</b></div>
+    </div>
+
+    <h1>DIECI<br>SLIDE.<br><span class="acc">UNO</span><br>STRUMENTO.</h1>
+
+    <p class="sub">
+      Un sistema deck dark-mode, dati-first, anti-corporate. Tutte le slide sono <b>16:9 a 1920×1080</b>, costruite sulla stessa griglia, con voce coerente con il prodotto. La <span class="lime">cover</span>, il <span class="lime">problema</span> e la <span class="lime">soluzione</span> sono progettate in dettaglio qui dentro; le altre 7 sono mostrate al volo nella libreria §03.
+    </p>
+  </div>
+</section>
+
+<!-- ============== -->
+<!-- 01 · TOKENS -->
+<!-- ============== -->
+<section class="section" data-screen-label="02 Tokens">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 01 · Sistema · token visivi</span>
+      <span>Background · type · icone · chart</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/01 · TOKENS</div>
+        <h2>UN <span class="acc">SISTEMA</span><br>PRIMA DEL<br>CONTENUTO.</h2>
+      </div>
+      <div class="essence">
+        Quattro famiglie di token regolano tutto il deck: <b>background</b> (3 valori + 1 lime), <b>tipografia</b> (4 livelli mappati alle famiglie), <b>icone</b> (line-only, stroke 1.5px, MAI filled), <b>chart palette</b> (4 colori, gerarchia esplicita). Ogni slide è composta da questi token e nient'altro.
+      </div>
+    </div>
+
+    <div class="tokens-grid">
+      <!-- BACKGROUNDS -->
+      <div class="token-block">
+        <h4>/01 · Background · 4 valori</h4>
+        <div class="bg-row">
+          <div class="sw" style="background: #0C0C0D;"></div>
+          <div class="name">Nero profondo<small>#0C0C0D</small></div>
+          <div class="use">Sfondo principale di <b style="color: var(--ink);">tutte le slide</b> tranne accenti. È il "foglio bianco" del nostro deck.</div>
+        </div>
+        <div class="bg-row">
+          <div class="sw" style="background: #161618;"></div>
+          <div class="name">Surface 1<small>#161618</small></div>
+          <div class="use">Card · feature block · stat-block · pillar. Stratificato sopra il nero.</div>
+        </div>
+        <div class="bg-row">
+          <div class="sw" style="background: #202022;"></div>
+          <div class="name">Surface 2<small>#202022</small></div>
+          <div class="use">Headers di tabelle · zone interattive · alternate row sui chart.</div>
+        </div>
+        <div class="bg-row">
+          <div class="sw" style="background: #C8FF00;"></div>
+          <div class="name" style="color: var(--ink);">Lime accent<small style="color: var(--ink-2);">#C8FF00</small></div>
+          <div class="use">Solo per <b style="color: var(--ink);">UNA slide su 10</b> a sfondo pieno: opzionale (es. closer "GRAZIE"). Mai 2 slide lime adiacenti.</div>
+        </div>
+      </div>
+
+      <!-- TYPE SCALE -->
+      <div class="token-block">
+        <h4>/02 · Tipografia · scala deck</h4>
+        <div class="type-row">
+          <div class="role">Hero</div>
+          <div class="size">96-120pt</div>
+          <div class="sample h1">82,5 KG</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Slide title</div>
+          <div class="size">56-72pt</div>
+          <div class="sample h2">IL PROBLEMA</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Section lbl</div>
+          <div class="size">14-18pt</div>
+          <div class="sample lbl">§ 02 · PROBLEMA</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Body</div>
+          <div class="size">18-24pt</div>
+          <div class="sample body">Pesi e calisthenics, un solo log.</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Body bold</div>
+          <div class="size">18-24pt</div>
+          <div class="sample bold">Pesi e calisthenics, un solo log.</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Dati / KPI</div>
+          <div class="size">14-32pt</div>
+          <div class="sample mono">€18.000 · 12% conv.</div>
+        </div>
+      </div>
+
+      <!-- ICONS -->
+      <div class="token-block" style="grid-column: span 2;">
+        <h4>/03 · Icone · line · stroke 1.5px · rounded · MAI filled</h4>
+        <div class="icons-grid">
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="14" x2="11" y2="14"/></svg>
+            <span class="lbl">Tracking</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,14"/></svg>
+            <span class="lbl">Recupero</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><polyline points="3,16 9,10 13,14 21,6"/><polyline points="15,6 21,6 21,12"/></svg>
+            <span class="lbl">Progressione</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><rect x="3" y="10" width="2" height="4"/><rect x="6" y="8" width="2" height="8"/><line x1="9" y1="12" x2="15" y2="12" stroke-width="2.5"/><rect x="16" y="8" width="2" height="8"/><rect x="19" y="10" width="2" height="4"/></svg>
+            <span class="lbl">Bilanciere</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><path d="M5 16 a7 7 0 0 1 14 0"/><line x1="5" y1="16" x2="5" y2="19"/><line x1="19" y1="16" x2="19" y2="19"/><line x1="12" y1="3" x2="12" y2="9"/></svg>
+            <span class="lbl">Offline</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M8 10 l2 2 l4-4"/><line x1="8" y1="16" x2="16" y2="16"/></svg>
+            <span class="lbl">Privacy</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><polyline points="4,16 4,20 20,20 20,16"/><line x1="12" y1="4" x2="12" y2="16"/><polyline points="8,8 12,4 16,8"/></svg>
+            <span class="lbl">Upload</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="12" x2="13" y2="12"/></svg>
+            <span class="lbl">Scheda</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><polyline points="4,12 8,16 20,4"/></svg>
+            <span class="lbl">Completato</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.8" fill="currentColor" stroke="none"/></svg>
+            <span class="lbl">Soglia</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="4" x2="20" y2="4"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="20" x2="18" y2="20"/></svg>
+            <span class="lbl">Volume</span>
+          </div>
+          <div class="icon-cell">
+            <svg viewBox="0 0 24 24"><polygon points="12,3 21,21 3,21"/></svg>
+            <span class="lbl">Alert</span>
+          </div>
+        </div>
+        <p style="font-family: var(--f-body); font-weight: 400; font-size: 13px; color: var(--ink-2); margin-top: 18px; line-height: 1.55; max-width: 78ch;">
+          <b style="color: var(--accent);">Regola unica</b>: tutte le icone sono <b style="color: var(--ink);">line</b>, stroke <b style="color: var(--ink);">1.5px</b> (mai meno, mai più di 2px), <b style="color: var(--ink);">rounded caps + joins</b>, colore <b style="color: var(--accent);">accent lime</b>. Mai filled. Mai colorate diverse dal lime. Dimensioni fisse 24×24 viewBox, scala 32-48px in slide.
+        </p>
+      </div>
+
+      <!-- CHART PALETTE -->
+      <div class="token-block" style="grid-column: span 2;">
+        <h4>/04 · Chart palette · 4 colori · gerarchia di significato</h4>
+        <div class="chart-block">
+          <div class="chart-demo">
+            <div class="bar b3" style="height: 30%;"></div>
+            <div class="bar b3" style="height: 38%;"></div>
+            <div class="bar b3" style="height: 45%;"></div>
+            <div class="bar b2" style="height: 52%;"></div>
+            <div class="bar b2" style="height: 58%;"></div>
+            <div class="bar b1" style="height: 66%;"></div>
+            <div class="bar b1" style="height: 72%;"></div>
+            <div class="bar b1" style="height: 78%;"></div>
+            <div class="bar b1" style="height: 85%;"></div>
+            <div class="bar b4" style="height: 96%;"></div>
+            <div class="bar b1" style="height: 88%;"></div>
+            <div class="bar b1" style="height: 92%;"></div>
+          </div>
+          <div class="chart-legend">
+            <div class="l1">PRIMARY <small>#C8FF00 · serie focus · in evidenza</small></div>
+            <div class="l2">SECONDARY <small>#F0EFE8 · serie attiva al 100%</small></div>
+            <div class="l3">TERTIARY <small>α 55% · contesto storico / passato</small></div>
+            <div class="l4">SOGLIA <small>#F59E0B · superamento limite</small></div>
+          </div>
+        </div>
+        <p style="font-family: var(--f-body); font-weight: 400; font-size: 13px; color: var(--ink-2); margin-top: 18px; line-height: 1.55; max-width: 78ch;">
+          <b style="color: var(--accent);">Regola gerarchica</b>: il <b style="color: var(--ink);">lime</b> identifica sempre <em style="color: var(--ink);">l'elemento focus</em> della slide (es. mese corrente, KPI hero). Il <b style="color: var(--ink);">bianco caldo</b> identifica serie correnti non-focus. Le serie storiche scendono al <b style="color: var(--ink);">55% alpha</b>. L'<b style="color: var(--warning);">ambra</b> compare solo per soglie superate. Mai usare il rosso #EF4444 sui chart — è riservato a errori UI.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== -->
+<!-- 02 · LIBRARY 10 SLIDES -->
+<!-- ============== -->
+<section class="section" data-screen-label="03 Library">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 02 · Libreria · 10 slide del pitch</span>
+      <span>Overview · narrativa completa</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/02 · DECK</div>
+        <h2>DIECI SLIDE.<br>UNA STORIA<br>IN <span class="acc">8 MINUTI</span>.</h2>
+      </div>
+      <div class="essence">
+        L'arco narrativo del pitch è: <b>cover → problema → soluzione → prodotto → mercato → modello → trazione → competitor → team → ask</b>. Ogni slide ha un solo scopo, una sola metrica protagonista. Le slide 1, 2, 3 sono progettate in dettaglio nelle sezioni §03–§05.
+      </div>
+    </div>
+
+    <div class="lib-grid">
+      <!-- 01 COVER -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /01</span>
+          <span class="name">COVER</span>
+          <span class="role">DEEP DIVE ↘ §03</span>
+        </div>
+        <div class="slide s01">
+          <div class="s01-stage">
+            <div class="s01-top">
+              <span>PITCH · v1</span>
+              <span><b>05.2026</b></span>
+            </div>
+            <div class="s01-center">
+              <div class="s01-h1">PUMP<span class="acc">/</span>LOG.</div>
+              <div class="s01-tag">L'allenamento, <b>davvero tracciato</b>.</div>
+            </div>
+            <div class="s01-bottom">
+              <div class="who">Marco Bianchi<small>Founder · Developer</small></div>
+              <div class="doc">PRE-SEED ROUND<b>05.2026</b>CONFIDENZIALE</div>
+            </div>
+          </div>
+        </div>
+        <p>Apertura silenziosa. <b>Il wordmark fa l'80% del lavoro</b>. Una sola tagline, zero promesse, zero numeri ancora. Il deck inizia chiedendo attenzione, non dandone.</p>
+      </div>
+
+      <!-- 02 PROBLEM -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /02</span>
+          <span class="name">PROBLEMA</span>
+          <span class="role">DEEP DIVE ↘ §04</span>
+        </div>
+        <div class="slide s02">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">02 / 10 · IL PROBLEMA</span>
+          </div>
+          <span class="s02-kicker">§ 02 · IL PROBLEMA</span>
+          <div class="s02-h">LE APP<br>NON <span class="strike">SANNO</span><br>L'<span class="acc">ITALIANO</span>.</div>
+          <div class="s02-bullets">
+            <div class="s02-bullet"><div class="lbl">/01 · LINGUA</div><div class="txt">Tutte tradotte da inglese. <b>Set · reps · workout</b>.</div></div>
+            <div class="s02-bullet"><div class="lbl">/02 · TRAINING</div><div class="txt">Pesi <em>o</em> calisthenics. Mai entrambi nel volume.</div></div>
+            <div class="s02-bullet"><div class="lbl">/03 · METODO</div><div class="txt">Zero analisi scientifica. Niente <b>MEV/MAV/MRV</b>.</div></div>
+          </div>
+          <div class="s02-stat">
+            <div class="big">4,2M</div>
+            <div class="desc">Italiani 20-35 anni che si allenano con peso (~78% PWA).<small>FONTE · ISTAT 2024 + Statista 2025</small></div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">02</span> / 10</span>
+          </div>
+        </div>
+        <p>Apertura del problema in <b>1 frase forte</b>: "Le app non sanno l'italiano". Sotto, 3 bullet sostantivi. A sinistra-basso: la dimensione del mercato che non viene servito.</p>
+      </div>
+
+      <!-- 03 SOLUTION -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /03</span>
+          <span class="name">SOLUZIONE</span>
+          <span class="role">DEEP DIVE ↘ §05</span>
+        </div>
+        <div class="slide s03">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">03 / 10 · LA SOLUZIONE</span>
+          </div>
+          <span class="s03-kicker">§ 03 · LA SOLUZIONE</span>
+          <div class="s03-h">UN SOLO LOG.<br>PESI <span class="acc">+</span> CALISTHENICS.</div>
+          <div class="s03-grid">
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><line x1="4" y1="4" x2="20" y2="4"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="20" x2="18" y2="20"/></svg></div>
+              <div class="name">UN <span class="acc">LOG</span>.</div>
+              <div class="desc">Pesi + corpo libero <b>nello stesso volume settimanale</b>.</div>
+            </div>
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><polyline points="3,16 9,10 13,14 21,6"/></svg></div>
+              <div class="name">MEV/MAV/<span class="acc">MRV</span>.</div>
+              <div class="desc">Analisi scientifica del volume per gruppo.</div>
+            </div>
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><path d="M5 16 a7 7 0 0 1 14 0"/><line x1="5" y1="16" x2="5" y2="19"/><line x1="19" y1="16" x2="19" y2="19"/><line x1="12" y1="3" x2="12" y2="9"/></svg></div>
+              <div class="name"><span class="acc">OFFLINE</span>.</div>
+              <div class="desc">Funziona senza rete. <b>I tuoi dati restano tuoi.</b></div>
+            </div>
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M8 10 l2 2 l4-4"/></svg></div>
+              <div class="name">PWA <span class="acc">GRATIS</span>.</div>
+              <div class="desc">No store, no recensioni finte, no account obbligatorio.</div>
+            </div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">03</span> / 10</span>
+          </div>
+        </div>
+        <p>4 pilastri allineati orizzontalmente, ognuno con un'<b>icona line lime</b>. Headline che riprende e ribalta la "frammentazione" del problema in <b>"un solo log"</b>.</p>
+      </div>
+
+      <!-- 04 PRODUCT -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /04</span>
+          <span class="name">PRODOTTO</span>
+          <span class="role">SCREENSHOT</span>
+        </div>
+        <div class="slide mini-product">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">04 / 10 · IL PRODOTTO</span>
+          </div>
+          <div class="mp-side">
+            <h3>IL PRODOTTO,<br>IN <span class="acc">USO</span>.</h3>
+            <p>Tracking serie live · analisi volume · timer recupero. Tutto offline, tutto in italiano.</p>
+          </div>
+          <div class="mp-stage">
+            <div class="mp-phones">
+              <div class="phone"><div class="screen">
+                <div class="ph-title">SPINTA · A</div>
+                <div class="ph-row"><span class="l">Panca</span><span class="v acc">82,5 × 6</span></div>
+                <div class="ph-row"><span class="l">Spinte</span><span class="v">28 × 9</span></div>
+                <div class="ph-row"><span class="l">Croci</span><span class="v">14 × 10</span></div>
+              </div></div>
+              <div class="phone"><div class="screen">
+                <div class="ph-title">VOLUME</div>
+                <div class="ph-row"><span class="l">Petto</span><span class="v acc">14 MAV</span></div>
+                <div class="ph-row"><span class="l">Schiena</span><span class="v">10 MEV</span></div>
+                <div class="ph-row"><span class="l">Gambe</span><span class="v">16 MAV</span></div>
+              </div></div>
+              <div class="phone"><div class="screen">
+                <div class="ph-title">RECUPERO</div>
+                <div style="font-family: var(--f-mono); font-size: 2.5cqw; color: var(--accent); text-align: center; margin: 1cqw 0;">2:30</div>
+                <div class="ph-row"><span class="l">Serie 3/4</span><span class="v">PRONTO</span></div>
+              </div></div>
+            </div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">04</span> / 10</span>
+          </div>
+        </div>
+        <p>Tre screenshot UI principali su sfondo grid blueprint. <b>Lo screenshot è il claim</b>: niente persone, niente lifestyle.</p>
+      </div>
+
+      <!-- 05 MARKET -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /05</span>
+          <span class="name">MERCATO</span>
+          <span class="role">NUMERI</span>
+        </div>
+        <div class="slide mini-market">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">05 / 10 · IL MERCATO</span>
+          </div>
+          <div class="m05-h">UN MERCATO ITALIANO<br>DA <span class="acc">580 MILIONI</span>.</div>
+          <div class="stats">
+            <div class="stat-card">
+              <div class="v">4,2<span class="u">M</span></div>
+              <div class="l">Target ITA</div>
+              <div class="d">Italiani 20-35 anni che si allenano almeno 2× a settimana.</div>
+            </div>
+            <div class="stat-card">
+              <div class="v">+18<span class="u">%</span></div>
+              <div class="l">PWA growth</div>
+              <div class="d">Adozione PWA in fitness apps in Italia, 2023-2025.</div>
+            </div>
+            <div class="stat-card">
+              <div class="v">€580<span class="u">M</span></div>
+              <div class="l">Fitness app mkt</div>
+              <div class="d">Spesa fitness digital in Italia · 2024.</div>
+            </div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">05</span> / 10</span>
+          </div>
+        </div>
+        <p>Tre stat-card identici, ognuno con un numero gigante. Tutte le fonti citate sotto.</p>
+      </div>
+
+      <!-- 06 PRICING -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /06</span>
+          <span class="name">MODELLO</span>
+          <span class="role">PRICING</span>
+        </div>
+        <div class="slide mini-pricing">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">06 / 10 · MODELLO</span>
+          </div>
+          <div class="m06-h">FREE +<br><span class="acc">PREMIUM</span>.</div>
+          <div class="tiers">
+            <div class="tier">
+              <div class="name">FREE</div>
+              <div class="price">€0</div>
+              <div class="desc">Tracking · 4 schede · storico 30gg</div>
+            </div>
+            <div class="tier pro">
+              <div class="name">MENSILE</div>
+              <div class="price">€4,99<span class="u">/mese</span></div>
+              <div class="desc">Storico illimitato · export CSV</div>
+            </div>
+            <div class="tier">
+              <div class="name">ANNUALE</div>
+              <div class="price">€34,99</div>
+              <div class="desc">42% di sconto</div>
+            </div>
+            <div class="tier">
+              <div class="name">LIFETIME</div>
+              <div class="price">€79,99</div>
+              <div class="desc">Una volta. Per sempre.</div>
+            </div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">06</span> / 10</span>
+          </div>
+        </div>
+        <p>Quattro tier in linea. Il <b>mensile</b> (raccomandato) è in lime — visivamente il "consigliato".</p>
+      </div>
+
+      <!-- 07 TRACTION -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /07</span>
+          <span class="name">TRAZIONE</span>
+          <span class="role">KPI 12 MESI</span>
+        </div>
+        <div class="slide mini-traction">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">07 / 10 · TRAZIONE · 12M</span>
+          </div>
+          <div class="m07-h">TARGET <span class="acc">12 MESI</span>.</div>
+          <div class="kpis">
+            <div class="kpi">
+              <div class="v acc">3.000</div>
+              <div class="l">utenti totali</div>
+              <div class="d">~ 250/mese</div>
+            </div>
+            <div class="kpi">
+              <div class="v acc">350</div>
+              <div class="l">paganti</div>
+              <div class="d">~ 12% conv.</div>
+            </div>
+            <div class="kpi">
+              <div class="v">€18K</div>
+              <div class="l">revenue Y1</div>
+              <div class="d">ARR estim.</div>
+            </div>
+            <div class="kpi">
+              <div class="v">€2K</div>
+              <div class="l">MRR · mese 12</div>
+              <div class="d">run-rate</div>
+            </div>
+            <div class="kpi">
+              <div class="v">12%</div>
+              <div class="l">conv. free→pay</div>
+              <div class="d">industry: 3-5%</div>
+            </div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">07</span> / 10</span>
+          </div>
+        </div>
+        <p>5 KPI cardine in linea. I primi due (utenti, paganti) sono in <b>lime accent</b> — sono i numeri che dimostrano la tesi.</p>
+      </div>
+
+      <!-- 08 COMPETITORS -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /08</span>
+          <span class="name">COMPETITOR</span>
+          <span class="role">TABELLA</span>
+        </div>
+        <div class="slide mini-comp">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">08 / 10 · COMPETITOR</span>
+          </div>
+          <div class="m08-h">NOI VS <span class="acc">QUATTRO</span>.</div>
+          <div class="table">
+            <div class="h">DIMENSIONE</div>
+            <div class="h us">PUMPLOG</div>
+            <div class="h">HEVY</div>
+            <div class="h">STRONG</div>
+            <div class="h">THENICS</div>
+
+            <div class="label">Pesi + cal.</div>
+            <div class="us-cell yes">● NATIVO</div>
+            <div>○ parz.</div>
+            <div>○ no</div>
+            <div>○ solo BW</div>
+
+            <div class="label">MEV/MAV/MRV</div>
+            <div class="us-cell yes">● SÌ</div>
+            <div>○ no</div>
+            <div>○ no</div>
+            <div>○ no</div>
+
+            <div class="label">Offline-first</div>
+            <div class="us-cell yes">● SÌ</div>
+            <div>○ parz.</div>
+            <div>○ parz.</div>
+            <div>○ no</div>
+
+            <div class="label">Italiano nativo</div>
+            <div class="us-cell yes">● SÌ</div>
+            <div>○ trad.</div>
+            <div>○ trad.</div>
+            <div>○ EN</div>
+
+            <div class="label">Zero social</div>
+            <div class="us-cell yes">● SÌ</div>
+            <div>○ feed</div>
+            <div>○ parz.</div>
+            <div>○ parz.</div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">08</span> / 10</span>
+          </div>
+        </div>
+        <p>Tabella 5×5. La colonna PumpLog è in <b>lime su sfondo lime-9%</b>: spotlight implicito. Mai claim falsi.</p>
+      </div>
+
+      <!-- 09 TEAM -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /09</span>
+          <span class="name">TEAM · ROADMAP</span>
+          <span class="role">FOUNDER</span>
+        </div>
+        <div class="slide mini-team">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">09 / 10 · TEAM</span>
+          </div>
+          <div class="m09-h">UN <span class="acc">FOUNDER</span>.<br>UNA ROADMAP.</div>
+          <div class="founder">
+            <div class="name">MARCO BIANCHI</div>
+            <div class="role">Founder · Developer · 100% allocato</div>
+            <div class="bio">Background developer fullstack. 8 anni allenamento intermedio. Stack: TypeScript · React · IndexedDB · PWA service workers.</div>
+          </div>
+          <div class="roadmap">
+            <div class="h">Roadmap · 12 mesi</div>
+            <div class="roadmap-row"><span class="q">Q1</span><span class="t">PWA launch · 4 schede pronte · iOS install</span></div>
+            <div class="roadmap-row"><span class="q">Q2</span><span class="t">Premium tier · export CSV · 1.000 utenti</span></div>
+            <div class="roadmap-row"><span class="q">Q3</span><span class="t">Partnership 3 palestre · 2.000 utenti</span></div>
+            <div class="roadmap-row"><span class="q">Q4</span><span class="t">3.000 utenti · €2K MRR · prima assunzione</span></div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">09</span> / 10</span>
+          </div>
+        </div>
+        <p>Founder a sinistra · roadmap a destra. Onesti: <b>solo founder</b>, no team fake.</p>
+      </div>
+
+      <!-- 10 ASK -->
+      <div class="lib-card">
+        <div class="lib-meta">
+          <span class="idx">SLIDE /10</span>
+          <span class="name">ASK</span>
+          <span class="role">CLOSER</span>
+        </div>
+        <div class="slide mini-ask">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">10 / 10 · ASK</span>
+          </div>
+          <div class="m10-kicker">§ 10 · L'ASK</div>
+          <div class="m10-h">CERCHIAMO<br>€<span class="acc">150K</span><br>PRE-SEED.</div>
+          <div class="breakdown">
+            <div class="b-card">
+              <div class="pct">50%</div>
+              <div class="what">Prodotto</div>
+              <div class="desc">Premium, partnership, infrastruttura, 1 hire</div>
+            </div>
+            <div class="b-card">
+              <div class="pct">30%</div>
+              <div class="what">Marketing</div>
+              <div class="desc">Content org · IG · LinkedIn · eventi fitness</div>
+            </div>
+            <div class="b-card">
+              <div class="pct">20%</div>
+              <div class="what">Runway</div>
+              <div class="desc">12 mesi founder full-time · operativo</div>
+            </div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">10</span> / 10</span>
+          </div>
+        </div>
+        <p>Numero <b>€150K</b> giant in lime. Tre voci di spesa, percentuali esplicite. <b>Niente "Grazie!" finale</b>: l'ask È il chiudi-sipario.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== -->
+<!-- 03 · DEEP DIVE · COVER -->
+<!-- ============== -->
+<section class="section" id="cover" data-screen-label="04 Cover deep">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 03 · Deep dive · Slide 01 · Cover</span>
+      <span>Layout + spec completa</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/03 · COVER</div>
+        <h2>LA <span class="acc">PRIMA</span><br>SLIDE.</h2>
+      </div>
+      <div class="essence">
+        L'unica slide priva di chrome (header/footer): è <b>copertina pura</b>. Tre zone verticali — header meta in alto, wordmark + tagline al centro, founder + meta documento in basso. Nessuna immagine, nessuna grafica. Il marchio fa il lavoro.
+      </div>
+    </div>
+
+    <div class="deepdive">
+      <div class="big-slide-wrap">
+        <div class="meta"><span>SLIDE 01 · COVER</span><b>1920 × 1080</b><span>· 16:9</span></div>
+        <div class="slide s01" style="font-size: 100%;">
+          <div class="s01-stage">
+            <div class="s01-top">
+              <span>PITCH DECK · v1</span>
+              <span><b>MAGGIO 2026</b></span>
+            </div>
+            <div class="s01-center">
+              <div class="s01-h1">PUMP<span class="acc">/</span>LOG.</div>
+              <div class="s01-tag">L'allenamento, <b>davvero tracciato</b>.</div>
+            </div>
+            <div class="s01-bottom">
+              <div class="who">Marco Bianchi<small>Founder · Developer</small></div>
+              <div class="doc">PRE-SEED ROUND<b>05.2026</b>CONFIDENZIALE</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Cover · scheda</h3>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v mono">#0C0C0D · pieno · zero pattern</span></div>
+        <div class="spec-row"><span class="k">Margini</span><span class="v mono">96 px (5%) tutti i lati</span></div>
+        <div class="spec-row"><span class="k">Top meta</span><span class="v">Barlow Cond. 700 · 18pt · ink-3</span></div>
+        <div class="spec-row"><span class="k">Wordmark</span><span class="v">Bebas 270pt · slash lime · centrato V</span></div>
+        <div class="spec-row"><span class="k">Tagline</span><span class="v">Barlow 500 · 34pt · ink-2 · sotto wordmark · gap 38pt</span></div>
+        <div class="spec-row"><span class="k">Founder</span><span class="v">Barlow 600 · 22pt · bottom-left · ruolo sotto in Cond.</span></div>
+        <div class="spec-row"><span class="k">Doc meta</span><span class="v">Roboto Mono 500 · 17pt · bottom-right · 3 righe</span></div>
+        <div class="spec-row"><span class="k">Bottom rule</span><span class="v">1px Surface 3 · sopra founder/doc</span></div>
+        <div class="spec-row"><span class="k">Chrome</span><span class="v">NESSUNO · no header, no footer, no page number</span></div>
+        <div class="spec-row"><span class="k">Lime area</span><span class="v"><b>≈ 2%</b> · slash + parola "davvero" + "05.2026"</span></div>
+        <div class="spec-row"><span class="k">Durata · pitch</span><span class="v"><b>20 secondi</b> · introduzione personale</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== -->
+<!-- 04 · DEEP DIVE · PROBLEM -->
+<!-- ============== -->
+<section class="section" id="problem" data-screen-label="05 Problema deep">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 04 · Deep dive · Slide 02 · Problema</span>
+      <span>Layout + spec completa</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/04 · PROBLEMA</div>
+        <h2>IL <span class="acc">VUOTO</span><br>DEL MERCATO.</h2>
+      </div>
+      <div class="essence">
+        Layout asimmetrico due-zone: <b>headline a sinistra</b> con strikethrough rosso sulla parola che dichiara il vuoto, <b>tre bullet a destra</b> con border-left rosso e label tecniche, <b>statistica gigante in basso a sinistra</b> per quantificare il vuoto. <span style="color: var(--danger);">Rosso solo qui</span> — semaforo del problema.
+      </div>
+    </div>
+
+    <div class="deepdive">
+      <div class="big-slide-wrap">
+        <div class="meta"><span>SLIDE 02 · PROBLEMA</span><b>1920 × 1080</b><span>· 16:9</span></div>
+        <div class="slide s02" style="font-size: 100%;">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">02 / 10 · IL PROBLEMA</span>
+          </div>
+          <span class="s02-kicker">§ 02 · IL PROBLEMA</span>
+          <div class="s02-h">LE APP<br>NON <span class="strike">SANNO</span><br>L'<span class="acc">ITALIANO</span>.</div>
+          <div class="s02-bullets">
+            <div class="s02-bullet">
+              <div class="lbl">/01 · LINGUA</div>
+              <div class="txt">Tutte tradotte da inglese. <b>Set · reps · workout</b>. Nessuna pensata per l'italiano.</div>
+            </div>
+            <div class="s02-bullet">
+              <div class="lbl">/02 · TRAINING</div>
+              <div class="txt">Pesi <em>o</em> calisthenics. Mai entrambi nello stesso volume scientifico.</div>
+            </div>
+            <div class="s02-bullet">
+              <div class="lbl">/03 · METODO</div>
+              <div class="txt">Zero analisi scientifica. Niente <b>MEV/MAV/MRV</b>, niente progressione tracciata.</div>
+            </div>
+          </div>
+          <div class="s02-stat">
+            <div class="big">4,2M</div>
+            <div class="desc">Italiani 20-35 anni che si allenano con peso. <b>L'80%</b> usa app non pensate per loro.<small>FONTE · ISTAT 2024 + Statista 2025</small></div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">02</span> / 10</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Problema · scheda</h3>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v mono">#0C0C0D piatto</span></div>
+        <div class="spec-row"><span class="k">Chrome</span><span class="v">Header standard + footer page counter</span></div>
+        <div class="spec-row"><span class="k">Section lbl</span><span class="v">Barlow Cond. 700 · 21pt · 0.25em · lime</span></div>
+        <div class="spec-row"><span class="k">Headline</span><span class="v">Bebas 115pt · 3 righe · max width 45%</span></div>
+        <div class="spec-row"><span class="k">Strikethrough</span><span class="v">Su 1 parola "SANNO" · linea rossa 4px · #EF4444</span></div>
+        <div class="spec-row"><span class="k">3 bullet</span><span class="v">Surface 1 + border-left 5px rosso · Cond. lbl + body 25pt</span></div>
+        <div class="spec-row"><span class="k">Stat hero</span><span class="v">Bebas 135pt LIME "4,2M" + body Barlow 21pt</span></div>
+        <div class="spec-row"><span class="k">Fonte</span><span class="v">Roboto Mono 500 · 16pt · ink-3 · sotto stat</span></div>
+        <div class="spec-row"><span class="k">Rosso · uso</span><span class="v">Solo qui · è il semaforo del problema</span></div>
+        <div class="spec-row"><span class="k">Lime area</span><span class="v"><b>≈ 4%</b> · slash + "ITALIANO" + "4,2M" + bordi</span></div>
+        <div class="spec-row"><span class="k">Durata · pitch</span><span class="v"><b>45 secondi</b> · 1 frase headline + 3 bullet + dato</span></div>
+      </div>
+    </div>
+
+    <p style="margin-top: 32px; padding: 24px 28px; border: 1px dashed var(--rule-2); background: var(--bg-2); font-family: var(--f-body); font-weight: 400; font-size: 15px; line-height: 1.65; color: var(--ink); max-width: 84ch;">
+      <span style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 10px;">▸ Nota narrativa</span>
+      La parola "SANNO" è strikethrough rosso per <b style="color: var(--ink);">trasformare la headline in una correzione visiva</b>: prima dichiari il fatto comune ("le app sanno..."), poi lo barri e lo correggi con la verità ("non sanno l'italiano"). È retorica visiva — il pubblico legge la frase due volte in mezzo secondo.
+    </p>
+  </div>
+</section>
+
+<!-- ============== -->
+<!-- 05 · DEEP DIVE · SOLUTION -->
+<!-- ============== -->
+<section class="section" id="solution" data-screen-label="06 Soluzione deep">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 05 · Deep dive · Slide 03 · Soluzione</span>
+      <span>Layout + spec completa</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/05 · SOLUZIONE</div>
+        <h2>QUATTRO <span class="acc">PILASTRI</span>,<br>UNA APP.</h2>
+      </div>
+      <div class="essence">
+        Layout simmetrico: <b>headline orizzontale</b> in alto · <b>4 pilastri allineati</b> in basso. Ogni pilastro ha un'icona line lime, un nome short Bebas, una descrizione breve Barlow. Stessi colori dei bullet della Problema → ma il rosso è sostituito dal <b>lime</b>: stesso linguaggio visivo, valenza ribaltata.
+      </div>
+    </div>
+
+    <div class="deepdive">
+      <div class="big-slide-wrap">
+        <div class="meta"><span>SLIDE 03 · SOLUZIONE</span><b>1920 × 1080</b><span>· 16:9</span></div>
+        <div class="slide s03" style="font-size: 100%;">
+          <div class="s-header">
+            <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+            <span class="meta">03 / 10 · LA SOLUZIONE</span>
+          </div>
+          <span class="s03-kicker">§ 03 · LA SOLUZIONE</span>
+          <div class="s03-h">UN SOLO LOG.<br>PESI <span class="acc">+</span> CALISTHENICS.<br>SCIENTIFICO. OFFLINE.</div>
+          <div class="s03-grid">
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><line x1="4" y1="4" x2="20" y2="4"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="20" x2="18" y2="20"/></svg></div>
+              <div class="name">UN <span class="acc">LOG</span>.</div>
+              <div class="desc">Pesi e corpo libero <b>nello stesso volume settimanale</b>. Niente switch tra app.</div>
+            </div>
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><polyline points="3,16 9,10 13,14 21,6"/><polyline points="15,6 21,6 21,12"/></svg></div>
+              <div class="name">MEV / MAV<br>/ <span class="acc">MRV</span>.</div>
+              <div class="desc">Analisi scientifica del volume per gruppo muscolare. Non vibes.</div>
+            </div>
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><path d="M5 16 a7 7 0 0 1 14 0"/><line x1="5" y1="16" x2="5" y2="19"/><line x1="19" y1="16" x2="19" y2="19"/><line x1="12" y1="3" x2="12" y2="9"/></svg></div>
+              <div class="name"><span class="acc">OFFLINE</span><br>FIRST.</div>
+              <div class="desc">Funziona senza rete. <b>I tuoi dati restano sul tuo telefono.</b></div>
+            </div>
+            <div class="s03-pillar">
+              <div class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M8 10 l2 2 l4-4"/><line x1="8" y1="16" x2="16" y2="16"/></svg></div>
+              <div class="name">PWA<br><span class="acc">GRATIS</span>.</div>
+              <div class="desc">No store, no account, no recensioni finte. Premium opzionale.</div>
+            </div>
+          </div>
+          <div class="s-footer">
+            <span class="lbl">CONFIDENZIALE · 05.2026</span>
+            <span class="pg"><span class="cur">03</span> / 10</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Soluzione · scheda</h3>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v mono">#0C0C0D piatto</span></div>
+        <div class="spec-row"><span class="k">Section lbl</span><span class="v">Barlow Cond. 700 · 21pt · lime</span></div>
+        <div class="spec-row"><span class="k">Headline</span><span class="v">Bebas 105pt · 3 righe · max width 80%</span></div>
+        <div class="spec-row"><span class="k">Headline acc</span><span class="v">"+" e "CALISTHENICS" in lime · "OFFLINE" lime</span></div>
+        <div class="spec-row"><span class="k">4 pilastri</span><span class="v">Surface 1 + border-top 5px lime · grid 4-col</span></div>
+        <div class="spec-row"><span class="k">Icona</span><span class="v">Line 1.5px lime · 58px · top-left ogni pilastro</span></div>
+        <div class="spec-row"><span class="k">Nome pilastro</span><span class="v">Bebas 38pt · max 2 righe · 1 parola lime</span></div>
+        <div class="spec-row"><span class="k">Descrizione</span><span class="v">Barlow 400 · 19pt · 1.45 line-height · ink-2 · 1-2 frasi</span></div>
+        <div class="spec-row"><span class="k">Border lime</span><span class="v">Sostituisce il rosso della /02 · stesso pattern visivo</span></div>
+        <div class="spec-row"><span class="k">Lime area</span><span class="v"><b>≈ 5%</b> · 4 border-top + 4 parole + 4 icone + slash</span></div>
+        <div class="spec-row"><span class="k">Durata · pitch</span><span class="v"><b>60 secondi</b> · headline + 4 pilastri in sequenza</span></div>
+      </div>
+    </div>
+
+    <p style="margin-top: 32px; padding: 24px 28px; border: 1px dashed var(--rule-2); background: var(--bg-2); font-family: var(--f-body); font-weight: 400; font-size: 15px; line-height: 1.65; color: var(--ink); max-width: 84ch;">
+      <span style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 10px;">▸ Coerenza con la /02</span>
+      Il layout della Soluzione <b style="color: var(--ink);">specchia</b> quello del Problema: stessi block, stessa griglia, stesse proporzioni. Cambiano solo i colori (rosso → lime) e l'orientamento dei pilastri (verticali invece di orizzontali). Quando il pubblico vede la /03 dopo la /02, riconosce <em style="color: var(--ink);">la struttura</em> e capisce immediatamente che ogni problema della /02 ha il suo specchio risolto in /03.
+    </p>
+  </div>
+</section>
+
+<!-- ============== -->
+<!-- 06 · GRID + HANDOFF -->
+<!-- ============== -->
+<section class="section" data-screen-label="07 Grid + handoff">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 06 · Griglia · safe zone · handoff</span>
+      <span>Master grid + checklist produzione</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/06 · GRID</div>
+        <h2>GRIGLIA <span class="acc">12 × 9</span>.<br>UN SISTEMA SOLO.</h2>
+      </div>
+      <div class="essence">
+        Griglia base <b>12 colonne × 9 righe</b> su 1920×1080 px. Safe zone interna del <b>5%</b> per ogni lato (96px). Nessuna eccezione: tutte le slide si compongono dentro questa griglia. Il <em>safe zone</em> garantisce che nessun proiettore tagli contenuto.
+      </div>
+    </div>
+
+    <div style="max-width: 800px; margin: 0 auto 40px;">
+      <div class="meta" style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px;">
+        Master grid · 1920 × 1080
+      </div>
+      <div class="grid-stage" style="aspect-ratio: 16/9;">
+        <div class="grid-overlay"></div>
+        <div class="grid-anno" style="top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--accent); font-family: var(--f-condensed); font-weight: 700; font-size: 14px; letter-spacing: 0.25em; text-transform: uppercase;">
+          12 colonne × 9 righe · safe 5%
+        </div>
+        <div class="grid-anno" style="top: 8px; left: 8px;">0,0</div>
+        <div class="grid-anno" style="top: 8px; right: 8px;">1920,0</div>
+        <div class="grid-anno" style="bottom: 8px; right: 8px;">1920,1080</div>
+        <div class="grid-anno" style="bottom: 8px; left: 8px;">0,1080</div>
+      </div>
+    </div>
+
+    <div class="handoff-grid">
+      <div class="handoff-card">
+        <span class="lab">/01 · File deck · export</span>
+        <h4>Pacchetto consegna.</h4>
+        <ul>
+          <li>Sorgente <b>Figma</b> · 1920×1080 · 10 frame · auto-layout</li>
+          <li>Export <b>PDF print-ready</b> · 300 dpi · embed font OFL/Apache</li>
+          <li>Export <b>Keynote</b> · master template · 4 stili slide riusabili</li>
+          <li>Export <b>PNG @2x</b> di ciascuna slide · per email follow-up</li>
+          <li>File <span class="mono">PumpLog_Deck_v1_05.2026.pdf</span> · max <span class="mono">8 MB</span></li>
+        </ul>
+      </div>
+      <div class="handoff-card">
+        <span class="lab">/02 · Spec font · vincoli</span>
+        <h4>Tipografia &amp; spazi.</h4>
+        <ul>
+          <li>4 famiglie: <b>Bebas Neue · Barlow Cond. · Barlow · Roboto Mono</b></li>
+          <li>Niente sotto i <b>14pt</b> · niente sopra i <b>270pt</b></li>
+          <li>Tracking <b>0.25em</b> sulle label uppercase · 0 sul body</li>
+          <li>Decimali con <b>virgola</b> · sempre · "82,5" mai "82.5"</li>
+          <li>Niente corsivo · enfasi via peso/colore/scala</li>
+        </ul>
+      </div>
+      <div class="handoff-card">
+        <span class="lab">/03 · Vincoli colore</span>
+        <h4>Lime ≤ 5% per slide.</h4>
+        <ul>
+          <li>Sfondo principale: <b>#0C0C0D</b> · su 9 slide su 10</li>
+          <li>Una sola slide può avere fondo <b>lime pieno</b> · es. closer</li>
+          <li>Mai 2 slide lime adiacenti · cadenza minima 4 slide</li>
+          <li>Rosso #EF4444 <b>solo</b> sulla /02 Problema · semaforo</li>
+          <li>Ambra #F59E0B <b>solo</b> per soglie chart</li>
+        </ul>
+      </div>
+      <div class="handoff-card">
+        <span class="lab">/04 · Pre-pitch check</span>
+        <h4>Prima di presentare.</h4>
+        <ul>
+          <li>Tutte le 10 slide hanno <b>page counter</b> coerente in basso</li>
+          <li>Tutti i numeri in <span class="mono">Roboto Mono · tabular</span></li>
+          <li>Speaker notes pronte · target <b>8 minuti</b> totali</li>
+          <li>Versione printable in B/N testata · niente lime sparito</li>
+          <li>Test su <b>proiettore</b> · lime visibile a 5m di distanza</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot">
+    <div>Documento<b>Pitch Deck System v1</b></div>
+    <div>Stato<b style="color: var(--accent);">Pronto per Figma master</b></div>
+    <div>Prossimo<b>Speaker notes · 10 slide</b></div>
+    <div>Owner<b>Founder · Brand</b></div>
+  </div>
+</footer>
+
+</body>
+</html>

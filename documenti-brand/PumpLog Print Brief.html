@@ -1,0 +1,1887 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Print Brief · Biglietti + Carta Intestata · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C0C0D;
+  --bg-2:      #161618;
+  --bg-3:      #202022;
+  --rule:      #2A2A2D;
+  --rule-2:    #353539;
+  --ink:       #F0EFE8;
+  --ink-2:     rgba(240,239,232,0.55);
+  --ink-3:     rgba(240,239,232,0.32);
+  --accent:    #C8FF00;
+  --accent-ink:#000000;
+  --paper:     #F4F1E8;
+  --paper-ink: #0C0C0D;
+  --danger:    #EF4444;
+  --warning:   #F59E0B;
+
+  --f-display: "Bebas Neue", Impact, sans-serif;
+  --f-condensed: "Barlow Condensed", "Bebas Neue", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-mono: "Roboto Mono", ui-monospace, monospace;
+
+  --max: 1320px;
+  --gutter: 32px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 16px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* TOPBAR */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(12,12,13,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar .lockup { color: var(--ink); display: flex; align-items: center; gap: 12px; }
+.topbar .lockup .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.topbar .right { display: flex; gap: 24px; }
+
+/* HERO */
+.hero { padding: 56px 0 80px; border-bottom: 1px solid var(--rule); }
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3);
+  padding-bottom: 32px; border-bottom: 1px solid var(--rule); margin-bottom: 48px;
+}
+.hero-meta b { display: block; font-family: var(--f-body); font-weight: 500; font-size: 14px; color: var(--ink); margin-top: 6px; letter-spacing: 0; text-transform: none; }
+.hero h1 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(64px, 11vw, 160px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  max-width: 14ch; text-wrap: balance;
+}
+.hero h1 .acc { color: var(--accent); }
+.hero .sub {
+  margin-top: 32px;
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 62ch;
+}
+.hero .sub b { color: var(--ink); font-weight: 600; }
+.hero .sub .lime { color: var(--accent); font-weight: 600; }
+
+.toc {
+  margin-top: 56px;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+  background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.toc a {
+  background: var(--bg); padding: 20px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: background 0.15s;
+}
+.toc a:hover { background: var(--bg-2); }
+.toc a .idx { font-family: var(--f-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.14em; }
+.toc a .name { font-family: var(--f-display); font-size: 20px; letter-spacing: 0.005em; text-transform: uppercase; line-height: 1; color: var(--ink); }
+.toc a .fmt { font-family: var(--f-condensed); font-weight: 700; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3); }
+
+/* SECTION */
+.section { border-top: 1px solid var(--rule); padding: 88px 0; }
+.section-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding-bottom: 16px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+.section-head { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; align-items: end; margin-bottom: 56px; }
+.section-head .num { font-family: var(--f-mono); font-size: 13px; color: var(--accent); letter-spacing: 0.16em; margin-bottom: 14px; }
+.section-head h2 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(56px, 8vw, 112px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  text-wrap: balance;
+}
+.section-head h2 .acc { color: var(--accent); }
+.section-head .essence {
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 56ch;
+}
+.section-head .essence b { color: var(--ink); font-weight: 600; }
+
+/* INFO PRIORITY */
+.priority {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+}
+.pri-card {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 28px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.pri-card .rank {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 56px; line-height: 0.85; letter-spacing: 0.005em;
+  color: var(--accent);
+}
+.pri-card .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink);
+}
+.pri-card h4 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 28px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.pri-card p {
+  font-size: 14px; line-height: 1.55; color: var(--ink-2);
+}
+.pri-card p b { color: var(--ink); font-weight: 600; }
+.pri-card .specimen {
+  margin-top: auto;
+  padding: 14px 16px;
+  background: var(--bg);
+  border-left: 2px solid var(--accent);
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 18px; line-height: 1; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.pri-card .specimen.body { font-family: var(--f-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none; }
+.pri-card .specimen.mono { font-family: var(--f-mono); font-weight: 500; font-size: 13px; letter-spacing: 0; text-transform: none; }
+.pri-card .specimen.label { font-family: var(--f-condensed); font-weight: 700; font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; }
+
+/* BUSINESS CARD PRESENTATION */
+.bc-stage {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 56px;
+  align-items: start;
+}
+.bc-stack {
+  display: flex; flex-direction: column; gap: 24px; align-items: center;
+}
+.bc-stack .meta {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex; gap: 12px;
+}
+.bc-stack .meta b { color: var(--accent); }
+
+/* card at 4× scale: 85×55mm → 340×220 + bleed border */
+.bcard {
+  width: 425px; height: 275px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+  border: 1px solid var(--rule-2);
+}
+.bcard.front {
+  background: var(--bg);
+  color: var(--ink);
+}
+.bcard.back {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.bcard.alt {
+  background: var(--paper);
+  color: var(--paper-ink);
+}
+
+/* Card grid annotations (for diagrams) */
+.bcard .ruler-top, .bcard .ruler-bottom {
+  position: absolute; left: 16px; right: 16px;
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 8px; color: var(--ink-3);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+.bcard .ruler-top { top: 8px; }
+.bcard .ruler-bottom { bottom: 8px; }
+.bcard.diagram .ruler-top, .bcard.diagram .ruler-bottom { display: flex; }
+.bcard:not(.diagram) .ruler-top, .bcard:not(.diagram) .ruler-bottom { display: none; }
+
+/* CARD A — FRONT layout */
+.bc-front-a .wm {
+  position: absolute;
+  top: 28px; left: 28px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 38px; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.bc-front-a .wm .acc { color: var(--accent); }
+.bc-front-a .corner-tr {
+  position: absolute;
+  top: 28px; right: 28px;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 9px; color: var(--ink-2);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  text-align: right; line-height: 1.5;
+}
+.bc-front-a .corner-tr b { color: var(--accent); }
+.bc-front-a .divider {
+  position: absolute;
+  left: 28px; right: 28px;
+  top: 50%;
+  height: 1px;
+  background: var(--rule);
+}
+.bc-front-a .divider::before {
+  content: ""; position: absolute;
+  left: 0; top: 0;
+  width: 40px; height: 1.5px;
+  background: var(--accent);
+}
+.bc-front-a .name-block {
+  position: absolute;
+  bottom: 28px; left: 28px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.bc-front-a .name-block .name {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 14px; letter-spacing: -0.005em;
+  color: var(--ink);
+}
+.bc-front-a .name-block .role {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.bc-front-a .contact-block {
+  position: absolute;
+  bottom: 28px; right: 28px;
+  text-align: right;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 9px; letter-spacing: 0.04em;
+  color: var(--ink); line-height: 1.7;
+}
+.bc-front-a .contact-block .acc { color: var(--accent); }
+.bc-front-a .contact-block .lbl {
+  display: inline-block;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 8px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3); margin-right: 6px;
+  min-width: 22px; text-align: left;
+}
+
+/* CARD A — BACK layout */
+.bc-back-a {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  position: relative;
+}
+.bc-back-a .wm-huge {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 88px; line-height: 0.85; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--accent-ink);
+}
+.bc-back-a .tag {
+  margin-top: 14px;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 12px; color: var(--accent-ink); letter-spacing: -0.005em;
+}
+.bc-back-a .corner-tl {
+  position: absolute;
+  top: 18px; left: 22px;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 8px; color: rgba(0,0,0,0.6);
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.bc-back-a .corner-br {
+  position: absolute;
+  bottom: 18px; right: 22px;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 8px; color: rgba(0,0,0,0.6);
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+
+/* CARD B — alt layout */
+.bc-front-b .wm-center {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 80px; line-height: 0.85; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.bc-front-b .wm-center .acc { color: var(--accent); }
+.bc-front-b .corner-tl {
+  position: absolute;
+  top: 18px; left: 22px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.bc-front-b .corner-br {
+  position: absolute;
+  bottom: 18px; right: 22px;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 8px; color: var(--ink-3);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  text-align: right; line-height: 1.6;
+}
+.bc-front-b .corner-br b { color: var(--accent); }
+
+.bc-back-b {
+  background: var(--bg);
+}
+.bc-back-b .info-grid {
+  position: absolute;
+  inset: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: end;
+  gap: 28px;
+}
+.bc-back-b .name {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 16px; color: var(--ink); letter-spacing: -0.005em;
+}
+.bc-back-b .name .role {
+  display: block;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-2); margin-top: 6px;
+}
+.bc-back-b .contact {
+  text-align: right;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 10px; line-height: 1.7;
+  letter-spacing: 0.04em; color: var(--ink);
+}
+.bc-back-b .contact .acc { color: var(--accent); }
+.bc-back-b .corner-tl {
+  position: absolute;
+  top: 18px; left: 22px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 22px; letter-spacing: 0.01em; text-transform: uppercase;
+  color: var(--ink);
+}
+.bc-back-b .corner-tl .acc { color: var(--accent); }
+
+/* DIAGRAM CARD (anatomy) */
+.bcard.diagram {
+  background: var(--bg);
+  border: 1px dashed var(--rule-2);
+  box-shadow: none;
+}
+.bcard.diagram .zone {
+  position: absolute;
+  border: 1px solid var(--rule-2);
+  background: rgba(200,255,0,0.04);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.08em;
+  color: var(--accent); text-transform: uppercase;
+}
+.bcard.diagram .zone.safe {
+  inset: 24px;
+  background: transparent;
+  border: 1px dashed rgba(200,255,0,0.4);
+}
+.bcard.diagram .zone.bleed {
+  inset: -12px;
+  background: transparent;
+  border: 1.5px solid rgba(239,68,68,0.5);
+}
+.bcard.diagram .anno {
+  position: absolute;
+  font-family: var(--f-mono); font-size: 10px;
+  color: var(--ink-2); letter-spacing: 0.08em;
+}
+.bcard.diagram .anno .v { color: var(--accent); }
+
+/* SPEC SHEET */
+.spec-sheet {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 36px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.spec-sheet h3 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink); display: flex; align-items: center; gap: 10px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.spec-sheet h3::before { content: ""; width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.spec-row {
+  display: grid; grid-template-columns: 130px 1fr;
+  gap: 16px; padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.spec-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+.spec-row .k {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.spec-row .v {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 13px; color: var(--ink); line-height: 1.55;
+}
+.spec-row .v.mono { font-family: var(--f-mono); font-weight: 500; }
+.spec-row .v b { color: var(--accent); font-weight: 600; }
+
+/* ASCII LAYOUT diagram */
+.ascii {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 24px 28px;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 12px; line-height: 1.45;
+  color: var(--ink);
+  white-space: pre;
+  overflow-x: auto;
+}
+.ascii .h { color: var(--accent); }
+.ascii .l { color: var(--ink-2); }
+.ascii .d { color: var(--ink-3); }
+
+/* COLOR PRINT specs */
+.color-table {
+  border: 1px solid var(--rule); background: var(--bg-2);
+}
+.color-row {
+  display: grid; grid-template-columns: 90px 1fr 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--rule);
+  align-items: center;
+}
+.color-row:first-of-type { border-top: none; }
+.color-row.h {
+  background: var(--bg-3);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink);
+}
+.color-row .swatch { aspect-ratio: 1.6/1; border-radius: 2px; border: 1px solid var(--rule); }
+.color-row .name {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 14px; color: var(--ink); letter-spacing: -0.005em;
+}
+.color-row .name small {
+  display: block;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 11px; color: var(--ink-2); margin-top: 2px;
+}
+.color-row .val {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 12px; color: var(--ink); letter-spacing: 0.04em;
+}
+.color-row .val .l { color: var(--ink-3); display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; font-weight: 700; font-family: var(--f-condensed); }
+
+/* TYPE HIERARCHY table */
+.type-table {
+  border: 1px solid var(--rule); background: var(--bg-2);
+}
+.type-row {
+  display: grid; grid-template-columns: 140px 90px 90px 1fr;
+  gap: 16px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--rule);
+  align-items: baseline;
+}
+.type-row:first-of-type { border-top: none; }
+.type-row.h {
+  background: var(--bg-3);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink);
+}
+.type-row .role { font-family: var(--f-condensed); font-weight: 700; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink); }
+.type-row .size, .type-row .weight { font-family: var(--f-mono); font-weight: 500; font-size: 12px; color: var(--ink-2); }
+.type-row .sample { color: var(--ink); }
+.type-row .sample.display { font-family: var(--f-display); font-weight: 400; font-size: 28px; line-height: 1; letter-spacing: 0.005em; text-transform: uppercase; }
+.type-row .sample.cond { font-family: var(--f-condensed); font-weight: 700; font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; }
+.type-row .sample.body { font-family: var(--f-body); font-weight: 400; font-size: 14px; }
+.type-row .sample.body.bold { font-weight: 600; }
+.type-row .sample.mono { font-family: var(--f-mono); font-weight: 500; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* LETTERHEAD MOCK */
+.lh-stage {
+  display: grid; grid-template-columns: auto 1fr;
+  gap: 48px; align-items: start;
+}
+.lh-stack {
+  display: flex; flex-direction: column; gap: 18px; align-items: center;
+}
+.lh-stack .meta {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.lh-stack .meta b { color: var(--accent); }
+
+.letterhead {
+  width: 380px;
+  aspect-ratio: 210/297;
+  background: var(--paper);
+  color: var(--paper-ink);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+  font-family: var(--f-body);
+}
+.letterhead.dark { background: var(--bg); color: var(--ink); }
+
+.letterhead .lh-header {
+  position: absolute;
+  top: 24px; left: 32px; right: 32px;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(12,12,13,0.1);
+}
+.letterhead.dark .lh-header { border-bottom-color: var(--rule); }
+.letterhead .lh-header .wm {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 32px; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+.letterhead.dark .lh-header .wm { color: var(--ink); }
+.letterhead .lh-header .wm .acc { color: var(--accent); }
+.letterhead .lh-header .doc-meta {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase;
+  text-align: right; line-height: 1.6;
+}
+.letterhead.dark .lh-header .doc-meta { color: var(--ink-3); }
+.letterhead .lh-header .doc-meta b { color: var(--paper-ink); font-weight: 600; }
+.letterhead.dark .lh-header .doc-meta b { color: var(--ink); }
+
+.letterhead .lh-rule {
+  position: absolute;
+  left: 32px; right: 32px;
+  top: 76px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.letterhead .lh-body {
+  position: absolute;
+  top: 110px; left: 32px; right: 32px; bottom: 90px;
+  font-size: 9px; line-height: 1.7;
+  color: var(--paper-ink);
+}
+.letterhead.dark .lh-body { color: var(--ink); }
+.letterhead .lh-body .recipient {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 8px; letter-spacing: 0.04em;
+  margin-bottom: 16px;
+}
+.letterhead .lh-body .recipient b { font-family: var(--f-body); font-weight: 600; font-size: 9px; letter-spacing: 0; display: block; margin-bottom: 2px; }
+.letterhead .lh-body .date {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 8px; color: rgba(12,12,13,0.55);
+  text-align: right; margin-bottom: 24px;
+  letter-spacing: 0.06em;
+}
+.letterhead.dark .lh-body .date { color: var(--ink-3); }
+.letterhead .lh-body .subject {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(12,12,13,0.15);
+}
+.letterhead.dark .lh-body .subject { border-bottom-color: var(--rule); color: var(--accent); }
+.letterhead .lh-body p { margin-bottom: 10px; }
+.letterhead .lh-body p:last-of-type { margin-bottom: 0; }
+.letterhead .lh-body b { font-weight: 600; }
+.letterhead .lh-body .mono { font-family: var(--f-mono); font-size: 8px; font-variant-numeric: tabular-nums; }
+.letterhead .lh-body .stat {
+  background: rgba(12,12,13,0.04);
+  border-left: 2px solid var(--accent);
+  padding: 8px 12px; margin: 12px 0;
+  font-family: var(--f-mono); font-size: 8px;
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 12px;
+}
+.letterhead.dark .lh-body .stat { background: var(--bg-2); }
+.letterhead .lh-body .stat .l { color: rgba(12,12,13,0.5); }
+.letterhead.dark .lh-body .stat .l { color: var(--ink-3); }
+.letterhead .lh-body .sig {
+  margin-top: 18px;
+}
+.letterhead .lh-body .sig .name {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 9px;
+}
+.letterhead .lh-body .sig .role {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 7px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(12,12,13,0.55);
+}
+.letterhead.dark .lh-body .sig .role { color: var(--ink-3); }
+
+.letterhead .lh-footer {
+  position: absolute;
+  bottom: 24px; left: 32px; right: 32px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(12,12,13,0.1);
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 7px; line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: rgba(12,12,13,0.55);
+}
+.letterhead.dark .lh-footer { border-top-color: var(--rule); color: var(--ink-3); }
+.letterhead .lh-footer b {
+  display: block;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 7px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--paper-ink); margin-bottom: 3px;
+}
+.letterhead.dark .lh-footer b { color: var(--ink); }
+.letterhead .lh-footer .right { text-align: right; }
+.letterhead .lh-footer .center { text-align: center; }
+
+/* DIAGRAM letterhead */
+.letterhead.diagram {
+  background: var(--bg);
+  border: 1px dashed var(--rule-2);
+  box-shadow: none;
+}
+.letterhead.diagram .zone {
+  position: absolute;
+  border: 1px solid var(--rule-2);
+  background: rgba(200,255,0,0.05);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.08em;
+  color: var(--accent); text-transform: uppercase;
+  text-align: center; padding: 8px;
+}
+.letterhead.diagram .zone.bleed {
+  inset: -8px;
+  background: transparent;
+  border: 1.5px solid rgba(239,68,68,0.5);
+}
+.letterhead.diagram .anno {
+  position: absolute;
+  font-family: var(--f-mono); font-size: 8px;
+  color: var(--ink-2); letter-spacing: 0.04em;
+}
+
+/* FINISH cards */
+.finish-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+}
+.finish-card {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 32px;
+  display: flex; flex-direction: column; gap: 18px;
+  position: relative;
+}
+.finish-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--accent);
+}
+.finish-card.alt::before { background: var(--ink-2); }
+.finish-card .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.finish-card.alt .lab { color: var(--ink-2); }
+.finish-card h4 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 28px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.finish-card p {
+  font-size: 14px; line-height: 1.6; color: var(--ink);
+}
+.finish-card p b { color: var(--accent); font-weight: 600; }
+.finish-card .specs {
+  margin-top: auto;
+  padding-top: 16px; border-top: 1px dashed var(--rule-2);
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 11px; line-height: 1.7;
+  color: var(--ink-3); letter-spacing: 0.04em;
+}
+.finish-card .specs b { color: var(--ink); font-weight: 500; }
+.finish-card .price {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 28px; letter-spacing: 0.005em; text-transform: uppercase;
+  color: var(--accent);
+}
+.finish-card .price small { font-family: var(--f-condensed); font-weight: 700; font-size: 10px; letter-spacing: 0.22em; color: var(--ink-3); display: block; margin-top: 2px; }
+
+/* ANTI-PATTERN cards */
+.anti-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+}
+.anti-card {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.anti-card .demo {
+  aspect-ratio: 85/55;
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  padding: 18px;
+}
+.anti-card.gradient .demo { background: linear-gradient(135deg, #C8FF00 0%, #22C55E 100%); }
+.anti-card.lime-text .demo { background: var(--paper); color: var(--accent); font-family: var(--f-display); font-size: 32px; letter-spacing: 0.005em; text-transform: uppercase; }
+.anti-card.rounded .demo { background: var(--bg); border-radius: 20px; }
+.anti-card.rounded .demo span { color: var(--ink); font-family: var(--f-display); font-size: 22px; }
+.anti-card.shadow .demo { background: var(--paper); }
+.anti-card.shadow .demo .word { font-family: var(--f-display); font-size: 24px; color: var(--paper-ink); text-shadow: 4px 4px 0 rgba(200,255,0,0.5); letter-spacing: 0.005em; text-transform: uppercase; }
+.anti-card.icons .demo { background: var(--bg); color: var(--ink); padding: 12px; }
+.anti-card.icons .demo .row { display: flex; gap: 8px; font-size: 18px; }
+.anti-card.full-info .demo { background: var(--bg); color: var(--ink); padding: 8px 14px; font-family: var(--f-body); font-size: 7px; line-height: 1.45; text-align: left; }
+.anti-card .meta { padding: 18px; }
+.anti-card .meta .x {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--danger); margin-bottom: 8px;
+}
+.anti-card .meta .x::before { content: "× "; }
+.anti-card .meta .title {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 18px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink); margin-bottom: 6px;
+}
+.anti-card .meta .why {
+  font-size: 12px; line-height: 1.55; color: var(--ink-2);
+}
+
+/* HANDOFF CHECKLIST */
+.handoff-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.handoff-card {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 28px;
+}
+.handoff-card .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px;
+}
+.handoff-card h4 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 26px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink); margin-bottom: 16px;
+}
+.handoff-card ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.handoff-card ul li {
+  display: grid; grid-template-columns: 20px 1fr;
+  gap: 12px; font-size: 13px; line-height: 1.55; color: var(--ink);
+  padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+}
+.handoff-card ul li:last-child { border-bottom: none; padding-bottom: 0; }
+.handoff-card ul li::before {
+  content: "□"; font-family: var(--f-mono);
+  color: var(--ink-3); font-size: 14px;
+}
+.handoff-card ul li b { color: var(--accent); font-weight: 600; }
+.handoff-card ul li .mono { font-family: var(--f-mono); font-weight: 500; color: var(--ink); }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.foot b {
+  display: block;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 14px; color: var(--ink); margin-top: 6px;
+  letter-spacing: 0; text-transform: none;
+}
+
+@media (max-width: 1100px) {
+  .bc-stage, .lh-stage { grid-template-columns: 1fr; gap: 32px; }
+}
+@media (max-width: 700px) {
+  :root { --gutter: 20px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .toc { grid-template-columns: 1fr 1fr; }
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+  .priority { grid-template-columns: 1fr; }
+  .bcard { width: 100%; max-width: 400px; height: auto; aspect-ratio: 85/55; }
+  .letterhead { width: 100%; max-width: 320px; }
+  .color-row { grid-template-columns: 60px 1fr 1fr; gap: 12px; padding: 14px 16px; }
+  .color-row > .val:nth-child(4), .color-row > .val:nth-child(5) { display: none; }
+  .type-row { grid-template-columns: 1fr 60px 1fr; gap: 12px; padding: 14px 16px; }
+  .type-row > .weight { display: none; }
+  .finish-grid { grid-template-columns: 1fr; }
+  .anti-grid { grid-template-columns: 1fr; }
+  .handoff-grid { grid-template-columns: 1fr; }
+  .foot { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="00 Print Brief">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="lockup">
+      <span class="dot"></span>
+      <span>PumpLog</span>
+      <span style="color: var(--ink-3);">/</span>
+      <span style="color: var(--ink-3);">Print Brief · Biglietti + Carta Intestata</span>
+    </div>
+    <div class="right">
+      <span>ITA</span>
+      <span>15.05.2026</span>
+      <span style="color: var(--accent);">● HANDOFF</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <div>Documento<b>Print Brief · v1</b></div>
+      <div>Output<b>Biglietto + Carta intestata</b></div>
+      <div>Pubblico<b>Stampatore · print buyer</b></div>
+      <div>Trigger d'uso<b>Eventi · partner · trainer</b></div>
+    </div>
+
+    <h1>UNO<br>STRUMENTO,<br><span class="acc">NON</span> UN<br>FRONZOLO.</h1>
+
+    <p class="sub">
+      Brief operativo per il print buyer. Due deliverable: <b>biglietto da visita 85×55 mm</b> e <b>carta intestata A4</b>. Tutto già definito: dimensioni, gerarchia, Pantone, paper stock, finish, bleed. <span class="lime">Da consegnare a uno stampatore italiano con offset spot fluo.</span>
+    </p>
+
+    <div class="toc">
+      <a href="#strategy"><span class="idx">/01</span><span class="name">STRATEGIA</span><span class="fmt">Goal · trigger d'uso</span></a>
+      <a href="#priority"><span class="idx">/02</span><span class="name">PRIORITÀ</span><span class="fmt">Cosa va dove</span></a>
+      <a href="#bcard-a"><span class="idx">/03</span><span class="name">CARD · A</span><span class="fmt">Raccomandata · scuro/lime</span></a>
+      <a href="#bcard-b"><span class="idx">/04</span><span class="name">CARD · B</span><span class="fmt">Alternativa · type-led</span></a>
+      <a href="#letterhead"><span class="idx">/05</span><span class="name">CARTA INTESTATA</span><span class="fmt">A4 · paper</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 01 · STRATEGY -->
+<!-- ============================== -->
+<section class="section" id="strategy" data-screen-label="02 Strategia">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 01 · Strategia · obiettivo del materiale</span>
+      <span>Cosa deve "fare" il biglietto</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/01 · GOAL</div>
+        <h2>UN OGGETTO<br>CHE FUNZIONA<br>COME UN <span class="acc">TAG</span>.</h2>
+      </div>
+      <div class="essence">
+        Chi riceve il biglietto deve capire <b>in tre secondi</b> che stiamo costruendo un prodotto tech-fitness serio. Non un trainer indipendente, non un'agenzia di marketing, non un influencer. Un'ingegneria leggera con un'idea forte: <b>strumento, non vetrina</b>.
+      </div>
+    </div>
+
+    <p style="font-family: var(--f-display); font-weight: 400; font-size: clamp(28px, 3.4vw, 44px); line-height: 1.05; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); max-width: 24ch; margin-bottom: 56px;">
+      L'oggetto deve sembrare un'<span style="color: var(--accent);">etichetta</span> da strumentazione,<br>non un biglietto da palestra.
+    </p>
+
+    <div class="priority">
+      <div class="pri-card">
+        <div class="rank">/01</div>
+        <span class="lab">Trigger · eventi fitness</span>
+        <h4>FIERE,<br>PALESTRE,<br>WORKSHOP.</h4>
+        <p>Contesto rumoroso, visivo saturo. La concorrenza visiva sono <b>cataloghi a colori</b>, brochure di integratori, totem motivazionali. Stiamo al polo opposto: <b>nero, asciutto, monolitico</b>. Si nota perché tutto il resto urla.</p>
+        <div class="specimen">SEMBRA UN OGGETTO TECNICO.</div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">/02</div>
+        <span class="lab">Trigger · personal trainer</span>
+        <h4>INCONTRI<br>UNO A UNO.</h4>
+        <p>Il PT è un futuro <em>moltiplicatore</em>. Se gli piace il prodotto, lo mostra ai suoi clienti. Il biglietto deve dirgli "<b>sei tra pari</b>" — niente toni da agenzia. Tono e materiale che riconoscerebbe in una specifica tecnica di una macchina Technogym.</p>
+        <div class="specimen body">"Da pari a pari. Senza marketing."</div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">/03</div>
+        <span class="lab">Trigger · micro-influencer</span>
+        <h4>CREATOR<br>TECNICI.</h4>
+        <p>Bro fit-influencer no. <b>Coach evidence-based, atleti calisthenics, powerlifter</b> sì. Il biglietto si fotografa bene per stories — il dorso lime è il "money shot" da postare con un'unghia che lo tiene su Instagram.</p>
+        <div class="specimen mono">→ instagrammabile sul dorso</div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">/04</div>
+        <span class="lab">Trigger · partner business</span>
+        <h4>FORNITORI,<br>VC, LEGALI.</h4>
+        <p>Per i contesti business si usa il <b>biglietto + la carta intestata insieme</b>: gli stessi codici, due fascie di gravitas. La carta intestata su Munken Pure dice <em>"piccola azienda con cura"</em> meglio di un sito.</p>
+        <div class="specimen label">Founder · serio</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 02 · INFORMATION PRIORITY -->
+<!-- ============================== -->
+<section class="section" id="priority" data-screen-label="03 Priorità">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 02 · Priorità informativa</span>
+      <span>Cosa va dove · ordine</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/02 · PRIORITY</div>
+        <h2>SETTE INFO.<br>UN ORDINE<br><span class="acc">PRECISO</span>.</h2>
+      </div>
+      <div class="essence">
+        Su un biglietto 85×55 mm ci sta TUTTO ma non tutto è uguale. Sotto la <b>scala di priorità</b> visiva: cosa cattura l'occhio prima, cosa dopo, cosa diventa "letto solo se interessato". L'ordine è normativo, non opzionale.
+      </div>
+    </div>
+
+    <div class="priority">
+      <div class="pri-card">
+        <div class="rank">01</div>
+        <span class="lab">P1 · Cattura immediata</span>
+        <h4>WORDMARK<br>PUMP<span style="color: var(--accent);">/</span>LOG</h4>
+        <p>L'unico elemento che <b>deve essere visto a 1,5 m di distanza</b>. Bebas Neue 38pt, slash lime. È l'80% della funzione del biglietto: dire chi sei. Tutto il resto è dettaglio.</p>
+        <div class="specimen">PUMP<span style="color: var(--accent);">/</span>LOG</div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">02</div>
+        <span class="lab">P2 · Identità persona</span>
+        <h4>NOME +<br>RUOLO.</h4>
+        <p>Il <b>nome</b> in Barlow 12-14pt bold. Il <b>ruolo</b> sotto in Barlow Condensed 9pt uppercase 0.25em. "Founder / Developer" — due parole, mai più di tre. Niente "CEO &amp; Co-founder" né tantomeno "Visionary".</p>
+        <div class="specimen body">Marco Bianchi<br><span style="font-family: var(--f-condensed); font-weight: 700; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink-2);">Founder · Developer</span></div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">03</div>
+        <span class="lab">P3 · Contatto operativo</span>
+        <h4>EMAIL +<br>URL.</h4>
+        <p>I due contatti che <b>servono davvero</b>. Entrambi in Roboto Mono 9pt — sono dati, vanno trattati come tali. L'URL <span style="font-family: var(--f-mono); color: var(--accent);">pumplog.app</span> precede l'email per ordine narrativo: prima il prodotto, poi la persona.</p>
+        <div class="specimen mono">pumplog.app<br>marco@pumplog.it</div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">04</div>
+        <span class="lab">P4 · Identità social</span>
+        <h4>INSTAGRAM<br>HANDLE.</h4>
+        <p>Solo <span style="font-family: var(--f-mono); color: var(--accent);">@pumplog</span>. Niente LinkedIn personale, niente Twitter/X, niente TikTok. <b>Una sola voce sociale</b>: l'Instagram del prodotto è dove si vede di cosa parliamo. Roboto Mono 9pt, prefissato dalla chiocciola.</p>
+        <div class="specimen mono">@pumplog</div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">05</div>
+        <span class="lab">P5 · Tagline</span>
+        <h4>L'ALLENAMENTO,<br>DAVVERO <span style="color: var(--accent);">TRACCIATO</span>.</h4>
+        <p>Solo sul <b>dorso</b>, mai sulla fronte. Funziona come "manifesto fotografabile". Barlow 12pt 500, allineata al wordmark grande. La virgola serve.</p>
+        <div class="specimen body">L'allenamento, davvero tracciato.</div>
+      </div>
+
+      <div class="pri-card">
+        <div class="rank">06</div>
+        <span class="lab">P6 · Identificatore stampa</span>
+        <h4>BIGLIETTO<br><span style="color: var(--accent);">001 / 2026</span></h4>
+        <p>Riga monospaced microscopica (7pt) negli angoli. Identifica edizione + anno di stampa. <b>Trasforma il biglietto in un "lotto"</b> — è la firma da officina tecnica, non da agenzia. Opzionale ma fortemente raccomandato.</p>
+        <div class="specimen mono">BIGLIETTO 001/2026</div>
+      </div>
+
+      <div class="pri-card" style="grid-column: span 2; min-height: 140px;">
+        <div class="rank" style="color: var(--ink-3);">07</div>
+        <span class="lab" style="color: var(--ink-3);">P7 · Mai presenti su biglietto</span>
+        <h4>QR · INDIRIZZO · LINKEDIN · TELEFONO.</h4>
+        <p>
+          <b style="color: var(--danger);">QR code</b>: vietato. È un patch di urgenza, non una scelta di design. Se vuoi che la gente arrivi al sito, il sito è <span style="font-family: var(--f-mono); color: var(--accent);">pumplog.app</span> — corto, ricordabile, già stampato.<br><br>
+          <b style="color: var(--danger);">Indirizzo fisico</b>: non siamo un'azienda con sede da visitare.<br>
+          <b style="color: var(--danger);">LinkedIn personale</b>: non è la voce del marchio. Mai sul biglietto.<br>
+          <b style="color: var(--danger);">Telefono</b>: deciso dall'utente — niente.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 03 · BUSINESS CARD A (RECOMMENDED) -->
+<!-- ============================== -->
+<section class="section" id="bcard-a" data-screen-label="04 Card A">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 03 · Biglietto · Layout A</span>
+      <span>RACCOMANDATO · scuro/lime · spot fluo</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/03 · CARD · A</div>
+        <h2>BIGLIETTO A.<br><span class="acc">RACCOMANDATO</span>.</h2>
+      </div>
+      <div class="essence">
+        Front in nero profondo con tutte le informazioni operative. Back in lime fluo con wordmark massivo + tagline. Il <b>dorso lime</b> è il "money shot" — quello che la gente fotografa al volo. <span style="color: var(--accent);">Questa è la versione che produciamo.</span>
+      </div>
+    </div>
+
+    <!-- FRONT -->
+    <h3 style="font-family: var(--f-display); font-weight: 400; font-size: 36px; line-height: 0.95; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); margin-bottom: 24px;">
+      A · FRONT · <span style="color: var(--accent);">INFO</span>
+    </h3>
+
+    <div class="bc-stage">
+      <div class="bc-stack">
+        <div class="meta"><span>SCALA</span><b>4×</b><span>· 85 × 55 mm</span></div>
+        <div class="bcard front bc-front-a">
+          <div class="wm">PUMP<span class="acc">/</span>LOG</div>
+          <div class="corner-tr">EDIZIONE<br><b>001 / 2026</b></div>
+          <div class="divider"></div>
+          <div class="name-block">
+            <span class="name">Marco Bianchi</span>
+            <span class="role">Founder · Developer</span>
+          </div>
+          <div class="contact-block">
+            <div><span class="lbl">W</span><span class="acc">pumplog.app</span></div>
+            <div><span class="lbl">E</span>marco@pumplog.it</div>
+            <div><span class="lbl">IG</span>@pumplog</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Front · scheda tecnica</h3>
+        <div class="spec-row"><span class="k">Dimensioni</span><span class="v mono">85 × 55 mm · landscape</span></div>
+        <div class="spec-row"><span class="k">Bleed</span><span class="v mono">3 mm su tutti i lati · finale 91 × 61</span></div>
+        <div class="spec-row"><span class="k">Safe zone</span><span class="v mono">4 mm da ogni bordo</span></div>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v">Nero profondo <b>#0C0C0D</b> · piatto · zero pattern</span></div>
+        <div class="spec-row"><span class="k">Wordmark</span><span class="v">Bebas Neue · 38pt · top-left · "/" in lime</span></div>
+        <div class="spec-row"><span class="k">Divisore</span><span class="v">Linea 1px Surface 3 a metà altezza · tick 40px lime sx</span></div>
+        <div class="spec-row"><span class="k">Nome</span><span class="v">Barlow 600 · 14pt · bottom-left</span></div>
+        <div class="spec-row"><span class="k">Ruolo</span><span class="v">Barlow Condensed 700 · 9pt · 0.25em · uppercase</span></div>
+        <div class="spec-row"><span class="k">Contatti</span><span class="v">Roboto Mono 500 · 9pt · bottom-right · 3 righe</span></div>
+        <div class="spec-row"><span class="k">Edizione</span><span class="v">Roboto Mono 500 · 8pt · top-right · "001 / 2026"</span></div>
+        <div class="spec-row"><span class="k">Lime area</span><span class="v"><b>≈ 3%</b> · slash + URL + tick + label edizione</span></div>
+      </div>
+    </div>
+
+    <!-- BACK -->
+    <h3 style="font-family: var(--f-display); font-weight: 400; font-size: 36px; line-height: 0.95; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); margin: 80px 0 24px;">
+      A · BACK · <span style="color: var(--accent);">MANIFESTO</span>
+    </h3>
+
+    <div class="bc-stage">
+      <div class="bc-stack">
+        <div class="meta"><span>SCALA</span><b>4×</b><span>· dorso lime fluo</span></div>
+        <div class="bcard back bc-back-a">
+          <div class="corner-tl">PUMP/LOG · 2026</div>
+          <div class="wm-huge">PUMP/LOG</div>
+          <div class="tag">L'allenamento, davvero tracciato.</div>
+          <div class="corner-br">MADE IN ITALY</div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Back · scheda tecnica</h3>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v">Lime <b>#C8FF00</b> · Pantone 389C · 100% area</span></div>
+        <div class="spec-row"><span class="k">Wordmark</span><span class="v">Bebas Neue · 88pt · NERO PURO #000 · centrato H/V</span></div>
+        <div class="spec-row"><span class="k">Slash</span><span class="v">Stesso peso del resto · in nero (non lime su lime)</span></div>
+        <div class="spec-row"><span class="k">Tagline</span><span class="v">Barlow 500 · 12pt · nero · sotto il wordmark · gap 14pt</span></div>
+        <div class="spec-row"><span class="k">Label top-sx</span><span class="v">Roboto Mono 500 · 8pt · nero α 60% · "PUMP/LOG · 2026"</span></div>
+        <div class="spec-row"><span class="k">Label bot-dx</span><span class="v">Roboto Mono 500 · 8pt · nero α 60% · "MADE IN ITALY"</span></div>
+        <div class="spec-row"><span class="k">Inchiostro</span><span class="v"><b>NERO 100%</b> · solo · sotto-stampa lime piena</span></div>
+        <div class="spec-row"><span class="k">Letture</span><span class="v">A 1,5m: wordmark · a 30cm: tagline + label angoli</span></div>
+        <div class="spec-row"><span class="k">Foto-OK</span><span class="v">Progettato per essere fotografato e postato</span></div>
+      </div>
+    </div>
+
+    <!-- LAYOUT ASCII -->
+    <h3 style="font-family: var(--f-condensed); font-weight: 700; font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink); margin: 64px 0 16px;">
+      Esempio layout · forma testuale · A · Front
+    </h3>
+
+    <div class="ascii"><span class="h">┌─────────────────────────────────────────────────┐ ← bleed 3mm
+│ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │</span><span class="l">
+│ ╭─ safe zone ─ 4mm ──────────────────────────╮ │</span>
+<span class="h">│ │ </span>PUMP<span class="h">/</span>LOG                    EDIZIONE      <span class="h">│ │
+│ │ </span>↑ Bebas 38pt              <span class="l">↑ Mono 8pt</span> <span class="h">│ │
+│ │ </span>  bianco + lime "/"        <span class="l">"001 / 2026"</span> <span class="h">│ │
+│ │                                              │ │
+│ │ </span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ <span class="h">│ │
+│ │ </span><span class="l">↑ rule 1px + tick lime 40px sx           </span><span class="h">│ │
+│ │                                              │ │
+│ │ </span><span class="l">Marco Bianchi              W </span>pumplog.app   <span class="h">│ │
+│ │ </span><span class="l">↑ Barlow 600 14pt           ↑ Mono 9pt</span>    <span class="h">│ │
+│ │ </span><span class="l">FOUNDER · DEVELOPER        E </span>marco@…      <span class="h">│ │
+│ │ </span><span class="l">↑ Barlow Cond 700 9pt      IG </span>@pumplog     <span class="h">│ │
+│ │                                              │ │
+│ ╰─────────────────────────────────────────────╯ │
+└─────────────────────────────────────────────────┘
+                ↑ 85mm × 55mm · nero #0C0C0D</span></div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 04 · BUSINESS CARD B (ALT) -->
+<!-- ============================== -->
+<section class="section" id="bcard-b" data-screen-label="05 Card B">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 04 · Biglietto · Layout B</span>
+      <span>ALTERNATIVO · type-led · puro</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/04 · CARD · B</div>
+        <h2>BIGLIETTO B.<br><span class="acc">ALTERNATIVA</span>.</h2>
+      </div>
+      <div class="essence">
+        Opzione type-driven: front <b>solo wordmark</b> grande centrato, niente info. Back tutte le informazioni in due colonne. Più "magazine cover" della A, più radicale, meno funzionale per scambio diretto.<br><br>
+        <b>Usare se</b>: il biglietto si dà <em>insieme</em> a un piccolo gadget (sticker, lettera personalizzata) o se il founder predilige un gesto più editoriale.
+      </div>
+    </div>
+
+    <!-- FRONT -->
+    <div class="bc-stage">
+      <div class="bc-stack">
+        <div class="meta"><span>B · FRONT</span><b>WORDMARK PURO</b></div>
+        <div class="bcard front bc-front-b">
+          <div class="corner-tl">PUMP/LOG · 2026</div>
+          <div class="wm-center">PUMP<span class="acc">/</span>LOG</div>
+          <div class="corner-br">EDIZIONE<br><b>001 / 2026</b></div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>B · Front · type-led</h3>
+        <div class="spec-row"><span class="k">Composizione</span><span class="v">Wordmark centrato V e H · 80pt · gigante</span></div>
+        <div class="spec-row"><span class="k">Wordmark</span><span class="v">Bebas Neue 80pt · "/" lime · zero altre informazioni</span></div>
+        <div class="spec-row"><span class="k">Corner-tl</span><span class="v">Barlow Condensed 700 · 9pt · "PUMP/LOG · 2026"</span></div>
+        <div class="spec-row"><span class="k">Corner-br</span><span class="v">Mono 8pt · numero edizione (stessa formula della A)</span></div>
+        <div class="spec-row"><span class="k">Effetto</span><span class="v">Più <b>poster</b> che biglietto · oggetto da collezionare</span></div>
+        <div class="spec-row"><span class="k">Rischio</span><span class="v" style="color: var(--ink-2);">Senza email/URL serve un secondo touchpoint per chiudere</span></div>
+      </div>
+    </div>
+
+    <!-- BACK -->
+    <div class="bc-stage" style="margin-top: 56px;">
+      <div class="bc-stack">
+        <div class="meta"><span>B · BACK</span><b>INFO COMPLETE</b></div>
+        <div class="bcard front bc-back-b">
+          <div class="corner-tl">PUMP<span class="acc">/</span>LOG</div>
+          <div class="info-grid">
+            <div class="name">
+              Marco Bianchi
+              <span class="role">Founder · Developer</span>
+            </div>
+            <div class="contact">
+              <span class="acc">pumplog.app</span><br>
+              marco@pumplog.it<br>
+              @pumplog
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>B · Back · info two-column</h3>
+        <div class="spec-row"><span class="k">Composizione</span><span class="v">Wordmark piccolo top-left + 2 colonne bottom</span></div>
+        <div class="spec-row"><span class="k">Wordmark mini</span><span class="v">Bebas Neue 22pt · solito slash lime · top-left</span></div>
+        <div class="spec-row"><span class="k">Colonna sx</span><span class="v">Nome (Barlow 600 · 16pt) + ruolo sotto in Barlow Condensed</span></div>
+        <div class="spec-row"><span class="k">Colonna dx</span><span class="v">Contatti right-aligned · Roboto Mono 10pt · 3 righe</span></div>
+        <div class="spec-row"><span class="k">URL</span><span class="v">In lime · prima riga · è la prima cosa che leggi</span></div>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v">Nero #0C0C0D entrambe le facce · niente lime sul back</span></div>
+      </div>
+    </div>
+
+    <p style="margin-top: 56px; padding: 24px 28px; border: 1px dashed var(--rule-2); background: var(--bg-2); font-family: var(--f-body); font-weight: 400; font-size: 15px; line-height: 1.65; color: var(--ink); max-width: 78ch;">
+      <span style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 10px;">▸ Decisione di stampatura</span>
+      Stampare <b style="color: var(--accent);">solo la versione A</b> nella prima tiratura. La B la conserviamo per un secondo lotto editoriale (es. 50 biglietti speciali da consegnare a partner strategici, con un piccolo testo manoscritto sul retro). Non miscelare le due versioni nella stessa stampa: <b>il founder porta una sola tipologia</b> alla volta.
+    </p>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 05 · LETTERHEAD -->
+<!-- ============================== -->
+<section class="section" id="letterhead" data-screen-label="06 Carta intestata">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 05 · Carta intestata · A4</span>
+      <span>Versione carta + versione digitale PDF</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/05 · LETTERHEAD</div>
+        <h2>A4.<br>DUE <span class="acc">VERSIONI</span>.<br>STESSA VOCE.</h2>
+      </div>
+      <div class="essence">
+        Due varianti della stessa carta intestata: <b>cartacea</b> (Munken Pure, stampa offset, per comunicazioni formali) e <b>digitale-PDF</b> (per email, allegati, fatture). Identica composizione, materiali diversi. <b>Versione master = chiara su carta naturale.</b>
+      </div>
+    </div>
+
+    <!-- PAPER version -->
+    <h3 style="font-family: var(--f-display); font-weight: 400; font-size: 36px; line-height: 0.95; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); margin-bottom: 24px;">
+      VERSIONE A · <span style="color: var(--accent);">CARTA</span>
+    </h3>
+
+    <div class="lh-stage">
+      <div class="lh-stack">
+        <div class="meta"><span>SCALA</span><b style="color: var(--accent);">1.8×</b><span>· 210 × 297 mm</span></div>
+        <div class="letterhead">
+          <div class="lh-header">
+            <div class="wm">PUMP<span class="acc">/</span>LOG</div>
+            <div class="doc-meta">DOCUMENTO<b>Pitch · 05.2026</b>RIF<b>PL-2026-014</b></div>
+          </div>
+          <div class="lh-rule"></div>
+
+          <div class="lh-body">
+            <div class="recipient">A:<b>FitGym Padova · Marco Sartori</b>via Roma 42 · 35100 Padova (PD)</div>
+            <div class="date">PADOVA, 15.05.2026</div>
+            <div class="subject">OGGETTO · COLLABORAZIONE TECNICA</div>
+
+            <p>Gentile Marco,</p>
+            <p>ti scrivo per proporti una collaborazione tecnica intorno a <b>PumpLog</b>, l'app italiana per il tracking dell'allenamento serio che stiamo sviluppando dal 2025.</p>
+            <p>Da una prima analisi dei dati della community di FitGym Padova, il profilo dei vostri soci intermedi corrisponde al <span class="mono">82%</span> al nostro target di riferimento:</p>
+            <div class="stat">
+              <span class="l">Età media</span><span>24-32 anni</span>
+              <span class="l">Anni allenamento</span><span>2-4 anni</span>
+              <span class="l">Frequenza sett.</span><span>3-5 sedute</span>
+              <span class="l">Mix pesi/BW</span><span>74% / 26%</span>
+            </div>
+            <p>Proponiamo: <b>licenze gratuite a 6 mesi</b> per tutti i soci attivi, in cambio di un modulo di feedback semestrale anonimo. Nessuna integrazione tecnica richiesta dalla vostra parte.</p>
+            <p>Saremo a Padova il 28 e 29 di questo mese: ti va di vederci per un caffè?</p>
+            <div class="sig">
+              <div class="name">Marco Bianchi</div>
+              <div class="role">Founder · Developer · PumpLog</div>
+            </div>
+          </div>
+
+          <div class="lh-footer">
+            <div>
+              <b>PumpLog srl</b>
+              Via [da definire]<br>
+              [città · cap]
+            </div>
+            <div class="center">
+              <b>Contatti</b>
+              pumplog.app<br>
+              hello@pumplog.it
+            </div>
+            <div class="right">
+              <b>P.IVA · 01/01</b>
+              [n. IVA]<br>
+              REA [n.]
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Lettera · scheda tecnica</h3>
+        <div class="spec-row"><span class="k">Formato</span><span class="v mono">A4 · 210 × 297 mm · portrait</span></div>
+        <div class="spec-row"><span class="k">Margini</span><span class="v mono">SX/DX 32 mm · TOP 24 mm · BOT 24 mm</span></div>
+        <div class="spec-row"><span class="k">Bleed</span><span class="v mono">3 mm su tutti i lati per la linea lime</span></div>
+        <div class="spec-row"><span class="k">Header zone</span><span class="v">Top 32 mm · wordmark sx + meta documento dx · rule lime 2px</span></div>
+        <div class="spec-row"><span class="k">Body zone</span><span class="v">~ 230 mm · margini interni 0 · Barlow 11pt 1.6 line-height</span></div>
+        <div class="spec-row"><span class="k">Footer zone</span><span class="v">Bottom 24 mm · 3 colonne · Roboto Mono 7pt · separatore 1px</span></div>
+        <div class="spec-row"><span class="k">Stat-block</span><span class="v">Background grigio 4% nero + border-left 2px lime · Roboto Mono</span></div>
+        <div class="spec-row"><span class="k">Carta</span><span class="v">Munken Pure <b>100gsm</b> · naturale · uncoated · #F4F1E8</span></div>
+        <div class="spec-row"><span class="k">Stampa</span><span class="v">Offset 2 colori · Pantone 389C + Black 100% · risma 500</span></div>
+        <div class="spec-row"><span class="k">Tono lime</span><span class="v">SOLO sul filetto orizzontale e sull'header lockup ("/" e accent)</span></div>
+      </div>
+    </div>
+
+    <!-- DIGITAL version -->
+    <h3 style="font-family: var(--f-display); font-weight: 400; font-size: 36px; line-height: 0.95; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); margin: 80px 0 24px;">
+      VERSIONE B · <span style="color: var(--accent);">DIGITALE</span> · PDF
+    </h3>
+
+    <div class="lh-stage">
+      <div class="lh-stack">
+        <div class="meta"><span>SCALA</span><b style="color: var(--accent);">1.8×</b><span>· export PDF · dark mode</span></div>
+        <div class="letterhead dark">
+          <div class="lh-header">
+            <div class="wm">PUMP<span class="acc">/</span>LOG</div>
+            <div class="doc-meta">DOCUMENTO<b>Specifica tecnica</b>RIF<b>PL-2026-018</b></div>
+          </div>
+          <div class="lh-rule"></div>
+
+          <div class="lh-body">
+            <div class="recipient">A:<b>Studio Legale Conti &amp; Verri</b>avv. Laura Conti · Milano</div>
+            <div class="date">MILANO, 14.05.2026</div>
+            <div class="subject">OGGETTO · TERMINI DI SERVIZIO · REVISIONE</div>
+
+            <p>Avvocato Conti,</p>
+            <p>in allegato la prima bozza dei <b>Termini di Servizio</b> per PumpLog e dell'<b>Informativa Privacy</b> conforme al GDPR.</p>
+            <p>Le segnalo i tre punti aperti che vorrei discutere:</p>
+            <div class="stat">
+              <span class="l">/01</span><span>Storage locale vs sync opzionale</span>
+              <span class="l">/02</span><span>Data retention post-uninstall</span>
+              <span class="l">/03</span><span>Export CSV come diritto utente</span>
+            </div>
+            <p>Sono a disposizione per una call la prossima settimana. <b>Mercoledì 21 alle 14:30</b> ti andrebbe bene?</p>
+            <div class="sig">
+              <div class="name">Marco Bianchi</div>
+              <div class="role">Founder · PumpLog</div>
+            </div>
+          </div>
+
+          <div class="lh-footer">
+            <div>
+              <b>PumpLog srl</b>
+              [sede legale]<br>
+              [città · cap]
+            </div>
+            <div class="center">
+              <b>Contatti</b>
+              pumplog.app<br>
+              hello@pumplog.it
+            </div>
+            <div class="right">
+              <b>P.IVA · 01/01</b>
+              [n. IVA]<br>
+              REA [n.]
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Versione digitale · scheda</h3>
+        <div class="spec-row"><span class="k">Output</span><span class="v">PDF/X-1a · 300 dpi · A4 portrait · sub-set font OFL</span></div>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v">Nero <b>#0C0C0D</b> · stesso del prodotto digitale</span></div>
+        <div class="spec-row"><span class="k">Testo</span><span class="v">Bianco caldo <b>#F0EFE8</b> · Barlow 11pt · stesso line-height carta</span></div>
+        <div class="spec-row"><span class="k">Footer</span><span class="v">Rule top in #2A2A2D · Roboto Mono 7pt #F0EFE8 α 55%</span></div>
+        <div class="spec-row"><span class="k">Quando usarla</span><span class="v">Email allegati · invoice · contratti · proposte tecniche</span></div>
+        <div class="spec-row"><span class="k">Vincolo</span><span class="v" style="color: var(--ink-2);">Non stampare la versione dark su carta. È pensata per schermo.</span></div>
+        <div class="spec-row"><span class="k">Stampare?</span><span class="v" style="color: var(--ink-2);">Mai. Se serve carta, usare la versione A su Munken.</span></div>
+      </div>
+    </div>
+
+    <!-- LAYOUT ASCII -->
+    <h3 style="font-family: var(--f-condensed); font-weight: 700; font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink); margin: 64px 0 16px;">
+      Esempio layout · forma testuale · A4 portrait
+    </h3>
+
+    <div class="ascii"><span class="h">┌───────────────────────────────────────────┐ ← bleed 3mm
+│                                           │
+│   </span>PUMP<span class="h">/</span>LOG                    DOCUMENTO   <span class="h">│ ← 24mm top
+│   </span><span class="l">↑ Bebas 32pt              ↑ Mono 8pt</span>    <span class="h">│
+│   </span><span class="l">slash lime                Pitch · 05.2026</span> <span class="h">│
+│   </span><span class="d">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>   <span class="h">│
+│   </span><span class="l">↑ rule lime 2px · da sx a dx </span>            <span class="h">│
+│                                           │
+│   </span><span class="l">A: [destinatario]               [data]</span>   <span class="h">│
+│                                           │
+│   </span><span class="l">OGGETTO · [tema]</span>                        <span class="h">│
+│                                           │
+│   </span>Body text Barlow 11pt 1.6 line-height. <span class="h">│
+│   </span>Paragrafi separati. Massimale ridotto. <span class="h">│
+│                                           │
+│   </span>┌──────────────────────────────────┐  <span class="h">│
+│   </span>│ <span class="l">stat-block · Roboto Mono · lime</span> │  <span class="h">│
+│   </span>└──────────────────────────────────┘  <span class="h">│
+│                                           │
+│   </span>[firma]                                 <span class="h">│
+│                                           │
+│   </span><span class="d">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>   <span class="h">│
+│   </span>PumpLog srl  ·  pumplog.app  ·  P.IVA  <span class="h">│  ← 24mm bot
+│   </span><span class="l">↑ Mono 7pt · 3 colonne · ink-3</span>           <span class="h">│
+│                                           │
+└───────────────────────────────────────────┘
+                ↑ 210mm × 297mm A4
+                  carta · Munken Pure 100gsm</span></div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 06 · COLOR USE IN PRINT -->
+<!-- ============================== -->
+<section class="section" data-screen-label="07 Colori print">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 06 · Colori in stampa</span>
+      <span>Pantone · CMYK fallback · paper</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/06 · COLOR</div>
+        <h2>QUATTRO COLORI.<br><span class="acc">DUE INCHIOSTRI</span>.</h2>
+      </div>
+      <div class="essence">
+        Il sistema digitale ha 4 colori principali · in stampa diventa <b>2 inchiostri</b>: nero 100% + Pantone 389C fluo. Tutto il resto è valore di sfondo (carta) o overprint. <b>Mai CMYK</b> per il lime: il lime fluorescente non si riproduce in quadricromia. Spot mandatorio.
+      </div>
+    </div>
+
+    <div class="color-table">
+      <div class="color-row h">
+        <div>Swatch</div>
+        <div>Ruolo</div>
+        <div>Digital · #</div>
+        <div>Print · Pantone</div>
+        <div>CMYK fallback</div>
+      </div>
+
+      <div class="color-row">
+        <div class="swatch" style="background: #C8FF00;"></div>
+        <div class="name">Lime fluo<small>Accent · slash · rule</small></div>
+        <div class="val"><span class="l">HEX</span>#C8FF00</div>
+        <div class="val"><span class="l">SPOT</span>Pantone <b>389 C</b><br>(Neon Yellow)</div>
+        <div class="val"><span class="l">CMYK</span>22 · 0 · 100 · 0<br><small style="color: var(--danger); font-family: var(--f-condensed); letter-spacing: 0.1em; text-transform: uppercase;">⚠ non equivalente</small></div>
+      </div>
+
+      <div class="color-row">
+        <div class="swatch" style="background: #000000;"></div>
+        <div class="name">Nero puro<small>Inchiostro · su lime</small></div>
+        <div class="val"><span class="l">HEX</span>#000000</div>
+        <div class="val"><span class="l">SPOT</span>Pantone <b>Black C</b></div>
+        <div class="val"><span class="l">CMYK</span>0 · 0 · 0 · 100</div>
+      </div>
+
+      <div class="color-row">
+        <div class="swatch" style="background: #0C0C0D;"></div>
+        <div class="name">Nero profondo<small>Bg biglietto front</small></div>
+        <div class="val"><span class="l">HEX</span>#0C0C0D</div>
+        <div class="val"><span class="l">SPOT</span>Rich Black<br>= 60+40+40+100</div>
+        <div class="val"><span class="l">CMYK</span>60 · 40 · 40 · 100<br><small style="color: var(--accent); font-family: var(--f-condensed); letter-spacing: 0.1em; text-transform: uppercase;">su carta uncoated</small></div>
+      </div>
+
+      <div class="color-row">
+        <div class="swatch" style="background: #F4F1E8;"></div>
+        <div class="name">Carta naturale<small>Bg letterhead</small></div>
+        <div class="val"><span class="l">HEX</span>#F4F1E8</div>
+        <div class="val"><span class="l">CARTA</span>Munken Pure<br>oppure Arena Natural</div>
+        <div class="val"><span class="l">CMYK</span>—<br><small style="color: var(--ink-2);">naturale del foglio</small></div>
+      </div>
+
+      <div class="color-row">
+        <div class="swatch" style="background: #F0EFE8;"></div>
+        <div class="name">Bianco caldo<small>Testo su nero</small></div>
+        <div class="val"><span class="l">HEX</span>#F0EFE8</div>
+        <div class="val"><span class="l">SPOT</span>Bianco coprente</div>
+        <div class="val"><span class="l">CMYK</span>—<br><small style="color: var(--ink-2);">solo serigrafia/foil</small></div>
+      </div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 28px 32px; border: 1px solid var(--accent); background: rgba(200,255,0,0.04);">
+      <span style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 14px;">▸ Nota critica · spot vs CMYK</span>
+      <p style="font-family: var(--f-body); font-weight: 400; font-size: 15px; line-height: 1.65; color: var(--ink); max-width: 80ch;">
+        Il lime <b style="color: var(--accent);">#C8FF00</b> in CMYK diventa un giallo-verde opaco (22·0·100·0). <b>Perde tutta la fluorescenza, perde il chroma, perde l'identità</b>. Per il biglietto da visita, l'uso di Pantone 389C è <b>non negoziabile</b>. Per la lettera A4, in caso di stampa digitale economica, il CMYK è tollerabile solo sul filetto sottile (2px lime) — non sul wordmark slash. Lo stampatore deve sapere: <b>"il lime è un'identità, non un colore decorativo"</b>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 07 · TYPE HIERARCHY -->
+<!-- ============================== -->
+<section class="section" data-screen-label="08 Type hierarchy">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 07 · Gerarchia tipografica · stampa</span>
+      <span>Scala point-size · per output</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/07 · TYPE</div>
+        <h2>STESSE QUATTRO<br>FAMIGLIE.<br><span class="acc">SCALA</span> RIDOTTA.</h2>
+      </div>
+      <div class="essence">
+        Per stampa la scala si <b>asciuga</b> rispetto a schermo. Bebas resta dominante ma scende a 38pt sul biglietto. Il body Barlow scende a 11pt (era 15-17px digitale). Roboto Mono passa a 7-9pt per dati e meta. <b>Niente sotto i 7pt</b>: minimo leggibile su carta.
+      </div>
+    </div>
+
+    <div class="type-table">
+      <div class="type-row h">
+        <div>Ruolo · uso</div>
+        <div>Size pt</div>
+        <div>Peso</div>
+        <div>Sample</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Hero / wordmark<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Dorso lime biglietto</small></div>
+        <div class="size">88</div>
+        <div class="weight">Bebas 400</div>
+        <div class="sample display" style="font-size: 38px;">PUMP<span style="color: var(--accent);">/</span>LOG</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Brand · front<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Front biglietto + letterhead</small></div>
+        <div class="size">38 / 32</div>
+        <div class="weight">Bebas 400</div>
+        <div class="sample display" style="font-size: 22px;">PUMP<span style="color: var(--accent);">/</span>LOG</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Nome persona<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Front biglietto + firma letterhead</small></div>
+        <div class="size">14 / 11</div>
+        <div class="weight">Barlow 600</div>
+        <div class="sample body bold">Marco Bianchi</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Body lettera<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Corpo della lettera A4</small></div>
+        <div class="size">11</div>
+        <div class="weight">Barlow 400</div>
+        <div class="sample body">Allenamento, davvero tracciato.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Tagline<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Dorso lime biglietto</small></div>
+        <div class="size">12</div>
+        <div class="weight">Barlow 500</div>
+        <div class="sample body">L'allenamento, davvero tracciato.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Ruolo / categoria<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Sotto al nome · ovunque</small></div>
+        <div class="size">9 / 8</div>
+        <div class="weight">B. Cond 700</div>
+        <div class="sample cond">Founder · Developer</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Sezioni lettera<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">"Oggetto" + sezioni interne</small></div>
+        <div class="size">9</div>
+        <div class="weight">B. Cond 700</div>
+        <div class="sample cond">Oggetto · Collaborazione</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Dati / contatti<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">URL, email, IG · ovunque</small></div>
+        <div class="size">9 / 10</div>
+        <div class="weight">R. Mono 500</div>
+        <div class="sample mono">pumplog.app · @pumplog</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Meta / footer<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Edizione, P.IVA, riferimento</small></div>
+        <div class="size">7 / 8</div>
+        <div class="weight">R. Mono 500</div>
+        <div class="sample mono" style="font-size: 11px;">P.IVA 12345678901 · REA 987654</div>
+      </div>
+
+      <div class="type-row">
+        <div class="role">Minimo assoluto<br><small style="font-family: var(--f-body); font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--ink-2);">Vietato sotto questo limite</small></div>
+        <div class="size">7</div>
+        <div class="weight">—</div>
+        <div class="sample mono" style="font-size: 10px; color: var(--ink-2);">Sotto i 7pt = illeggibile su uncoated</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 08 · FINISH & PAPER -->
+<!-- ============================== -->
+<section class="section" data-screen-label="09 Finish">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 08 · Finish · paper · stamperia</span>
+      <span>Carta + inchiostri + finiture</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/08 · FINISH</div>
+        <h2>TRE LIVELLI.<br><span class="acc">UNO</span> PER<br>BUDGET REALE.</h2>
+      </div>
+      <div class="essence">
+        Tre livelli di stampa per il biglietto, dal "<b>good enough</b>" al "<b>signature piece</b>". Il livello <b>02 Standard</b> è la mia raccomandazione di partenza — già premium percepito, costo gestibile. Il livello 03 si attiva se decidiamo di fare un biglietto-evento per round/partnership importanti.
+      </div>
+    </div>
+
+    <div class="finish-grid">
+      <div class="finish-card alt">
+        <span class="lab">/01 · ECONOMY</span>
+        <h4>DIGITALE<br>HP INDIGO.</h4>
+        <p>Stampa digitale 4 colori. Lime in CMYK <b>= compromesso</b>, perde fluorescenza. Buono per primi <span class="mono">100-200</span> pezzi di test, eventi interni o tirature urgenti.</p>
+        <div class="specs">
+          <b>Stampa</b> · Digitale 4c (no Pantone)<br>
+          <b>Carta</b> · 350gsm uncoated standard<br>
+          <b>Finitura</b> · matte · no plast.<br>
+          <b>Bleed</b> · 3 mm · taglio dritto<br>
+          <b>Lead time</b> · 3-5 giorni<br>
+        </div>
+        <div class="price">€80<small>/ 200 pezzi · 2 facce</small></div>
+      </div>
+
+      <div class="finish-card">
+        <span class="lab">/02 · STANDARD · raccomandato</span>
+        <h4>OFFSET<br>+ SPOT FLUO.</h4>
+        <p>Stampa offset 2 colori (nero + Pantone 389C). Lime <b>vero, fluorescente</b>. Carta uncoated naturale 350gsm. <b>Questa è la versione canonica</b> del biglietto PumpLog.</p>
+        <div class="specs">
+          <b>Stampa</b> · Offset 2c · Pantone 389C + Black<br>
+          <b>Carta</b> · Fedrigoni Arena Natural Rough <b>350gsm</b><br>
+          <b>Finitura</b> · matte naturale · no lamin.<br>
+          <b>Bleed</b> · 3 mm · taglio guillotine<br>
+          <b>Lead time</b> · 7-10 giorni
+        </div>
+        <div class="price">€220<small>/ 500 pezzi · 2 facce</small></div>
+      </div>
+
+      <div class="finish-card">
+        <span class="lab">/03 · SIGNATURE</span>
+        <h4>OFFSET<br>+ EDGE PAINT<br>+ DEBOSS.</h4>
+        <p>Come 02 + <b>painted edge in lime</b> sui 4 bordi del biglietto + deboss del wordmark sul front (rilievo cieco percettibile al tatto). Pezzo da partner strategici, primo round VC, founder summit.</p>
+        <div class="specs">
+          <b>Stampa</b> · Offset 2c · Pantone 389C + Black<br>
+          <b>Carta</b> · Mohawk Superfine Eggshell <b>440gsm</b><br>
+          <b>Finitura</b> · matte · edge paint lime · deboss<br>
+          <b>Bleed</b> · 3 mm + 1 mm refile<br>
+          <b>Lead time</b> · 15-20 giorni
+        </div>
+        <div class="price">€480<small>/ 250 pezzi · biglietto-evento</small></div>
+      </div>
+    </div>
+
+    <p style="margin-top: 40px; font-family: var(--f-body); font-weight: 400; font-size: 14px; color: var(--ink-2); line-height: 1.65; max-width: 70ch;">
+      <span class="mono" style="color: var(--accent);">⌖ Note di costo</span> · Prezzi indicativi italiano, fornitori tipo Pixartprinting / Cilp / Italgrafica. Per <b style="color: var(--ink);">livello 02</b> consiglio una stamperia indipendente con esperienza Pantone (es. Tipografia Negri a Milano, Officine Grafiche a Bologna). Mai usare stamperie online economiche per il livello 02-03: il Pantone fluo richiede macchina specifica.
+    </p>
+
+    <h3 style="font-family: var(--f-display); font-weight: 400; font-size: 36px; line-height: 0.95; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); margin: 64px 0 24px;">
+      CARTA INTESTATA · <span style="color: var(--accent);">UNA SOLA</span> VERSIONE.
+    </h3>
+
+    <div class="finish-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="finish-card">
+        <span class="lab">PAPER · A4 · 100gsm</span>
+        <h4>MUNKEN PURE.</h4>
+        <p>Carta naturale uncoated, <b>warm white</b>, leggermente cremosa. Texture sottile percepibile al tatto, ottima resa con inchiostro nero. È la carta dei libri Phaidon e dei brand book di Pentagram. <b>Per lettera A4 è ideale</b>: il lime sul filetto risalta senza essere invadente.</p>
+        <div class="specs">
+          <b>Carta</b> · Munken Pure White <b>100gsm</b><br>
+          <b>Formato</b> · A4 (210×297) · risma da 500<br>
+          <b>Bianco</b> · warm · <b>#F4F1E8</b> circa<br>
+          <b>Stampa</b> · Offset 2c · Pantone 389C + Black<br>
+          <b>Bleed</b> · 3 mm sul filetto lime<br>
+          <b>Lead time</b> · 7-10 giorni
+        </div>
+        <div class="price">€140<small>/ 500 fogli A4 · una facciata</small></div>
+      </div>
+
+      <div class="finish-card alt">
+        <span class="lab">ALTERNATIVA · 120gsm</span>
+        <h4>FEDRIGONI<br>ARENA WHITE.</h4>
+        <p>Alternativa economica/più rigida. Bianco più freddo, texture leggermente più liscia. Stessa resa Pantone. Da considerare se Munken Pure non è reperibile dalla stamperia.</p>
+        <div class="specs">
+          <b>Carta</b> · Fedrigoni Arena White Smooth <b>120gsm</b><br>
+          <b>Formato</b> · A4 · risma 500<br>
+          <b>Bianco</b> · neutral · #F8F7F2<br>
+          <b>Stampa</b> · Offset 2c<br>
+          <b>Bleed</b> · 3 mm<br>
+          <b>Lead time</b> · 5-7 giorni
+        </div>
+        <div class="price">€115<small>/ 500 fogli · alternativa più rigida</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 09 · ANTI-PATTERNS -->
+<!-- ============================== -->
+<section class="section" data-screen-label="10 Anti-patterns">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 09 · Anti-patterns · stampa</span>
+      <span>Cose vietate in produzione</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/09 · DON'T</div>
+        <h2>SEI CARATTERISTICHE<br>CHE <span class="acc">NON</span><br>STAMPIAMO.</h2>
+      </div>
+      <div class="essence">
+        Spostandosi dal digitale alla stampa nascono tentazioni nuove: angoli arrotondati, ombre, finiture lucide, gradienti, "biglietto fronte-retro pieno di info". <b>Sei vincoli inderogabili</b> per il print buyer.
+      </div>
+    </div>
+
+    <div class="anti-grid">
+      <div class="anti-card gradient">
+        <div class="demo"></div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Gradient sul lime</span>
+          <span class="why">Il lime è un solido. Niente sfumature lime→verde né lime→giallo. Nemmeno per "movimento". Stampa piatta solida.</span>
+        </div>
+      </div>
+
+      <div class="anti-card lime-text">
+        <div class="demo">PUMP/LOG</div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Lime su carta</span>
+          <span class="why">Su sfondo chiaro il lime perde tutto il chroma e diventa verde-stridulo. Il wordmark su carta è in nero, mai in lime.</span>
+        </div>
+      </div>
+
+      <div class="anti-card rounded">
+        <div class="demo"><span>PUMP/LOG</span></div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Angoli arrotondati</span>
+          <span class="why">Il biglietto è <b>squadrato</b>. Niente rounded corners, niente smussi. L'oggetto è geometrico, da officina, non da app store.</span>
+        </div>
+      </div>
+
+      <div class="anti-card shadow">
+        <div class="demo"><span class="word">PUMP/LOG</span></div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Ombre 3D / textshadow</span>
+          <span class="why">Niente ombra sotto il wordmark. Niente effetto rilievo simulato. Solo inchiostro piatto. Se vuoi rilievo: deboss (vedi finish 03).</span>
+        </div>
+      </div>
+
+      <div class="anti-card icons">
+        <div class="demo">
+          <div class="row"><span>📧</span><span>🌐</span><span>📱</span></div>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Icone email/URL</span>
+          <span class="why">Le label "W · E · IG" in Barlow Condensed bastano. Le iconette accanto agli indirizzi sono <b>rumore</b>. Tipografia anziché iconografia.</span>
+        </div>
+      </div>
+
+      <div class="anti-card full-info">
+        <div class="demo">
+          MARCO BIANCHI · FOUNDER &amp; CEO · PUMPLOG SRL<br>
+          PUMPLOG · Via Roma 42 · 35100 Padova (PD) · Italia<br>
+          marco@pumplog.it · +39 333 1234567 · pumplog.app<br>
+          @pumplog · linkedin.com/in/marcobianchi<br>
+          P.IVA 01234567890 · REA 987654 · twitter.com/...
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Biglietto-bigino</span>
+          <span class="why">Mai tutte le informazioni su una facciata. <b>Massimo 7 elementi</b> visivi sul front (vedi §02). Se serve più info, c'è il sito.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 10 · HANDOFF -->
+<!-- ============================== -->
+<section class="section" data-screen-label="11 Handoff">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 10 · Handoff allo stampatore</span>
+      <span>Checklist pre-produzione</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/10 · HANDOFF</div>
+        <h2>UNA <span class="acc">CHECKLIST</span>.<br>UNO STAMPATORE.<br>UN'ETICHETTA.</h2>
+      </div>
+      <div class="essence">
+        Lo stampatore riceve <b>file finali + queste due checklist</b>. Tutto il resto (cliché, preflight, prove colore) sono attività loro. La nostra responsabilità: file corretti, Pantone confermati, carta scelta, conferma proof prima del lancio.
+      </div>
+    </div>
+
+    <div class="handoff-grid">
+      <div class="handoff-card">
+        <span class="lab">/01 · File da consegnare</span>
+        <h4>PACCHETTO PRINT-READY.</h4>
+        <ul>
+          <li>PDF/X-1a · <b>1 file per faccia</b> (front + back biglietto, recto letterhead)</li>
+          <li>Risoluzione <span class="mono">300 dpi</span> · color profile <b>Fogra 39 / 51</b></li>
+          <li>Font subset embedded · no .otf esterno</li>
+          <li>Outline di sicurezza sul wordmark Bebas (su un layer dedicato)</li>
+          <li>Bleed <span class="mono">3 mm</span> · crop marks · color bars · slug area</li>
+          <li>File nominati: <span class="mono">PL_bcard_v1_front.pdf</span>, <span class="mono">PL_bcard_v1_back.pdf</span></li>
+          <li>Cartella di backup: AI sorgenti + immagini link (per future versioni)</li>
+        </ul>
+      </div>
+
+      <div class="handoff-card">
+        <span class="lab">/02 · Specifiche da confermare</span>
+        <h4>BRIEFING CON LO STAMPATORE.</h4>
+        <ul>
+          <li><b>Pantone 389C</b> confermato per il lime · NON sostituibile in CMYK</li>
+          <li>Carta <b>Fedrigoni Arena Natural Rough 350gsm</b> in stock o disponibile in <span class="mono">7 gg</span></li>
+          <li>Carta letterhead <b>Munken Pure 100gsm</b> A4 · risma 500</li>
+          <li>Taglio guillotine · angoli squadrati · <b>no rounded</b></li>
+          <li><b>Proof colore</b> prima del lancio · approvazione scritta richiesta</li>
+          <li>Tiratura: biglietti <span class="mono">500 pz</span> · letterhead <span class="mono">500 fogli</span></li>
+          <li>Consegna prevista: <span class="mono">7-10 giorni lavorativi</span> · spedizione racc.</li>
+        </ul>
+      </div>
+
+      <div class="handoff-card">
+        <span class="lab">/03 · Prima del print</span>
+        <h4>PROOF · CONTROLLO.</h4>
+        <ul>
+          <li>Richiedere proof <b>su carta finale</b> · non su prove digitali</li>
+          <li>Verificare resa Pantone 389C sotto luce naturale + artificiale</li>
+          <li>Controllare leggibilità testo 7pt a 30 cm di distanza</li>
+          <li>Verificare allineamento <b>front/back</b> del biglietto (registro)</li>
+          <li>Verificare rich black <span class="mono">60·40·40·100</span> non rotto sui rasters</li>
+          <li>Verificare bleed presente · niente bordo bianco involontario al taglio</li>
+          <li>Confronto fisico con campioni paper · texture coerente</li>
+        </ul>
+      </div>
+
+      <div class="handoff-card">
+        <span class="lab">/04 · Domande critiche per il preventivo</span>
+        <h4>BRIEF AL FORNITORE.</h4>
+        <ul>
+          <li>"Stampate <b>Pantone fluorescente 389C</b>?" · se no, cambiare stamperia</li>
+          <li>"Avete <b>Fedrigoni Arena Natural Rough 350gsm</b> in stock?"</li>
+          <li>"Riuscite a fare un <b>proof colore</b> su carta finale?"</li>
+          <li>"Garantite un <b>registro front/back</b> entro <span class="mono">0,3 mm</span>?"</li>
+          <li>"Tempistica reale tra approvazione proof e consegna?"</li>
+          <li>"Qual è il <b>minimum order</b> per il livello 02?" (idealmente 250-500 pz)</li>
+          <li>"Possibilità di <b>edge paint lime</b> (per il livello 03)?"</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="margin-top: 40px; padding: 24px 28px; border: 1px dashed var(--rule-2); background: var(--bg-2); font-family: var(--f-body); font-weight: 400; font-size: 15px; line-height: 1.65; color: var(--ink); max-width: 78ch;">
+      <span style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 10px;">▸ Principio chiusura · "una matita affilata"</span>
+      Il biglietto PumpLog non vuole impressionare per ricchezza, vuole <b style="color: var(--accent);">impressionare per cura</b>. La cura si vede nella carta naturale, nel Pantone esatto, nel taglio preciso, nella tipografia a 9pt che si legge perfettamente, nel registro pulito al sotto-millimetro. <b>Una matita affilata di Apple non è "cool" perché è di Apple — è cool perché è una matita perfetta</b>. Stampiamo con la stessa filosofia.
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot">
+    <div>Documento<b>Print Brief v1</b></div>
+    <div>Stato<b style="color: var(--accent);">Pronto per stamperia</b></div>
+    <div>Prossimo<b>Preventivo · 3 fornitori</b></div>
+    <div>Owner<b>Founder · Brand</b></div>
+  </div>
+</footer>
+
+</body>
+</html>

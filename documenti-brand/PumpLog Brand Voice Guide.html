@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Brand Voice Guide · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C0C0D;
+  --bg-2:      #161618;
+  --bg-3:      #202022;
+  --rule:      #2A2A2D;
+  --rule-2:    #353539;
+  --ink:       #F0EFE8;
+  --ink-2:     rgba(240,239,232,0.55);
+  --ink-3:     rgba(240,239,232,0.32);
+  --accent:    #C8FF00;
+  --accent-ink:#000000;
+  --danger:    #EF4444;
+  --warning:   #F59E0B;
+
+  --f-display: "Bebas Neue", Impact, sans-serif;
+  --f-condensed: "Barlow Condensed", "Bebas Neue", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-mono: "Roboto Mono", ui-monospace, monospace;
+
+  --max: 1320px;
+  --gutter: 32px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 16px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* TOPBAR */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(12,12,13,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar .lockup { color: var(--ink); display: flex; align-items: center; gap: 12px; }
+.topbar .lockup .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.topbar .right { display: flex; gap: 24px; }
+
+/* HERO */
+.hero { padding: 56px 0 80px; border-bottom: 1px solid var(--rule); }
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3);
+  padding-bottom: 32px; border-bottom: 1px solid var(--rule); margin-bottom: 48px;
+}
+.hero-meta b { display: block; font-family: var(--f-body); font-weight: 500; font-size: 14px; color: var(--ink); margin-top: 6px; letter-spacing: 0; text-transform: none; }
+.hero h1 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(64px, 11vw, 160px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  max-width: 16ch; text-wrap: balance;
+}
+.hero h1 .acc { color: var(--accent); }
+.hero .sub {
+  margin-top: 32px;
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 62ch;
+}
+.hero .sub b { color: var(--ink); font-weight: 600; }
+.hero .sub .lime { color: var(--accent); font-weight: 600; }
+
+.toc {
+  margin-top: 56px;
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
+  background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.toc a {
+  background: var(--bg); padding: 18px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: background 0.15s;
+}
+.toc a:hover { background: var(--bg-2); }
+.toc a .idx { font-family: var(--f-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.14em; }
+.toc a .name { font-family: var(--f-condensed); font-weight: 700; font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; line-height: 1.1; color: var(--ink); }
+
+/* SECTION */
+.section { border-top: 1px solid var(--rule); padding: 88px 0; }
+.section-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding-bottom: 16px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+.section-head { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; align-items: end; margin-bottom: 56px; }
+.section-head .num { font-family: var(--f-mono); font-size: 13px; color: var(--accent); letter-spacing: 0.16em; margin-bottom: 14px; }
+.section-head h2 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(56px, 8vw, 112px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  text-wrap: balance;
+}
+.section-head h2 .acc { color: var(--accent); }
+.section-head .essence {
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 54ch;
+}
+.section-head .essence b { color: var(--ink); font-weight: 600; }
+
+/* PILLARS (come suoniamo / NON suoniamo) */
+.pillars {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+  background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.pillar {
+  background: var(--bg); padding: 36px 28px;
+  display: flex; flex-direction: column; gap: 18px;
+  min-height: 360px;
+}
+.pillar .num {
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--ink-3); letter-spacing: 0.14em;
+}
+.pillar .name {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 44px; line-height: 0.92; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.pillar.dont .name { text-decoration: line-through; text-decoration-color: var(--danger); text-decoration-thickness: 2px; }
+.pillar .desc {
+  font-size: 14px; line-height: 1.55; color: var(--ink-2);
+}
+.pillar .desc b { color: var(--ink); font-weight: 600; }
+.pillar .example {
+  margin-top: auto;
+  padding: 14px 16px;
+  background: var(--bg-2);
+  border-left: 2px solid var(--accent);
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 14px; line-height: 1.5; color: var(--ink);
+}
+.pillar.dont .example { border-left-color: var(--danger); color: var(--ink-2); }
+.pillar.dont .example::before { content: "× "; color: var(--danger); }
+
+/* WORDS — sempre / mai */
+.words-pair {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+}
+.word-block {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 40px;
+}
+.word-block.yes { border-left: 3px solid var(--accent); }
+.word-block.no  { border-left: 3px solid var(--danger); }
+.word-block .head {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 28px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.word-block.no .head { color: var(--danger); }
+
+.word-row {
+  display: grid; grid-template-columns: 60px 1fr 1.6fr;
+  gap: 20px; padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.word-row:last-child { border-bottom: none; }
+.word-row .idx { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.14em; }
+.word-row .word {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 32px; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.word-block.no .word {
+  color: var(--ink-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+  text-decoration-thickness: 1.5px;
+}
+.word-block.yes .word .acc { color: var(--accent); }
+.word-row .why {
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+}
+.word-row .why b { color: var(--ink); font-weight: 600; }
+.word-block.no .word-row .why .alt {
+  display: inline-block;
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--accent); letter-spacing: 0.04em;
+  background: var(--bg); padding: 2px 8px;
+  margin-left: 4px;
+}
+
+/* GLOSSARY full table */
+.gloss {
+  border: 1px solid var(--rule); background: var(--bg-2);
+}
+.gloss-head {
+  background: var(--bg-3);
+  display: grid; grid-template-columns: 60px 1fr 1fr 1.5fr;
+  gap: 24px;
+  padding: 18px 28px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink);
+}
+.gloss-row {
+  display: grid; grid-template-columns: 60px 1fr 1fr 1.5fr;
+  gap: 24px;
+  padding: 16px 28px;
+  border-top: 1px solid var(--rule);
+  align-items: baseline;
+}
+.gloss-row .idx { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.14em; }
+.gloss-row .ko {
+  font-family: var(--f-mono); font-size: 13px; color: var(--ink-2);
+  text-decoration: line-through; text-decoration-color: var(--ink-3);
+}
+.gloss-row .ok {
+  font-family: var(--f-body); font-weight: 600; font-size: 15px;
+  color: var(--ink);
+}
+.gloss-row .ok::before { content: "→ "; color: var(--accent); font-family: var(--f-mono); font-weight: 500; }
+.gloss-row .note { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+
+/* SAMPLE PAIRS (in-app / landing / channels) */
+.sample-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+.sample {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.sample .head {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--rule);
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--bg-3);
+}
+.sample .head .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink);
+}
+.sample .head .verdict {
+  font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: 0.08em; padding: 4px 10px;
+  border-radius: 1px;
+}
+.sample.yes .head .verdict { color: var(--accent-ink); background: var(--accent); }
+.sample.no  .head .verdict { color: #fff; background: var(--danger); }
+
+.sample .body { padding: 28px; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.sample .copy-area {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  padding: 24px;
+  border-radius: 4px;
+  min-height: 140px;
+}
+.sample .copy-area .subject {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 10px;
+}
+.sample .copy-area .copy-h {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 26px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+  margin-bottom: 8px;
+}
+.sample.no .copy-area .copy-h { opacity: 0.6; }
+.sample .copy-area .copy-h .acc { color: var(--accent); }
+.sample.no .copy-area .copy-h .acc { color: var(--danger); }
+.sample .copy-area .copy-b {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.6; color: var(--ink);
+}
+.sample.no .copy-area .copy-b { color: var(--ink-2); }
+.sample.no .copy-area .copy-b b { color: var(--ink-2); }
+.sample .copy-area .copy-b b { color: var(--accent); font-weight: 600; }
+.sample .copy-area .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+
+.sample .why {
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+  padding-top: 14px; border-top: 1px solid var(--rule);
+}
+.sample .why .k {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent); display: block; margin-bottom: 6px;
+}
+.sample.no .why .k { color: var(--danger); }
+
+/* CHANNEL SECTION HEADER for IG/LinkedIn/Email */
+.channel-head {
+  margin-top: 56px;
+  margin-bottom: 24px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 18px; border-bottom: 1px solid var(--rule);
+}
+.channel-head h3 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(36px, 4vw, 56px); line-height: 0.95;
+  letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink);
+}
+.channel-head h3 .acc { color: var(--accent); }
+.channel-head .meta {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.channel-head .meta b { color: var(--accent); }
+
+/* IG mock */
+.ig-mock {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  padding: 0;
+  border-radius: 0;
+  min-height: auto !important;
+}
+.ig-img {
+  aspect-ratio: 1/1;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.ig-img .ph {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 36px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+  text-align: center; padding: 24px;
+}
+.ig-img .ph .acc { color: var(--accent); }
+.ig-img .lbl {
+  position: absolute; top: 14px; left: 14px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3); background: var(--bg); padding: 4px 8px;
+}
+.ig-img .mark {
+  position: absolute; top: 14px; right: 14px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 14px; letter-spacing: 0.005em; text-transform: uppercase;
+  color: var(--ink);
+}
+.ig-img .mark .acc { color: var(--accent); }
+.ig-cap {
+  padding: 16px 20px;
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.55; color: var(--ink);
+}
+.ig-cap .username {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 13px; color: var(--ink); margin-right: 6px;
+}
+.ig-cap b { color: var(--accent); font-weight: 600; }
+.ig-cap .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.ig-cap .tags {
+  display: block; margin-top: 8px;
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--ink-2); letter-spacing: 0.02em;
+}
+
+/* LINKEDIN mock */
+.li-mock {
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  padding: 28px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.li-mock .who {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.li-mock .who .av {
+  width: 40px; height: 40px;
+  background: var(--accent); color: var(--accent-ink);
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-display); font-size: 18px; letter-spacing: 0.005em;
+}
+.li-mock .who .meta {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.li-mock .who .name {
+  font-family: var(--f-body); font-weight: 600; font-size: 14px; color: var(--ink);
+}
+.li-mock .who .sub {
+  font-family: var(--f-mono); font-size: 11px; color: var(--ink-2);
+}
+.li-mock .post {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.65; color: var(--ink);
+}
+.li-mock .post p { margin-bottom: 12px; }
+.li-mock .post p:last-child { margin-bottom: 0; }
+.li-mock .post b { color: var(--accent); font-weight: 600; }
+.li-mock .post .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* EMAIL mock */
+.em-mock {
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  display: flex; flex-direction: column;
+}
+.em-head {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg-3);
+}
+.em-head .from {
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--ink-2); letter-spacing: 0.04em;
+}
+.em-head .from b { color: var(--ink); font-weight: 500; }
+.em-head .subj {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 16px; color: var(--ink); letter-spacing: -0.01em;
+}
+.em-head .subj .acc { color: var(--accent); }
+.em-head .subj .mono { font-family: var(--f-mono); }
+.em-body {
+  padding: 28px 24px;
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.65; color: var(--ink);
+}
+.em-body p { margin-bottom: 14px; }
+.em-body p:last-child { margin-bottom: 0; }
+.em-body b { color: var(--accent); font-weight: 600; }
+.em-body .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+.em-body .stat {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 14px 18px;
+  margin: 16px 0;
+  display: grid; grid-template-columns: auto 1fr; gap: 8px 16px;
+  font-family: var(--f-mono); font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.em-body .stat .l { color: var(--ink-3); letter-spacing: 0.04em; }
+.em-body .stat .v { color: var(--ink); }
+.em-body .stat .v.acc { color: var(--accent); }
+.em-body .cta {
+  display: inline-block;
+  background: var(--accent); color: var(--accent-ink);
+  padding: 12px 20px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 15px; letter-spacing: 0.02em; text-transform: uppercase;
+  margin-top: 8px;
+}
+.em-body .sig {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* DECISION MATRIX */
+.matrix {
+  border: 1px solid var(--rule); background: var(--bg-2);
+}
+.matrix-row {
+  display: grid; grid-template-columns: 280px 1fr 1fr;
+  border-top: 1px solid var(--rule);
+}
+.matrix-row:first-of-type { border-top: none; }
+.matrix-row > div {
+  padding: 20px 24px;
+  border-right: 1px solid var(--rule);
+}
+.matrix-row > div:last-child { border-right: none; }
+.matrix-row.h {
+  background: var(--bg-3);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink);
+}
+.matrix-row .q {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 14px; color: var(--ink); line-height: 1.5;
+}
+.matrix-row .a {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.6; color: var(--ink);
+}
+.matrix-row .a.yes::before { content: "✓ "; color: var(--accent); font-weight: 600; }
+.matrix-row .a.no::before  { content: "× "; color: var(--danger); font-weight: 600; }
+.matrix-row .a.no { color: var(--ink-2); }
+.matrix-row .a b { color: var(--accent); font-weight: 600; }
+
+/* CHECKLIST */
+.checklist-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.check-card {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 28px;
+}
+.check-card .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px;
+}
+.check-card h4 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 24px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink); margin-bottom: 18px;
+}
+.check-card ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.check-card ul li {
+  display: grid; grid-template-columns: 20px 1fr;
+  gap: 12px; font-size: 14px; line-height: 1.55; color: var(--ink);
+  padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+}
+.check-card ul li:last-child { border-bottom: none; padding-bottom: 0; }
+.check-card ul li::before {
+  content: "□"; font-family: var(--f-mono);
+  color: var(--ink-3); font-size: 14px;
+}
+.check-card ul li b { color: var(--accent); font-weight: 600; }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.foot b {
+  display: block;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 14px; color: var(--ink); margin-top: 6px;
+  letter-spacing: 0; text-transform: none;
+}
+
+@media (max-width: 1024px) {
+  :root { --gutter: 20px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .toc { grid-template-columns: 1fr 1fr 1fr; }
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+  .pillars { grid-template-columns: 1fr 1fr; }
+  .words-pair { grid-template-columns: 1fr; }
+  .gloss-head, .gloss-row { grid-template-columns: 40px 1fr 1fr; gap: 12px; padding: 14px 18px; }
+  .gloss-head > div:last-child, .gloss-row > .note { display: none; }
+  .sample-grid { grid-template-columns: 1fr; }
+  .matrix-row { grid-template-columns: 1fr; }
+  .matrix-row > div { border-right: none; border-bottom: 1px solid var(--rule); }
+  .matrix-row > div:last-child { border-bottom: none; }
+  .checklist-grid { grid-template-columns: 1fr; }
+  .foot { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="00 Brand Voice Guide">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="lockup">
+      <span class="dot"></span>
+      <span>PumpLog</span>
+      <span style="color: var(--ink-3);">/</span>
+      <span style="color: var(--ink-3);">Brand Voice Guide v1</span>
+    </div>
+    <div class="right">
+      <span>ITA</span>
+      <span>15.05.2026</span>
+      <span style="color: var(--accent);">● REVIEW</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <div>Documento<b>Brand Voice Guide · v1</b></div>
+      <div>Pubblico<b>Copy · marketing · supporto</b></div>
+      <div>Canali<b>App · web · IG · LinkedIn · email</b></div>
+      <div>Registro<b>Semi-formale · "tu"</b></div>
+    </div>
+
+    <h1>UN COMPAGNO<br>DI <span class="acc">PALESTRA</span>.<br>NIENTE COACH<br>URLANTE.</h1>
+
+    <p class="sub">
+      Una guida operativa alla voce di PumpLog. Cinque principi per il <b>come suoniamo</b>, cinque per il <b>come non suoniamo</b>, un glossario di parole vincolanti, esempi reali per tutti i canali. <span class="lime">Se il copy non passa la matrice del §11, non si pubblica.</span>
+    </p>
+
+    <div class="toc">
+      <a href="#sound"><span class="idx">/01</span><span class="name">Come suoniamo</span></a>
+      <a href="#anti"><span class="idx">/02</span><span class="name">Come NON</span></a>
+      <a href="#sempre"><span class="idx">/03</span><span class="name">5 parole SEMPRE</span></a>
+      <a href="#mai"><span class="idx">/04</span><span class="name">5 parole MAI</span></a>
+      <a href="#gloss"><span class="idx">/05</span><span class="name">Glossario</span></a>
+      <a href="#in-app"><span class="idx">/06</span><span class="name">In-app</span></a>
+      <a href="#landing"><span class="idx">/07</span><span class="name">Landing</span></a>
+      <a href="#ig"><span class="idx">/08</span><span class="name">Instagram</span></a>
+      <a href="#li"><span class="idx">/09</span><span class="name">LinkedIn</span></a>
+      <a href="#email"><span class="idx">/10</span><span class="name">Email</span></a>
+      <a href="#feedback"><span class="idx">/11</span><span class="name">Recensioni</span></a>
+      <a href="#check"><span class="idx">/12</span><span class="name">Checklist</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 01 · COME SUONIAMO -->
+<!-- ============================== -->
+<section class="section" id="sound" data-screen-label="02 Come suoniamo">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 01 · Come suoniamo · 5 pilastri</span>
+      <span>Voce di marca</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/01 · VOICE</div>
+        <h2>ASCIUTTI.<br>TECNICI.<br><span class="acc">SILENZIOSI</span>.</h2>
+      </div>
+      <div class="essence">
+        Cinque attributi della voce. Ognuno è un comando, non un'opzione. Quando un testo ha dubbi, è quasi sempre perché <b>uno di questi cinque</b> sta venendo violato. La cura del copy è la cura del prodotto.
+      </div>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar">
+        <span class="num">/01</span>
+        <span class="name">Asciutti</span>
+        <p class="desc">Una frase quando basta una frase. <b>Niente padding</b>, niente preamboli, niente "vorremmo dirti che". Verbo al primo posto. Punti, non virgole.</p>
+        <div class="example">"Scegli una scheda e parti."</div>
+      </div>
+      <div class="pillar">
+        <span class="num">/02</span>
+        <span class="name">Tecnici</span>
+        <p class="desc">Diciamo MAV, MEV, e1RM, RPE. Sono il vocabolario del nostro pubblico. <b>Quando serve, spieghiamo in mezza riga</b> — mai in un paragrafo.</p>
+        <div class="example">"Sei in MAV: 14 serie sul petto. Zona di crescita."</div>
+      </div>
+      <div class="pillar">
+        <span class="num">/03</span>
+        <span class="name">Diretti</span>
+        <p class="desc">Parliamo all'utente, mai di lui. <b>"Tu"</b>, mai "voi". Imperativo gentile per le CTA. Indicativo dichiarativo per le notifiche.</p>
+        <div class="example">"Registra la serie 4. Recupero da 2:30."</div>
+      </div>
+      <div class="pillar">
+        <span class="num">/04</span>
+        <span class="name">Onesti</span>
+        <p class="desc">Anche scomodo. Sotto al MEV lo diciamo. Un peso perso lo diciamo. <b>Non addolciamo</b> i grafici. La fiducia si costruisce dicendo quello che è, non quello che fa stare bene.</p>
+        <div class="example">"Petto: 6 serie. Sei sotto al MEV per crescere."</div>
+      </div>
+      <div class="pillar">
+        <span class="num">/05</span>
+        <span class="name">Silenziosi</span>
+        <p class="desc">Parliamo solo quando aggiungiamo un dato. <b>Notifiche = informazioni</b>, mai promemoria. Mai "torna in app". Mai "non perderti". Se non c'è un dato nuovo, non si scrive.</p>
+        <div class="example">"+2,5 kg sulla panca. Sopra il record di marzo."</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 02 · COME NON SUONIAMO -->
+<!-- ============================== -->
+<section class="section" id="anti" data-screen-label="03 Come NON suoniamo">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 02 · Come NON suoniamo · 5 anti-pilastri</span>
+      <span>Voce vietata</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/02 · ANTI-VOICE</div>
+        <h2>NON URLIAMO.<br>NON GIUDICHIAMO.<br>NON <span class="acc">RIEMPIAMO</span>.</h2>
+      </div>
+      <div class="essence">
+        Le cinque tonalità più diffuse nel fitness italiano. Sono il default delle altre app. Sono <b>quello che non saremo mai</b>. Un copy che cade in uno di questi cinque va riscritto da capo, non aggiustato.
+      </div>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar dont">
+        <span class="num">× /01</span>
+        <span class="name">Motivazionali</span>
+        <p class="desc">Niente "Tu puoi farcela". Niente "Crediamo in te". Niente esortazioni. <b>L'utente è qui per uno strumento</b>, non per un coach interiore.</p>
+        <div class="example">"Ce la puoi fare! Vai al massimo! 💪"</div>
+      </div>
+      <div class="pillar dont">
+        <span class="num">× /02</span>
+        <span class="name">Gamificati</span>
+        <p class="desc">Niente streak, niente badge, niente "Sei al livello 7". <b>L'allenamento non è Duolingo</b>. Le metriche bastano da sole.</p>
+        <div class="example">"Hai sbloccato il badge Bestione! 🏆"</div>
+      </div>
+      <div class="pillar dont">
+        <span class="num">× /03</span>
+        <span class="name">Tradotti</span>
+        <p class="desc">"Sblocca il tuo potenziale", "Domina il tuo workout", "Build your strength" — sono <b>traduzioni letterali da pitch deck americani</b>. Non parliamo così.</p>
+        <div class="example">"Domina la tua sessione. Sii inarrestabile."</div>
+      </div>
+      <div class="pillar dont">
+        <span class="num">× /04</span>
+        <span class="name">Compiacenti</span>
+        <p class="desc">Niente compliment automatici. Niente "Wow, che progresso!" se il progresso non c'è. Niente <b>lucidatura del dato</b> per far stare bene.</p>
+        <div class="example">"INCREDIBILE! Sei un campione!"</div>
+      </div>
+      <div class="pillar dont">
+        <span class="num">× /05</span>
+        <span class="name">Loquaci</span>
+        <p class="desc">Niente paragrafi quando bastano due righe. Niente "Per noi è importante che…". Niente <b>preamboli</b> in cima alle email. La cortesia è essere brevi.</p>
+        <div class="example">"Vorremmo informarti che la nuova versione…"</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 03 · 5 PAROLE SEMPRE -->
+<!-- ============================== -->
+<section class="section" id="sempre" data-screen-label="04 Parole SEMPRE">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 03 · 5 parole che usiamo sempre</span>
+      <span>Vocabolario identitario</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/03 · CORE LEXICON</div>
+        <h2>CINQUE PAROLE<br>CHE <span class="acc">CI FANNO</span><br>RICONOSCERE.</h2>
+      </div>
+      <div class="essence">
+        Queste cinque parole sono <b>il nostro DNA verbale</b>. Devono comparire spesso nel marketing, nelle notifiche, nelle email. Sono italiane vere, tecniche, non traducibili senza perdere senso. Mai sostituirle con sinonimi inglesi.
+      </div>
+    </div>
+
+    <div class="words-pair" style="grid-template-columns: 1fr;">
+      <div class="word-block yes">
+        <div class="head">+ Parole SEMPRE · da usare ad ogni occasione</div>
+
+        <div class="word-row">
+          <span class="idx">/01</span>
+          <span class="word"><span class="acc">Serie</span></span>
+          <span class="why">
+            <b>L'unità minima dell'allenamento</b>. Mai "set". Una serie è un'entità sostantiva, conta nel volume, nel ricordo. "Set" suona come gergo importato. Usare anche quando si parla di calisthenics: "tre serie da 8 trazioni".
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/02</span>
+          <span class="word"><span class="acc">Recupero</span></span>
+          <span class="why">
+            <b>Mai "pausa" o "rest"</b>. Recupero ha implicazioni fisiologiche corrette: tra le serie, tra le sedute, tra i blocchi. Una "pausa" è un riposo passivo; un "recupero" è funzionale. Usare con tempo specifico: "recupero 2:30".
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/03</span>
+          <span class="word"><span class="acc">Volume</span></span>
+          <span class="why">
+            <b>La somma del lavoro fatto</b>. Misurabile in serie effettive (RPE ≥7) o tonnellaggio (kg × ripetizioni × serie). Non è "quanto ti sei allenato" — è il numero che governa la crescita. Sempre con unità o riferimento (MEV/MAV/MRV).
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/04</span>
+          <span class="word"><span class="acc">Massimale</span></span>
+          <span class="why">
+            <b>Il riferimento, non il trofeo</b>. Usare al posto di "PR" nei contesti narrativi. "PR" rimane ammesso come abbreviazione tecnica. "Massimale" suona italiano, serio, ancorato alla tradizione del powerlifting europeo.
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/05</span>
+          <span class="word"><span class="acc">Scheda</span></span>
+          <span class="why">
+            <b>Il piano di allenamento</b>. Mai "routine", mai "program", mai "workout plan". "Scheda" è il termine universale italiano da Yates a oggi. Implica struttura, sequenza, settimane. Le schede sono sostantive — esistono, si scaricano, si modificano.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 04 · 5 PAROLE MAI -->
+<!-- ============================== -->
+<section class="section" id="mai" data-screen-label="05 Parole MAI">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 04 · 5 parole che non usiamo MAI</span>
+      <span>Vocabolario vietato</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/04 · BANNED</div>
+        <h2>CINQUE PAROLE<br>CHE NON CI <span class="acc">APPARTENGONO</span>.</h2>
+      </div>
+      <div class="essence">
+        Queste cinque parole — più di tutte — definiscono la voce <b>che NON siamo</b>. Sono il vocabolario del fitness commerciale americano-tradotto. Comparire una volta sola è già una violazione di sistema. Sempre sostituibili con un termine italiano migliore.
+      </div>
+    </div>
+
+    <div class="words-pair" style="grid-template-columns: 1fr;">
+      <div class="word-block no">
+        <div class="head">× Parole MAI · da bannare in copy review</div>
+
+        <div class="word-row">
+          <span class="idx">/01</span>
+          <span class="word">Workout</span>
+          <span class="why">
+            Suona come app fitness anglosassone. <b>Tradurre sempre</b>:
+            <span class="alt">→ allenamento</span> <span class="alt">→ seduta</span> <span class="alt">→ sessione</span>
+            <br><br>"Workout" è ammesso solo nel nome di esercizi tecnici universali (es. "push-up workout" rimasto in inglese su una scheda CrossFit citata).
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/02</span>
+          <span class="word">Beast mode</span>
+          <span class="why">
+            La quintessenza dell'anti-PumpLog. <b>Mai usare, mai citare, mai ironizzare</b>. Insieme a "bestione", "spaccare", "distruggere". L'allenamento serio non è una modalità — è una pratica.
+            <span class="alt">→ allenamento serio</span> <span class="alt">→ seduta intensa</span>
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/03</span>
+          <span class="word">Gains</span>
+          <span class="why">
+            <b>Tradurre sempre</b>. "Gains" rimanda al gergo di Reddit/r/gym. Non è di un utente intermedio italiano.
+            <span class="alt">→ crescita muscolare</span> <span class="alt">→ progressione</span> <span class="alt">→ ipertrofia</span>
+            <br><br>Eccezione tecnica: in un articolo lungo si può citare il termine ("noto come gains in inglese") tra parentesi.
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/04</span>
+          <span class="word">Grind</span>
+          <span class="why">
+            Implica sofferenza performativa, masochismo da influencer. <b>Mai usare</b>. Nemmeno "the grind", "daily grind", "rise & grind".
+            <span class="alt">→ allenamento</span> <span class="alt">→ routine</span> <span class="alt">→ continuità</span>
+          </span>
+        </div>
+
+        <div class="word-row">
+          <span class="idx">/05</span>
+          <span class="word">Crush / level up</span>
+          <span class="why">
+            <b>Gergo di pitch tech</b> ("crush your goals", "level up your training") + cugini di "unlock your potential", "smash your PR". Tutti banditi, anche le metafore videoludiche.
+            <span class="alt">→ chiudere</span> <span class="alt">→ progredire</span> <span class="alt">→ migliorare</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 05 · GLOSSARIO COMPLETO -->
+<!-- ============================== -->
+<section class="section" id="gloss" data-screen-label="06 Glossario">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 05 · Glossario operativo</span>
+      <span>Termini approvati + sostituzioni</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/05 · GLOSSARY</div>
+        <h2>VOCABOLARIO<br><span class="acc">VINCOLANTE</span>.</h2>
+      </div>
+      <div class="essence">
+        Glossario operativo per copy e supporto. <b>Colonna sinistra: termine vietato.</b> Colonna destra: traduzione PumpLog ufficiale. Nota: contesto e regola d'uso. Da consultare sempre nei dubbi.
+      </div>
+    </div>
+
+    <div class="gloss">
+      <div class="gloss-head">
+        <div>#</div>
+        <div>Non usiamo</div>
+        <div>Usiamo</div>
+        <div>Nota / regola</div>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/01</span><span class="ko">workout</span><span class="ok">allenamento · seduta</span>
+        <span class="note">"Allenamento" come pratica generale · "seduta" come unità singola (es. "seduta di petto").</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/02</span><span class="ko">set</span><span class="ok">serie</span>
+        <span class="note">Sempre. Anche al plurale: "tre serie da 8". Mai "set", mai "sets".</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/03</span><span class="ko">reps</span><span class="ok">ripetizioni · rip.</span>
+        <span class="note">"Ripetizioni" esteso, "rip." abbreviato in tabelle e UI strette.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/04</span><span class="ko">rest</span><span class="ok">recupero</span>
+        <span class="note">Mai "pausa". Sempre seguito dal tempo: "recupero 2:30".</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/05</span><span class="ko">PR / personal record</span><span class="ok">massimale · PR</span>
+        <span class="note">"Massimale" preferito in copy narrativo. "PR" ammesso come label tecnica e in UI.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/06</span><span class="ko">deload</span><span class="ok">scarico · settimana di scarico</span>
+        <span class="note">"Scarico" come sostantivo. Mai "deload week".</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/07</span><span class="ko">streak</span><span class="ok">— (rimosso)</span>
+        <span class="note">Concetto rifiutato. Non esiste nel prodotto, non si nomina nel copy.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/08</span><span class="ko">routine / program</span><span class="ok">scheda · blocco</span>
+        <span class="note">"Scheda" = piano settimanale completo · "blocco" = fase mesociclo (4-8 settimane).</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/09</span><span class="ko">drop set</span><span class="ok">serie a scalare</span>
+        <span class="note">Espressione tecnica italiana. Anche "stripping" da evitare.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/10</span><span class="ko">superset</span><span class="ok">superserie</span>
+        <span class="note">Italianizzato. "Superset" rimane ammesso solo in articoli tecnici lunghi tra parentesi.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/11</span><span class="ko">RIR (reps in reserve)</span><span class="ok">RIR · ripetizioni in riserva</span>
+        <span class="note">L'acronimo si tiene, l'espansione è italiana.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/12</span><span class="ko">warm-up / cool-down</span><span class="ok">riscaldamento · defaticamento</span>
+        <span class="note">Mai "warm-up". Mai "scaldata".</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/13</span><span class="ko">progress</span><span class="ok">progressione</span>
+        <span class="note">Più tecnico di "progresso". Implica un piano, non solo un miglioramento.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/14</span><span class="ko">log / track</span><span class="ok">registrare · tracciare</span>
+        <span class="note">"Registrare" un dato, "tracciare" un percorso. Coerenza: si tracciano i progressi, si registrano le serie.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/15</span><span class="ko">push-up · pull-up · dip · squat</span><span class="ok">push-up · pull-up · dip · squat</span>
+        <span class="note">Eccezione: termini tecnici universali del corpo libero/powerlifting restano in inglese.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/16</span><span class="ko">gains</span><span class="ok">crescita · ipertrofia · progressione</span>
+        <span class="note">Mai "gains". Sempre il termine tecnico preciso.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/17</span><span class="ko">unlock / sblocca</span><span class="ok">accedi a · attiva</span>
+        <span class="note">"Sblocca" è gamification mascherata. "Accedi a" o "attiva" per upsell e Premium.</span>
+      </div>
+      <div class="gloss-row">
+        <span class="idx">/18</span><span class="ko">premium / pro</span><span class="ok">Premium</span>
+        <span class="note">Solo "Premium" come nome del piano. Mai "pro", "plus", "advanced".</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 06 · IN-APP COPY -->
+<!-- ============================== -->
+<section class="section" id="in-app" data-screen-label="07 In-app">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 06 · Voce in-app</span>
+      <span>Onboarding · stati · errori · notifiche</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/06 · IN-APP</div>
+        <h2>L'APP <span class="acc">PARLA</span><br>POCO.<br>MEGLIO.</h2>
+      </div>
+      <div class="essence">
+        Sei contesti in-app, sei coppie SÌ/NO. <b>Il copy dell'app è il copy che pesa di più</b>: gli utenti lo leggono ogni giorno. Una sola "fluffy line" è infinita ripetizione di rumore. Asciugare sempre.
+      </div>
+    </div>
+
+    <!-- Onboarding -->
+    <div class="sample-grid">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/01 · Onboarding · primo schermo</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">PUMPLOG</div>
+            <div class="copy-h">SCEGLI UNA<br>SCHEDA.<br><span class="acc">PARTI.</span></div>
+            <div class="copy-b">Quattro schede già pronte. Dalla prima seduta puoi modificarle.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Verbo all'imperativo. Tre parole, una promessa, una rassicurazione. Tutto qui.</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/01 · Onboarding · primo schermo</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">PumpLog</div>
+            <div class="copy-h">BENVENUTO NEL<br>TUO <span class="acc">VIAGGIO</span><br>FITNESS!</div>
+            <div class="copy-b">Siamo entusiasti di accompagnarti! Inizia configurando il tuo profilo per scoprire come PumpLog può aiutarti a raggiungere i tuoi obiettivi 💪</div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>"Viaggio fitness", "entusiasti", "obiettivi", emoji muscolo. Tutto preamboli. Nessuna informazione.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PR -->
+    <div class="sample-grid" style="margin-top: 24px;">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/02 · Notifica · nuovo massimale</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">PUSH NOTIFICATION · 14:32</div>
+            <div class="copy-h">PANCA: <span class="acc">85 × 6</span></div>
+            <div class="copy-b">Nuovo massimale, +2,5 kg da marzo. e1RM <span class="mono">99,5 kg</span>.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Esercizio + numero in apertura. Contesto temporale ("da marzo") che mostra che il sistema sa la tua storia. Niente esclamativi.</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/02 · Notifica · nuovo massimale</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">Push Notification · 14:32</div>
+            <div class="copy-h">INCREDIBILE!<br>HAI <span class="acc">SPACCATO</span>!</div>
+            <div class="copy-b">Sei un campione! 🔥💪 Continua così, BESTIONE! Hai battuto il tuo record di marzo! Condividi con gli amici!</div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>Esclamativo come stato emotivo, "campione", "bestione", emoji, CTA social. Quattro violazioni in 30 parole.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stato vuoto -->
+    <div class="sample-grid" style="margin-top: 24px;">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/03 · Stato vuoto · storico</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">STORICO · VUOTO</div>
+            <div class="copy-h">ANCORA<br>NIENTE DA<br><span class="acc">ANALIZZARE</span>.</div>
+            <div class="copy-b">Loggati la prima seduta. Ci vediamo qui.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Stato di fatto. Istruzione minima. "Ci vediamo qui" è quasi caldo — sufficiente.</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/03 · Stato vuoto · storico</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">Storico · Vuoto</div>
+            <div class="copy-h">INIZIA IL TUO<br><span class="acc">VIAGGIO</span> ORA!</div>
+            <div class="copy-b">Non ci sono ancora dati da mostrare. Sarà fantastico vedere i tuoi progressi crescere settimana dopo settimana! Aggiungi il tuo primo allenamento per cominciare 🚀</div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>Esortazione, promessa emotiva, "fantastico", "settimana dopo settimana", emoji razzo. Tutto stile newsletter americana.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Errore -->
+    <div class="sample-grid" style="margin-top: 24px;">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/04 · Errore · sync fallito</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">ERRORE · SYNC</div>
+            <div class="copy-h">SYNC <span class="acc">NON</span><br>RIUSCITO.</div>
+            <div class="copy-b">I dati di oggi sono salvati sul dispositivo. Riprova tra qualche minuto.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Errore esposto, rassicurazione tecnica concreta ("salvati sul dispositivo"), azione chiara. Niente "oops".</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/04 · Errore · sync fallito</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">Errore · Sync</div>
+            <div class="copy-h">OOPS! QUALCOSA È<br>ANDATO STORTO<br><span class="acc">:(</span></div>
+            <div class="copy-b">Non preoccuparti! A volte succede. Riprova tra poco o contatta il nostro fantastico team di supporto!</div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>"Oops", emoticon tristone, "non preoccuparti", "fantastico team". Voce da chatbot 2018.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upsell -->
+    <div class="sample-grid" style="margin-top: 24px;">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/05 · Upsell · Premium</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">PREMIUM</div>
+            <div class="copy-h">STORICO COMPLETO.<br><span class="acc">EXPORT</span> CSV.</div>
+            <div class="copy-b">Premium <span class="mono">€3,99/mese</span> · annulli quando vuoi · funziona offline come tutto il resto.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Due features in due righe. Prezzo, durata, vincolo all'identità del prodotto ("offline come tutto il resto").</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/05 · Upsell · Premium</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">Premium · Limited Offer</div>
+            <div class="copy-h">SBLOCCA IL TUO<br><span class="acc">POTENZIALE</span>!</div>
+            <div class="copy-b">Non perderti i tuoi progressi! Aggiorna ORA a Premium e accedi a funzioni esclusive che cambieranno il tuo modo di allenarti! 🔥 Solo per oggi: -30%</div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>"Sblocca", "potenziale", "non perderti", "ORA", urgenza fasulla. Vendita disperata.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Push warning MRV -->
+    <div class="sample-grid" style="margin-top: 24px;">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/06 · Push · soglia MRV</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">PUSH · SOGLIA</div>
+            <div class="copy-h">PETTO:<br><span class="acc">21 SERIE</span><br>QUESTA SETT.</div>
+            <div class="copy-b">Sei a 1 serie dal MRV. Considera uno scarico la settimana prossima.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Dato in apertura. Soglia esplicita. Consiglio tecnico, non comando emotivo. "Considera" — non "devi".</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/06 · Push · soglia MRV</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">Attenzione</div>
+            <div class="copy-h">⚠️ <span class="acc">ATTENZIONE</span>!<br>STAI ESAGERANDO!</div>
+            <div class="copy-b">Hai fatto troppo allenamento questa settimana! Riposati! Il tuo corpo ti ringrazierà 🙏 Ricorda che il recupero è importante!</div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>Allarmismo, paternalismo, emoji preghiera, lezioncina ovvia. Diciamo il dato, non la morale.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 07 · LANDING -->
+<!-- ============================== -->
+<section class="section" id="landing" data-screen-label="08 Landing">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 07 · Landing page · voce marketing</span>
+      <span>Hero · feature blocks · CTA</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/07 · LANDING</div>
+        <h2>VENDIAMO<br>SENZA <span class="acc">VENDERE</span>.</h2>
+      </div>
+      <div class="essence">
+        Sul sito web si tira il fiato — la voce può espandersi un po' rispetto all'app, ma resta <b>asciutta, tecnica, dichiarativa</b>. Niente "Trasforma il tuo allenamento" né cugini. Diciamo cosa fa il prodotto, e a chi è per. Punto.
+      </div>
+    </div>
+
+    <div class="sample-grid">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/01 · Hero landing</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">HOMEPAGE · HERO</div>
+            <div class="copy-h">L'ALLENAMENTO,<br><span class="acc">DAVVERO</span><br>TRACCIATO.</div>
+            <div class="copy-b">Pesi e calisthenics in un solo log. Volume scientifico (MEV/MAV/MRV). Offline-first. Zero social. <b>Gratis.</b></div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Tagline + 5 promesse in 12 parole. Ogni promessa è un differenziatore reale, ognuna verificabile. Ultima parola "Gratis" — rimuove la frizione del prezzo.</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/01 · Hero landing</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">Homepage · Hero</div>
+            <div class="copy-h">TRASFORMA IL<br>TUO <span class="acc">FITNESS</span><br>JOURNEY.</div>
+            <div class="copy-b">L'app definitiva per chi vuole portare il proprio allenamento al livello successivo. Smart, scientifica, sociale.</div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>"Trasforma", "journey", "livello successivo", "smart", "sociale" (siamo l'opposto). Tutto generico, niente differenziatore.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sample-grid" style="margin-top: 24px;">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/02 · Feature block · privacy</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">FEATURE · OFFLINE</div>
+            <div class="copy-h">FUNZIONA<br><span class="acc">OFFLINE</span>.<br>PER DEFAULT.</div>
+            <div class="copy-b">I tuoi dati restano sul telefono finché non decidi tu. Niente account obbligatorio, niente cloud nascosto, niente analytics di terze parti.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Headline che dichiara il fatto. Body che lo spiega in tre clausole parallele. "Niente" ripetuto tre volte costruisce ritmo.</div>
+        </div>
+      </div>
+      <div class="sample yes">
+        <div class="head"><span class="lab">/03 · CTA · download</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">CTA · BOTTONE</div>
+            <div class="copy-h">INIZIA AD<br><span class="acc">ALLENARTI</span>.</div>
+            <div class="copy-b">PWA installabile da browser. Funziona su iPhone e Android. Senza store, senza approvazione, senza recensioni a 5 stelle finte.</div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Imperativo gentile. "Inizia ad allenarti" — non "Scarica ora". Sotto-copy che traduce un dettaglio tecnico (PWA) in tre vantaggi sostantivi.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 08 · INSTAGRAM -->
+<!-- ============================== -->
+<section class="section" id="ig" data-screen-label="09 Instagram">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 08 · Voce su Instagram</span>
+      <span>Caption · 3 esempi reali</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/08 · INSTAGRAM</div>
+        <h2>CAPTION COME<br><span class="acc">DIDASCALIE</span>,<br>NON COME POST.</h2>
+      </div>
+      <div class="essence">
+        Su Instagram il visual fa il lavoro: la caption è didascalia tecnica, non racconto. <b>Max 50 parole, max 1 hashtag tecnico</b>, mai inviti al commento, mai cliffhanger. Le 3 caption sotto sono pronte per il copy-paste.
+      </div>
+    </div>
+
+    <div class="channel-head">
+      <h3>CAPTION /01 · <span class="acc">LANCIO</span> FEATURE</h3>
+      <div class="meta">FORMATO · <b>Post 4:5</b> · 42 parole · 1 hashtag</div>
+    </div>
+
+    <div class="sample-grid">
+      <div class="sample yes ig-mock" style="grid-column: span 1;">
+        <div class="ig-img">
+          <span class="lbl">FEATURE · NEW</span>
+          <span class="mark">PUMP<span class="acc">/</span>LOG</span>
+          <div class="ph">CALISTHENICS<br>+ <span class="acc">PESI</span>.<br>STESSO LOG.</div>
+        </div>
+        <div class="ig-cap">
+          <span class="username">pumplog.app</span>Da oggi puoi loggare anche trazioni con peso, pull-up assistite e dip al parallelo. Pesi e corpo libero nello stesso registro, nello stesso volume settimanale. Niente switch tra app, niente conversioni a mano. Aggiornamento <span class="mono">1.4</span> · gratuito · per tutti.
+          <span class="tags">#calisthenics #pumplog</span>
+        </div>
+      </div>
+      <div class="sample" style="grid-column: span 1; padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+        <div class="why">
+          <span class="k">Perché funziona</span>
+          <p style="margin-bottom: 12px;">Apertura con cosa è nuovo. Esempi concreti (3 esercizi specifici). Beneficio in 3 negazioni parallele ("niente switch, niente conversioni"). Chiusura tecnica: versione, prezzo, copertura. <b>Tutto in 42 parole.</b></p>
+          <p>Hashtag: <span style="font-family: var(--f-mono); color: var(--accent);">#calisthenics</span> è tecnico (target), <span style="font-family: var(--f-mono); color: var(--accent);">#pumplog</span> è branded. Mai più di 2.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="channel-head">
+      <h3>CAPTION /02 · DATO <span class="acc">EDUCATIVO</span></h3>
+      <div class="meta">FORMATO · <b>Post 1:1</b> · 48 parole · 1 hashtag</div>
+    </div>
+
+    <div class="sample-grid">
+      <div class="sample yes ig-mock">
+        <div class="ig-img">
+          <span class="lbl">DATO · SETT 19</span>
+          <span class="mark">PUMP<span class="acc">/</span>LOG</span>
+          <div class="ph"><span class="acc">14–18</span><br>SERIE/SETT.<br>PETTO IN MAV.</div>
+        </div>
+        <div class="ig-cap">
+          <span class="username">pumplog.app</span>Il MAV è il volume settimanale dove il muscolo cresce di più senza compromettere il recupero. Per il petto: tra <span class="mono">14 e 18 serie effettive</span> a settimana, a <b>RPE ≥7</b>. Sotto: cresci poco. Sopra: accumuli fatica senza tornaconto.
+          <span class="tags">#mav</span>
+        </div>
+      </div>
+      <div class="sample" style="padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+        <div class="why">
+          <span class="k">Perché funziona</span>
+          <p style="margin-bottom: 12px;">Definizione in apertura (1 frase). Numero applicato. Soglia di qualità (RPE ≥7). <b>Conclusione binaria</b> "sotto / sopra" che chiude la lezione. Nessuna emoji, nessun "swipe to see more".</p>
+          <p>Il post-dato è il post che si salva. La caption è il "memo tecnico" che resta dopo lo scroll.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="channel-head">
+      <h3>CAPTION /03 · <span class="acc">UPDATE</span> PRODOTTO</h3>
+      <div class="meta">FORMATO · <b>Post 1:1</b> · 38 parole · 0 hashtag</div>
+    </div>
+
+    <div class="sample-grid">
+      <div class="sample yes ig-mock">
+        <div class="ig-img">
+          <span class="lbl">UPDATE · 1.4</span>
+          <span class="mark">PUMP<span class="acc">/</span>LOG</span>
+          <div class="ph">EXPORT<br>CSV.<br><span class="acc">2 CLICK</span>.</div>
+        </div>
+        <div class="ig-cap">
+          <span class="username">pumplog.app</span>Versione <span class="mono">1.4</span>: lo storico ora si esporta in CSV. Tutti i tuoi dati, sul tuo computer, in due click. Nessun account, nessuna sincronizzazione cloud. Funziona offline come tutto il resto.
+        </div>
+      </div>
+      <div class="sample" style="padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+        <div class="why">
+          <span class="k">Perché funziona</span>
+          <p style="margin-bottom: 12px;">Numero di versione subito. Cosa fa, come funziona, cosa NON fa. <b>Coerenza identitaria nell'ultima riga</b>: "offline come tutto il resto" lega l'update al DNA del prodotto.</p>
+          <p>Zero hashtag su update interni: l'update si racconta al pubblico già nostro, non per acquisire.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 09 · LINKEDIN -->
+<!-- ============================== -->
+<section class="section" id="li" data-screen-label="10 LinkedIn">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 09 · Voce su LinkedIn</span>
+      <span>Post · 3 esempi reali</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/09 · LINKEDIN</div>
+        <h2>STESSA VOCE,<br>UN PO' <span class="acc">PIÙ LUNGA</span>.</h2>
+      </div>
+      <div class="essence">
+        Su LinkedIn il pubblico è diverso: founder, designer, product, marketing. Il tono resta PumpLog ma si concede <b>più spazio per la posizione strategica</b>. Mostriamo il <em>perché</em> di una decisione di prodotto, non il <em>cosa</em>. Niente "thread", niente storytelling forzato, niente buzz da CMO.
+      </div>
+    </div>
+
+    <div class="channel-head">
+      <h3>POST /01 · POSIZIONAMENTO <span class="acc">ANTI-TREND</span></h3>
+      <div class="meta">FORMATO · <b>Post testo</b> · 105 parole · zero emoji</div>
+    </div>
+
+    <div class="li-mock">
+      <div class="who">
+        <div class="av">P</div>
+        <div class="meta">
+          <span class="name">PumpLog</span>
+          <span class="sub">PWA per allenamento serio · 1.247 follower · 1g</span>
+        </div>
+      </div>
+      <div class="post">
+        <p>Il <span class="mono">90%</span> delle fitness app vendono "community".</p>
+        <p>Noi vendiamo <b>silenzio</b>.</p>
+        <p>Il nostro utente non vuole vedere il feed di altri che si allenano. Non vuole il badge per la striscia di sette giorni. Non vuole il commento di un amico sotto al suo massimale.</p>
+        <p>Vuole loggare le sue serie, vedere se sta progredendo, e chiudere l'app.</p>
+        <p>PumpLog: <span class="mono">0</span> feed, <span class="mono">0</span> badge, <span class="mono">0</span> notifiche push non richieste. Un'unica metrica di successo: <b>"l'app è stata utile alla seduta di oggi."</b></p>
+      </div>
+    </div>
+
+    <div class="sample" style="padding: 24px; margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <div class="why">
+        <span class="k">Perché funziona</span>
+        <p>Apertura statistica → contrasto netto in due parole. Tre negazioni parallele ("non vuole / non vuole / non vuole") costruiscono ritmo. <b>Tre zeri Roboto Mono</b> chiudono il manifesto. Niente "Thoughts?" alla fine — il post sta in piedi da solo.</p>
+      </div>
+    </div>
+
+    <div class="channel-head">
+      <h3>POST /02 · DECISIONE DI <span class="acc">PRODOTTO</span></h3>
+      <div class="meta">FORMATO · <b>Post testo</b> · 115 parole · narrativa breve</div>
+    </div>
+
+    <div class="li-mock">
+      <div class="who">
+        <div class="av">P</div>
+        <div class="meta">
+          <span class="name">PumpLog</span>
+          <span class="sub">PWA per allenamento serio · 1.247 follower · 3g</span>
+        </div>
+      </div>
+      <div class="post">
+        <p>A marzo abbiamo <b>tolto tutte le notifiche push</b>. Anche quelle "utili". Anche il <em>"È ora del tuo allenamento"</em>.</p>
+        <p>Premessa: nessun utente intermedio ha bisogno di un'app che gli ricordi di andare in palestra. Chi si allena seriamente ha già la sua scheda in testa, e una notifica push è solo rumore.</p>
+        <p>Risultato dopo 3 mesi:</p>
+        <p>· Retention <span class="mono">+18%</span><br>· Open rate giornaliero <span class="mono">+11%</span><br>· Stelle App Store: <span class="mono">4,2 → 4,7</span></p>
+        <p>La gente apre l'app quando le serve davvero — e si fida di più di un'app che <b>non chiede attenzione</b>.</p>
+        <p>Il vantaggio competitivo non è quello che aggiungi. È quello che hai il coraggio di non aggiungere.</p>
+      </div>
+    </div>
+
+    <div class="sample" style="padding: 24px; margin-top: 16px;">
+      <div class="why">
+        <span class="k">Perché funziona</span>
+        <p>Decisione concreta (data + cosa) in apertura. Razionale tecnico in mezzo. <b>Numeri reali in Roboto Mono</b> al centro. Chiusura aforistica che generalizza il principio. Mai uso di "we built", "our team", "our journey" — sempre soggetto implicito o "PumpLog".</p>
+      </div>
+    </div>
+
+    <div class="channel-head">
+      <h3>POST /03 · OSSERVAZIONE <span class="acc">DI CATEGORIA</span></h3>
+      <div class="meta">FORMATO · <b>Post testo</b> · 88 parole · zero PumpLog finché serve</div>
+    </div>
+
+    <div class="li-mock">
+      <div class="who">
+        <div class="av">P</div>
+        <div class="meta">
+          <span class="name">PumpLog</span>
+          <span class="sub">PWA per allenamento serio · 1.247 follower · 5g</span>
+        </div>
+      </div>
+      <div class="post">
+        <p>Hevy, Strong, Fitbod, Thenics.</p>
+        <p>Quattro app diverse, una sola idea di prodotto: aggiungere — feed, badge, AI coach, sfide, classifiche.</p>
+        <p>Il fitness intermedio italiano ha vissuto <span class="mono">10 anni</span> di app che aggiungono. Nessuna che toglie.</p>
+        <p>PumpLog è la prima app italiana progettata per <b>togliere</b>: niente community, niente gamification, niente coach AI, niente classifiche. Solo serie, ripetizioni, volume, recupero.</p>
+        <p>Sottrazione come strategia. Anche nel marketing.</p>
+      </div>
+    </div>
+
+    <div class="sample" style="padding: 24px; margin-top: 16px;">
+      <div class="why">
+        <span class="k">Perché funziona</span>
+        <p>Lista di concorrenti come apertura: dichiara il territorio. <b>Pattern "aggiungere / togliere"</b> ripetuto come pilastro retorico. Le quattro negazioni finali sono identiche di costruzione. Ultima riga è meta — il post stesso è "sottrazione come strategia". Auto-coerenza voce/contenuto.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 10 · EMAIL -->
+<!-- ============================== -->
+<section class="section" id="email" data-screen-label="11 Email">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 10 · Voce email</span>
+      <span>Benvenuto · digest · milestone</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/10 · EMAIL</div>
+        <h2>UN'EMAIL,<br>UN <span class="acc">DATO</span>,<br>UN ADDIO.</h2>
+      </div>
+      <div class="essence">
+        Le email PumpLog hanno una regola semplice: <b>portano un dato, fanno un'azione, finiscono</b>. Niente intestazioni "Ciao [nome]!". Niente firma "Il team PumpLog ti augura un grande allenamento". L'oggetto contiene già metà dell'informazione: chi non clicca ha comunque ricevuto valore.
+      </div>
+    </div>
+
+    <!-- WELCOME -->
+    <div class="channel-head">
+      <h3>EMAIL /01 · <span class="acc">BENVENUTO</span></h3>
+      <div class="meta">TRIGGER · <b>Primo login</b> · 47 parole · 1 CTA</div>
+    </div>
+
+    <div class="em-mock">
+      <div class="em-head">
+        <div class="from"><b>PumpLog</b> &lt;mail@pumplog.it&gt; · per te · ora</div>
+        <div class="subj">Benvenuto in PumpLog.</div>
+      </div>
+      <div class="em-body">
+        <p>Hai installato PumpLog.</p>
+        <p>Non c'è altro da configurare adesso. Apri l'app, scegli una scheda, parti.</p>
+        <p>Se non hai una scheda, ce ne sono <b>quattro pronte all'uso</b>:</p>
+        <p class="mono">· Push/Pull/Legs · 6 sedute<br>
+        · Upper/Lower · 4 sedute<br>
+        · Full body · 3 sedute<br>
+        · Calisthenics base · 4 sedute</p>
+        <p>Tutte testate, tutte in italiano. Si modificano dalla prima seduta.</p>
+        <p><a class="cta">APRI PUMPLOG</a></p>
+        <p class="sig">PumpLog · L'allenamento, davvero tracciato</p>
+      </div>
+    </div>
+
+    <div class="sample" style="padding: 24px; margin-top: 16px;">
+      <div class="why">
+        <span class="k">Perché funziona</span>
+        <p>Oggetto = saluto + fatto in 3 parole. Apertura dichiarativa: "Hai installato". Lista compatta in Roboto Mono — è un dato, va trattato come tale. <b>Nessun "Ciao Marco!" personalizzato</b>: in italiano formale-tecnico, il nome di battesimo all'inizio suona da newsletter promozionale.</p>
+      </div>
+    </div>
+
+    <!-- WEEKLY DIGEST -->
+    <div class="channel-head">
+      <h3>EMAIL /02 · DIGEST <span class="acc">SETTIMANALE</span></h3>
+      <div class="meta">TRIGGER · <b>Domenica · auto-generata</b> · 62 parole · 1 CTA</div>
+    </div>
+
+    <div class="em-mock">
+      <div class="em-head">
+        <div class="from"><b>PumpLog</b> &lt;mail@pumplog.it&gt; · per te · domenica 18.05</div>
+        <div class="subj"><span class="mono">Sett 19</span> · Volume in MAV, panca <span class="acc">+2,5 kg</span></div>
+      </div>
+      <div class="em-body">
+        <p>Settimana 19, dal <span class="mono">12.05</span> al <span class="mono">18.05</span>:</p>
+        <div class="stat">
+          <span class="l">Sedute</span><span class="v">4 su 4 programmate</span>
+          <span class="l">Serie effettive</span><span class="v">47 · RPE medio 7,8</span>
+          <span class="l">Petto</span><span class="v acc">14 serie · MAV</span>
+          <span class="l">Schiena</span><span class="v">10 serie · MEV</span>
+          <span class="l">Massimale</span><span class="v acc">Panca 82,5 × 6 (+2,5)</span>
+          <span class="l">Recupero medio</span><span class="v">2:35</span>
+        </div>
+        <p>Niente soglie critiche. Niente PR persi. Schiena al limite inferiore — vale la pena aggiungere 2 serie la prossima settimana.</p>
+        <p><a class="cta">APRI ANALISI</a></p>
+        <p class="sig">PumpLog · Digest settimanale · annulla preferenze</p>
+      </div>
+    </div>
+
+    <div class="sample" style="padding: 24px; margin-top: 16px;">
+      <div class="why">
+        <span class="k">Perché funziona</span>
+        <p>Subject contiene già 2 dati chiave: chi non apre ha comunque sentito il segnale. Stat-block in Roboto Mono — il digest <b>è</b> una tabella. Chiusura tecnica: una soglia segnalata, un consiglio concreto. <b>Nessuna emozione, nessuna celebrazione</b>: il digest informa, non festeggia.</p>
+      </div>
+    </div>
+
+    <!-- MILESTONE -->
+    <div class="channel-head">
+      <h3>EMAIL /03 · <span class="acc">MASSIMALE</span> AGGIORNATO</h3>
+      <div class="meta">TRIGGER · <b>Nuovo PR loggato</b> · 38 parole · 0 CTA</div>
+    </div>
+
+    <div class="em-mock">
+      <div class="em-head">
+        <div class="from"><b>PumpLog</b> &lt;mail@pumplog.it&gt; · per te · 14:32</div>
+        <div class="subj">Panca: <span class="mono">85 × 6 (+2,5 da marzo)</span></div>
+      </div>
+      <div class="em-body">
+        <p>Hai chiuso una serie da <span class="mono">6 ripetizioni a 85 kg</span>.</p>
+        <p>È un massimale. e1RM stimato: <b>99,5 kg</b>.</p>
+        <p>La tua progressione sul petto è coerente da <span class="mono">6 settimane</span>: stesso volume, RPE in calo. Da oggi il tuo riferimento sale.</p>
+        <p class="sig">PumpLog · Notifica massimale</p>
+      </div>
+    </div>
+
+    <div class="sample" style="padding: 24px; margin-top: 16px;">
+      <div class="why">
+        <span class="k">Perché funziona</span>
+        <p>Subject contiene il PR completo. Apertura ridichiarativa con il dato preciso. <b>Constatazione tecnica</b>: "è un massimale", "e1RM stimato". Contesto storico in seconda frase. Chiusura con l'implicazione operativa: "da oggi il tuo riferimento sale". <b>Zero CTA</b> — non c'è altro da fare, il dato è già stato dato.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 11 · RECENSIONI / FEEDBACK -->
+<!-- ============================== -->
+<section class="section" id="feedback" data-screen-label="12 Recensioni">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 11 · Risposta a recensioni e feedback</span>
+      <span>App Store · email supporto · social</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/11 · COMMUNITY</div>
+        <h2>RISPONDIAMO<br>COME PARLIAMO.<br><span class="acc">ASCIUTTI</span>.</h2>
+      </div>
+      <div class="essence">
+        La voce del supporto è la voce del marchio. Niente "Ciao Marco! 😊 Grazie mille per il tuo feedback! Apprezziamo davvero…". <b>Rispondiamo in due righe</b>, riconosciamo il problema, diciamo cosa faremo. La gentilezza è essere veloci.
+      </div>
+    </div>
+
+    <div class="sample-grid">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/01 · Bug · 1 stella</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">RECENSIONE NEGATIVA · L'utente segnala crash dopo update 1.4</div>
+            <div class="copy-h" style="font-size: 22px;">"L'app crasha dopo l'update 1.4. Inutile."</div>
+            <div class="copy-b" style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--rule-2);">
+              <b style="color: var(--ink);">Risposta PumpLog:</b><br><br>
+              Confermato, bug del salvataggio sessione in <span class="mono">1.4</span>. Patch <span class="mono">1.4.1</span> in revisione store, online entro 48 ore.<br><br>
+              Nel frattempo: i dati sono salvati localmente, non si perdono. Se vuoi, scrivici a supporto@pumplog.it con il modello del telefono — ci aiuta a isolare i casi.
+            </div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Riconoscimento immediato. Causa nominata. Tempistica concreta. Rassicurazione tecnica. Invito alla collaborazione, non difensiva.</div>
+        </div>
+      </div>
+      <div class="sample no">
+        <div class="head"><span class="lab">/01 · Bug · 1 stella</span><span class="verdict">NO</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">RISPOSTA TIPO "TEAM-BOT"</div>
+            <div class="copy-h" style="font-size: 22px;">"Ciao! Grazie per il tuo feedback 😊"</div>
+            <div class="copy-b" style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--rule-2);">
+              Siamo davvero dispiaciuti per il problema che hai riscontrato! Il nostro team di sviluppo è al lavoro per risolvere quanto prima eventuali bug. Ti ringraziamo per la pazienza e ti invitiamo a contattare il nostro fantastico supporto a supporto@pumplog.it 🙏 Continua a credere in noi!
+            </div>
+          </div>
+          <div class="why"><span class="k">Cosa sbaglia</span>Apertura emoticon, "davvero dispiaciuti" generico, "fantastico", "continua a credere in noi". Zero informazione concreta. Voce da chatbot.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sample-grid" style="margin-top: 24px;">
+      <div class="sample yes">
+        <div class="head"><span class="lab">/02 · Recensione positiva · 5 stelle</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">L'UTENTE LODA OFFLINE-FIRST E NIENTE SOCIAL</div>
+            <div class="copy-b" style="margin-top: 4px;">
+              <b style="color: var(--ink);">Risposta PumpLog:</b><br><br>
+              Grazie. È esattamente quello che speriamo continui a sembrare. Continueremo a non aggiungere feed.
+            </div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>Tre frasi. Ringraziamento sostantivo. Auto-coerenza promessa. <b>Zero "abbiamo lavorato sodo"</b>, zero "siamo onorati". La risposta del marchio è breve quanto il marchio.</div>
+        </div>
+      </div>
+      <div class="sample yes">
+        <div class="head"><span class="lab">/03 · Richiesta feature</span><span class="verdict">SÌ</span></div>
+        <div class="body">
+          <div class="copy-area">
+            <div class="subject">UTENTE CHIEDE FEED SOCIAL PER CONDIVIDERE PR</div>
+            <div class="copy-b" style="margin-top: 4px;">
+              <b style="color: var(--ink);">Risposta PumpLog:</b><br><br>
+              Grazie per il suggerimento. Non lo costruiremo. PumpLog è progettato per essere un log privato — il "no social" è una scelta di prodotto, non un'omissione. Se vuoi condividere un PR, lo screenshot è ancora la forma migliore.
+            </div>
+          </div>
+          <div class="why"><span class="k">Perché funziona</span>"Non lo costruiremo" — chiaro, gentile, definitivo. Spiega il perché in una frase. Offre un'alternativa pratica (screenshot). <b>Non promette di "passarlo al team"</b> se non lo faremo.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 12 · DECISION MATRIX + CHECKLIST -->
+<!-- ============================== -->
+<section class="section" id="check" data-screen-label="13 Checklist">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 12 · Matrice + checklist</span>
+      <span>Quando in dubbio · cosa fare</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/12 · DECISION</div>
+        <h2>SETTE DOMANDE<br>PRIMA DI <span class="acc">PUBBLICARE</span>.</h2>
+      </div>
+      <div class="essence">
+        La matrice qui sotto è la stretta finale. <b>Se il copy non passa tutte e 7 le domande, non si pubblica.</b> Per i casi limite, c'è la checklist canale-specifica nelle due card a destra. Tenere a portata di mano in ogni copy review.
+      </div>
+    </div>
+
+    <div class="matrix">
+      <div class="matrix-row h">
+        <div>Domanda</div>
+        <div>Se SÌ → riscrivi</div>
+        <div>Se NO → procedi</div>
+      </div>
+
+      <div class="matrix-row">
+        <div class="q">/01 · Sto usando una parola della lista nera del §05?</div>
+        <div class="a no">Workout, gains, grind, beast, crush, level up, sblocca, smart… Sostituisci con il termine italiano della seconda colonna.</div>
+        <div class="a yes">Vocabolario approvato. Procedi.</div>
+      </div>
+
+      <div class="matrix-row">
+        <div class="q">/02 · Sto usando il punto esclamativo per esprimere emozione?</div>
+        <div class="a no">Riscrivi senza. <b>Il "!" PumpLog</b> esiste solo per comandi diretti ("Aspetta!" in un alert critico) — mai per entusiasmo.</div>
+        <div class="a yes">Procedi.</div>
+      </div>
+
+      <div class="matrix-row">
+        <div class="q">/03 · Ci sono emoji oltre i simboli tipografici?</div>
+        <div class="a no">Rimuovi. Ammessi solo · → ↗ ↘ % × — Mai 💪 🔥 🚀 ✨ né cugini.</div>
+        <div class="a yes">Procedi.</div>
+      </div>
+
+      <div class="matrix-row">
+        <div class="q">/04 · Il copy contiene un dato verificabile?</div>
+        <div class="a yes">Se sì, ottimo. Se il copy è solo emozione/promessa → manca la sostanza. Aggiungi un numero, un nome di feature, una metrica.</div>
+        <div class="a no">Manca un dato. Aggiungilo.</div>
+      </div>
+
+      <div class="matrix-row">
+        <div class="q">/05 · Sto dando del "tu" e mai del "voi"?</div>
+        <div class="a no">"Voi", "il vostro allenamento" → riscrivi al singolare. PumpLog parla a una persona, non a un'audience.</div>
+        <div class="a yes">Procedi.</div>
+      </div>
+
+      <div class="matrix-row">
+        <div class="q">/06 · La frase più lunga supera le 20 parole?</div>
+        <div class="a no">Spezza in due. Le frasi lunghe accumulano avverbi e subordinate — sempre togliibili.</div>
+        <div class="a yes">Procedi.</div>
+      </div>
+
+      <div class="matrix-row">
+        <div class="q">/07 · Il copy regge se elimini la prima frase?</div>
+        <div class="a yes">Se sì → la prima frase è preambolo. Elimina, ripeti il test.</div>
+        <div class="a no">Procedi. Il copy è già asciutto.</div>
+      </div>
+    </div>
+
+    <h3 style="font-family: var(--f-display); font-weight: 400; font-size: clamp(36px, 4vw, 56px); line-height: 0.95; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); margin-top: 72px; margin-bottom: 24px;">
+      CHECKLIST <span class="acc">PER CANALE</span>.
+    </h3>
+
+    <div class="checklist-grid">
+      <div class="check-card">
+        <span class="lab">/01 · IN-APP</span>
+        <h4>Notifiche & UI copy</h4>
+        <ul>
+          <li>Lunghezza notifica push: max <b>14 parole</b> totali</li>
+          <li>Apertura sempre con <b>esercizio o metrica</b>, non con saluto</li>
+          <li>CTA del bottone: verbo all'imperativo, max <b>3 parole</b></li>
+          <li>Stati vuoti: una frase + istruzione minima</li>
+          <li>Errori: nominare il problema, dire <b>cosa è salvato</b>, dare azione</li>
+          <li>Mai usare il "tu" maiuscolo: "tu", non "Tu"</li>
+        </ul>
+      </div>
+
+      <div class="check-card">
+        <span class="lab">/02 · INSTAGRAM</span>
+        <h4>Caption post & stories</h4>
+        <ul>
+          <li>Caption max <b>50 parole</b></li>
+          <li>Hashtag max <b>2</b> · sempre tecnici, mai branded popolari</li>
+          <li>Mai <b>CTA al commento</b> ("Cosa ne pensi?", "Tag un amico")</li>
+          <li>Mai aperture tipo <b>"Lo sapevi che..."</b></li>
+          <li>Decimali sempre con virgola: <b>82,5</b> mai 82.5</li>
+          <li>Numeri con unità: <b>"+2,5 kg"</b> non "+2.5"</li>
+        </ul>
+      </div>
+
+      <div class="check-card">
+        <span class="lab">/03 · LINKEDIN</span>
+        <h4>Post di prodotto / brand</h4>
+        <ul>
+          <li>Max <b>150 parole</b> · oltre è già articolo</li>
+          <li>Apertura: <b>dato o asserzione</b>, mai "Buongiorno community!"</li>
+          <li>Mai "Cosa ne pensate?" / "Thoughts?" in chiusura</li>
+          <li>Niente <b>"#linkedin #startup #fitness"</b> · hashtag massimo 1, tecnico</li>
+          <li>Mai uso del <b>"noi" auto-elogiativo</b> ("noi crediamo che", "noi siamo")</li>
+          <li>Chiusura aforistica > chiusura CTA</li>
+        </ul>
+      </div>
+
+      <div class="check-card">
+        <span class="lab">/04 · EMAIL</span>
+        <h4>Transazionali & digest</h4>
+        <ul>
+          <li>Subject contiene <b>già un dato</b> chiaramente leggibile</li>
+          <li>Saluto: nessuno · si parte dal fatto</li>
+          <li>Max <b>1 CTA</b> per email · centrata sotto al contenuto</li>
+          <li>Firma: <b>"PumpLog · [tipo email]"</b> · mai "Il team PumpLog"</li>
+          <li>Dati numerici in <b>Roboto Mono</b>, allineati in colonna</li>
+          <li>Niente "Hai 24 ore!" né urgenza fabbricata</li>
+        </ul>
+      </div>
+
+      <div class="check-card">
+        <span class="lab">/05 · LANDING</span>
+        <h4>Headline & feature copy</h4>
+        <ul>
+          <li>Hero headline: max <b>3 righe in Bebas</b> · max 8 parole</li>
+          <li>Sub-headline: <b>5 promesse</b> in 1 frase</li>
+          <li>Feature block: dichiarazione + 3 clausole parallele</li>
+          <li>CTA bottone: <b>verbo + complemento</b> · 2-3 parole</li>
+          <li>Niente testimonianze stelline a 5 ("Bellissima app! - Marco G.")</li>
+          <li>Niente FAQ tipo <b>"Why us?"</b> / "Cosa ci rende speciali?"</li>
+        </ul>
+      </div>
+
+      <div class="check-card">
+        <span class="lab">/06 · SUPPORTO</span>
+        <h4>Email & recensioni</h4>
+        <ul>
+          <li>Prima frase: <b>riconosci il problema</b>, non "Grazie per averci contattato"</li>
+          <li>Mai <b>"Mi dispiace tantissimo"</b> · "Confermato, [causa]" funziona meglio</li>
+          <li>Promettere solo cose <b>concrete</b>: data, versione, azione</li>
+          <li>Una feature negata si dice: <b>"Non lo costruiremo"</b> + perché</li>
+          <li>Chiusura: niente saluti calorosi · firma neutrale</li>
+          <li>Tempo di risposta target: <b>&lt; 24 ore lavorative</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="margin-top: 48px; padding: 24px 28px; border: 1px dashed var(--rule-2); background: var(--bg-2); font-family: var(--f-body); font-weight: 400; font-size: 15px; line-height: 1.65; color: var(--ink); max-width: 72ch;">
+      <span style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 10px;">▸ Principio di chiusura</span>
+      Se hai dubbi su una frase, <b style="color: var(--accent);">eliminala e leggi di nuovo</b>. Se il messaggio regge senza, era ridondante. Se non regge, era importante e va lasciata. La voce PumpLog si costruisce per <em>sottrazione</em>, mai per aggiunta.
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot">
+    <div>Documento<b>Brand Voice Guide v1</b></div>
+    <div>Stato<b style="color: var(--accent);">Pronto per produzione</b></div>
+    <div>Prossimo<b>Embed in onboarding team</b></div>
+    <div>Owner<b>Brand · Copy · Supporto</b></div>
+  </div>
+</footer>
+
+</body>
+</html>

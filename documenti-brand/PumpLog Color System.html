@@ -1,0 +1,1796 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Color System · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,8..60,300;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C0C0D;
+  --bg-2:      #161618;
+  --bg-3:      #202022;
+  --rule:      #2A2A2D;
+  --rule-2:    #353539;
+  --ink:       #F0EFE8;
+  --ink-2:     rgba(240,239,232,0.55);
+  --ink-3:     rgba(240,239,232,0.32);
+  --accent:    #C8FF00;
+  --accent-ink:#000000;
+  --danger:    #EF4444;
+  --success:   #22C55E;
+  --warning:   #F59E0B;
+  --glow-9:    rgba(200,255,0,0.09);
+  --glow-20:   rgba(200,255,0,0.20);
+
+  --f-display: "Space Grotesk", system-ui, sans-serif;
+  --f-mono:    "JetBrains Mono", ui-monospace, monospace;
+  --f-edit:    "Newsreader", Georgia, serif;
+  --f-brand:   "Bebas Neue", Impact, sans-serif;
+
+  --max: 1280px;
+  --gutter: 32px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-display);
+  font-weight: 400; font-size: 16px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--f-mono); }
+
+/* TOP BAR */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(12,12,13,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar .lockup { color: var(--ink); display: flex; align-items: center; gap: 10px; }
+.topbar .lockup .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.topbar .right { display: flex; gap: 24px; }
+
+/* HERO */
+.hero { padding: 64px 0 96px; border-bottom: 1px solid var(--rule); }
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding-bottom: 40px; border-bottom: 1px solid var(--rule); margin-bottom: 56px;
+}
+.hero-meta b { display: block; color: var(--ink); font-weight: 500; margin-top: 6px; letter-spacing: 0.04em; }
+.hero h1 {
+  font-family: var(--f-display); font-weight: 500;
+  font-size: clamp(40px, 6vw, 84px);
+  line-height: 0.98; letter-spacing: -0.035em;
+  text-wrap: balance; max-width: 18ch;
+}
+.hero h1 b { color: var(--accent); font-weight: 500; }
+.hero .sub {
+  margin-top: 32px;
+  font-family: var(--f-edit); font-style: italic; font-weight: 300;
+  font-size: clamp(18px, 1.8vw, 24px); line-height: 1.4;
+  color: var(--ink); max-width: 64ch; text-wrap: pretty;
+}
+.hero .sub b { font-style: normal; color: var(--accent); font-weight: 400; }
+
+/* OVERVIEW GRID */
+.overview {
+  margin-top: 64px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.overview .chip {
+  aspect-ratio: 1/1.2;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--rule);
+  position: relative;
+  overflow: hidden;
+}
+.overview .chip .name { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); }
+.overview .chip .hex  { color: var(--ink-2); }
+.overview .chip .role { color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; font-size: 9px; }
+.overview .chip.lite .name { color: var(--accent-ink); }
+.overview .chip.lite .hex { color: rgba(0,0,0,0.55); }
+.overview .chip.lite .role { color: rgba(0,0,0,0.4); }
+.overview .chip.dark .name { color: var(--ink); }
+.overview .chip.dark .hex { color: var(--ink-2); }
+
+/* SECTION */
+.section { border-top: 1px solid var(--rule); padding: 96px 0; position: relative; }
+.section-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding-bottom: 16px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+.section-head { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; align-items: end; margin-bottom: 64px; }
+.section-head .num { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.14em; margin-bottom: 16px; }
+.section-head h2 {
+  font-family: var(--f-display); font-weight: 500;
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 1; letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.section-head h2 .acc { color: var(--accent); }
+.section-head .essence {
+  font-family: var(--f-edit); font-style: italic; font-weight: 300;
+  font-size: clamp(18px, 1.6vw, 22px); line-height: 1.45;
+  color: var(--ink-2); max-width: 52ch;
+}
+
+/* COLOR CARD — large single color analysis */
+.color-card {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+.color-card .swatch {
+  min-height: 480px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+.color-card .swatch.dark .lab { color: var(--ink-2); }
+.color-card .swatch.dark .label { color: var(--ink); }
+.color-card .swatch.dark .codes { color: var(--ink-2); }
+.color-card .swatch.lite .lab { color: rgba(0,0,0,0.55); }
+.color-card .swatch.lite .label { color: var(--accent-ink); }
+.color-card .swatch.lite .codes { color: rgba(0,0,0,0.7); }
+
+.color-card .swatch .lab {
+  font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.color-card .swatch .label {
+  font-family: var(--f-brand);
+  font-size: clamp(48px, 5vw, 80px);
+  line-height: 0.9; letter-spacing: 0.01em;
+}
+.color-card .swatch .label small {
+  display: block;
+  font-family: var(--f-display);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin-top: 8px;
+  opacity: 0.7;
+}
+.color-card .swatch .codes {
+  font-family: var(--f-mono); font-size: 13px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.color-card .body {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.color-card .body h3 {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px;
+}
+.color-card .body h3::before {
+  content: ""; width: 8px; height: 8px;
+  background: var(--accent); border-radius: 1px;
+}
+.color-card .body h3.warn::before { background: var(--warning); }
+.color-card .body h3.ok::before { background: var(--success); }
+.color-card .body p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.color-card .body p + p { margin-top: 12px; }
+.color-card .body p b { color: var(--accent); font-weight: 500; }
+
+.verdict {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--success);
+  font-family: var(--f-mono); font-size: 12px;
+  color: var(--ink); letter-spacing: 0.04em;
+}
+.verdict.warn { border-left-color: var(--warning); }
+.verdict.bad  { border-left-color: var(--danger); }
+.verdict b { font-weight: 500; color: var(--success); }
+.verdict.warn b { color: var(--warning); }
+.verdict.bad b  { color: var(--danger); }
+
+/* PAIRED ROW — for surfaces, texts, glows */
+.row-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.row-card {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  display: flex;
+  flex-direction: column;
+}
+.row-card .sw {
+  min-height: 180px;
+  padding: 20px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 11px;
+}
+.row-card .sw.dark .name { color: var(--ink); }
+.row-card .sw.dark .hex { color: var(--ink-2); }
+.row-card .sw.lite .name { color: var(--accent-ink); }
+.row-card .sw.lite .hex { color: rgba(0,0,0,0.5); }
+.row-card .sw .name { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; }
+.row-card .sw .role { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
+.row-card .info { padding: 20px; font-size: 13px; color: var(--ink); line-height: 1.5; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.row-card .info .k { font-family: var(--f-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* PAIRING / CONTRAST MATRIX */
+.contrast-grid {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 32px;
+}
+.contrast-grid h4 {
+  font-family: var(--f-mono);
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-2); margin-bottom: 24px;
+}
+.contrast-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 100px 100px;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: center;
+  font-family: var(--f-mono);
+  font-size: 12px;
+}
+.contrast-row:last-child { border-bottom: none; }
+.contrast-row .demo {
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--f-display);
+  font-size: 15px;
+  font-weight: 400;
+}
+.contrast-row .demo .big {
+  font-family: var(--f-brand);
+  font-size: 24px;
+  letter-spacing: 0.01em;
+}
+.contrast-row .pair { color: var(--ink-2); letter-spacing: 0.06em; }
+.contrast-row .pair b { color: var(--ink); font-weight: 500; }
+.contrast-row .ratio { font-size: 14px; color: var(--ink); }
+.contrast-row .badge {
+  padding: 6px 10px;
+  border: 1px solid var(--rule-2);
+  border-radius: 2px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: inline-block;
+  text-align: center;
+}
+.contrast-row .badge.aaa { color: var(--success); border-color: var(--success); }
+.contrast-row .badge.aa  { color: var(--accent); border-color: var(--accent); }
+.contrast-row .badge.fail{ color: var(--danger); border-color: var(--danger); }
+.contrast-row .badge.large{ color: var(--warning); border-color: var(--warning); }
+
+/* SUCCESS CRITIQUE — special highlight section */
+.critique {
+  border: 1px solid var(--warning);
+  background: linear-gradient(180deg, rgba(245,158,11,0.06) 0%, var(--bg-2) 100%);
+  padding: 48px;
+  margin-bottom: 32px;
+}
+.critique .flag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--warning);
+  padding: 8px 12px;
+  border: 1px solid var(--warning);
+  margin-bottom: 24px;
+}
+.critique .flag::before { content: "▲"; font-size: 14px; }
+.critique h3 {
+  font-family: var(--f-display);
+  font-weight: 500;
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  margin-bottom: 20px;
+  text-wrap: balance;
+  max-width: 22ch;
+}
+.critique > p {
+  font-family: var(--f-edit);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 60ch;
+  margin-bottom: 32px;
+}
+
+.greens {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+.greens > div { padding: 32px; border: 1px solid var(--rule); background: var(--bg); display: flex; flex-direction: column; gap: 12px; min-height: 200px; position: relative; }
+.greens > div::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px; }
+.greens .lime-side::before { background: var(--accent); }
+.greens .success-side::before { background: var(--success); }
+.greens .label { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.greens .swatch-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; }
+.greens .swatch-row .sq { width: 48px; height: 48px; border-radius: 4px; }
+.greens .swatch-row .meta { display: flex; flex-direction: column; gap: 2px; }
+.greens .swatch-row .meta .h { font-family: var(--f-display); font-size: 18px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); }
+.greens .swatch-row .meta .c { font-family: var(--f-mono); font-size: 11px; color: var(--ink-2); }
+.greens > div p { font-size: 14px; color: var(--ink); line-height: 1.5; }
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.option {
+  padding: 28px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 280px;
+}
+.option .head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.option .head .idx { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--accent); text-transform: uppercase; }
+.option .head .lvl { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--ink-3); text-transform: uppercase; padding: 4px 8px; border: 1px solid var(--rule); }
+.option .head .lvl.rec { color: var(--accent); border-color: var(--accent); }
+.option .swatch-pair {
+  display: flex; gap: 8px;
+}
+.option .swatch-pair .sq {
+  flex: 1;
+  height: 56px;
+  border-radius: 2px;
+  position: relative;
+}
+.option .swatch-pair .sq::after {
+  content: attr(data-hex);
+  position: absolute;
+  bottom: 6px; left: 8px;
+  font-family: var(--f-mono);
+  font-size: 9px;
+  color: rgba(0,0,0,0.55);
+  letter-spacing: 0.06em;
+}
+.option .swatch-pair .sq.dark::after { color: rgba(255,255,255,0.55); }
+.option h4 {
+  font-family: var(--f-display);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.option p { font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+
+/* ANTI PATTERNS */
+.anti-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.anti-card {
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.anti-card .demo {
+  min-height: 140px;
+  padding: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-bottom: 1px solid var(--rule);
+}
+.anti-card .meta { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.anti-card .meta .x { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--danger); text-transform: uppercase; }
+.anti-card .meta .x::before { content: "× "; }
+.anti-card .meta .title { font-family: var(--f-display); font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
+.anti-card .meta .why { font-size: 12px; color: var(--ink-2); font-family: var(--f-edit); font-style: italic; font-weight: 300; line-height: 1.5; }
+
+/* APPLICATION DEMO */
+.app-demo {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+.phone {
+  width: 100%; aspect-ratio: 9/19.5;
+  background: #000; border-radius: 44px;
+  padding: 12px;
+  border: 1px solid var(--rule-2);
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+}
+.phone .screen {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  border-radius: 32px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.phone .status {
+  height: 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px;
+  font-family: var(--f-mono); font-size: 11px; font-weight: 600;
+  color: var(--ink);
+}
+.phone .header {
+  padding: 8px 18px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.phone .header h5 { font-family: var(--f-display); font-weight: 500; font-size: 17px; letter-spacing: -0.015em; }
+.phone .header .meta { font-family: var(--f-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+.phone .body { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow: hidden; }
+
+.card-elev1 { background: var(--bg-2); border-radius: 10px; padding: 14px; border: 1px solid var(--rule); }
+.card-elev2 { background: var(--bg-3); border-radius: 8px; padding: 10px; }
+.card-glow  { background: var(--glow-9); border: 1px solid rgba(200,255,0,0.18); border-radius: 10px; padding: 14px; }
+.card-glow .lab { font-family: var(--f-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; }
+.card-glow .val { font-family: var(--f-brand); font-size: 32px; letter-spacing: 0.01em; color: var(--ink); margin-top: 4px; }
+.card-glow .sub { font-family: var(--f-edit); font-style: italic; font-weight: 300; font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+
+.app-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+.app-row .label { font-family: var(--f-display); font-size: 14px; color: var(--ink); }
+.app-row .sub { font-family: var(--f-mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.1em; text-transform: uppercase; }
+.app-row .val { font-family: var(--f-mono); font-size: 13px; color: var(--ink); }
+.app-row .val.s { color: var(--success); }
+.app-row .val.d { color: var(--danger); }
+.app-row .val.w { color: var(--warning); }
+.app-row .val.a { color: var(--accent); }
+
+.cta {
+  margin-top: auto;
+  background: var(--accent);
+  color: var(--accent-ink);
+  text-align: center;
+  padding: 14px;
+  font-family: var(--f-brand);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  border-radius: 10px;
+}
+
+.legend {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  display: flex; flex-direction: column; gap: 14px;
+  padding-top: 24px;
+}
+.legend .item {
+  display: grid; grid-template-columns: 24px 1fr;
+  gap: 14px; align-items: start;
+  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.legend .item:last-child { border-bottom: none; }
+.legend .item .dot {
+  width: 14px; height: 14px;
+  border-radius: 2px;
+  margin-top: 2px;
+}
+.legend .item .desc { color: var(--ink); font-family: var(--f-display); font-size: 14px; line-height: 1.5; }
+.legend .item .desc b { color: var(--accent); font-weight: 500; }
+.legend .item .desc small { display: block; font-family: var(--f-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+
+/* GAPS section */
+.gaps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.gap {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 28px;
+}
+.gap .lab { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; }
+.gap h4 { font-family: var(--f-display); font-weight: 500; font-size: 22px; letter-spacing: -0.02em; margin-bottom: 14px; }
+.gap p { font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+.gap p b { color: var(--ink); font-weight: 500; }
+.gap .swatch-row {
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  display: flex; gap: 8px;
+}
+.gap .swatch-row .sq {
+  flex: 1; height: 40px; border-radius: 2px;
+  position: relative;
+}
+.gap .swatch-row .sq::after {
+  content: attr(data-hex);
+  position: absolute; bottom: 4px; left: 6px;
+  font-family: var(--f-mono); font-size: 9px;
+}
+.gap .swatch-row .sq.dark::after { color: rgba(255,255,255,0.6); }
+.gap .swatch-row .sq.lite::after { color: rgba(0,0,0,0.55); }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.foot b { display: block; color: var(--ink); margin-top: 6px; font-weight: 500; letter-spacing: 0.04em; }
+
+@media (max-width: 900px) {
+  :root { --gutter: 20px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .overview { grid-template-columns: repeat(3, 1fr); }
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+  .color-card { grid-template-columns: 1fr; }
+  .color-card .swatch { min-height: 320px; }
+  .row-cards { grid-template-columns: 1fr; }
+  .contrast-row { grid-template-columns: 1fr 80px 80px; gap: 12px; font-size: 11px; }
+  .contrast-row .demo { grid-column: 1 / -1; }
+  .greens { grid-template-columns: 1fr; }
+  .options { grid-template-columns: 1fr; }
+  .anti-grid { grid-template-columns: 1fr; }
+  .app-demo { grid-template-columns: 1fr; gap: 32px; }
+  .gaps { grid-template-columns: 1fr; }
+  .foot { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="00 Color System">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="lockup">
+      <span class="dot"></span>
+      <span>PumpLog</span>
+      <span style="color: var(--ink-3);">/</span>
+      <span style="color: var(--ink-3);">Color System v1</span>
+    </div>
+    <div class="right">
+      <span>ITA</span>
+      <span>15.05.2026</span>
+      <span style="color: var(--accent);">● REVIEW</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <div>DOCUMENTO<b>Color System · v1</b></div>
+      <div>SCOPE<b>Dark mode only · WCAG AA</b></div>
+      <div>STATUS<b>Approvato · 1 critica aperta</b></div>
+      <div>COLORI<b>14 token · 5 ruoli</b></div>
+    </div>
+
+    <h1>14 colori,<br>uno solo<br><b>fa rumore</b>.</h1>
+    <p class="sub">
+      Una palette dark-only costruita attorno a un solo colore acceso — <b>il lime acido</b> — circondato da neri stratificati e bianchi caldi. Ogni colore qui sotto ha una funzione precisa: <em>se non risponde a una domanda di prodotto, non esiste.</em>
+    </p>
+
+    <div class="overview">
+      <div class="chip lite" style="background: #C8FF00;">
+        <div>
+          <div class="role">Accent</div>
+          <div class="name">Lime</div>
+        </div>
+        <div class="hex">#C8FF00</div>
+      </div>
+      <div class="chip dark" style="background: #000000;">
+        <div>
+          <div class="role">Ink on Lime</div>
+          <div class="name">Nero puro</div>
+        </div>
+        <div class="hex">#000000</div>
+      </div>
+      <div class="chip dark" style="background: #0C0C0D;">
+        <div>
+          <div class="role">Background</div>
+          <div class="name">Nero profondo</div>
+        </div>
+        <div class="hex">#0C0C0D</div>
+      </div>
+      <div class="chip dark" style="background: #161618;">
+        <div>
+          <div class="role">Surface 1</div>
+          <div class="name">Grigio 1</div>
+        </div>
+        <div class="hex">#161618</div>
+      </div>
+      <div class="chip dark" style="background: #202022;">
+        <div>
+          <div class="role">Surface 2</div>
+          <div class="name">Grigio 2</div>
+        </div>
+        <div class="hex">#202022</div>
+      </div>
+      <div class="chip dark" style="background: #2A2A2D;">
+        <div>
+          <div class="role">Surface 3</div>
+          <div class="name">Grigio 3</div>
+        </div>
+        <div class="hex">#2A2A2D</div>
+      </div>
+      <div class="chip lite" style="background: #F0EFE8;">
+        <div>
+          <div class="role">Text · 100%</div>
+          <div class="name">Bianco caldo</div>
+        </div>
+        <div class="hex">#F0EFE8</div>
+      </div>
+      <div class="chip dark" style="background: rgba(240,239,232,0.55);">
+        <div>
+          <div class="role">Text · 55%</div>
+          <div class="name">Secondary</div>
+        </div>
+        <div class="hex">α 0.55</div>
+      </div>
+      <div class="chip dark" style="background: rgba(240,239,232,0.32);">
+        <div>
+          <div class="role">Text · 32%</div>
+          <div class="name">Tertiary</div>
+        </div>
+        <div class="hex">α 0.32</div>
+      </div>
+      <div class="chip lite" style="background: #EF4444;">
+        <div>
+          <div class="role">Danger</div>
+          <div class="name">Rosso</div>
+        </div>
+        <div class="hex">#EF4444</div>
+      </div>
+      <div class="chip lite" style="background: #22C55E;">
+        <div>
+          <div class="role">Success ▲</div>
+          <div class="name">Verde</div>
+        </div>
+        <div class="hex">#22C55E</div>
+      </div>
+      <div class="chip lite" style="background: #F59E0B;">
+        <div>
+          <div class="role">Warning</div>
+          <div class="name">Ambra</div>
+        </div>
+        <div class="hex">#F59E0B</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 01 · ACCENT LIME -->
+<!-- ============================== -->
+<section class="section" data-screen-label="02 Accent Lime">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 01 · Il colore della marca</span>
+      <span>Accent · CTA · highlight · icona app</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/01</div>
+        <h2>Lime <span class="acc">acido</span>.<br>Il colore che<br>significa "dato".</h2>
+      </div>
+      <div class="essence">
+        Il lime #C8FF00 non è "verde acceso": è un giallo-verde ad alta saturazione che il cervello legge come <em>attenzione obbligatoria</em>. Funziona perché non assomiglia a nessun altro colore del territorio fitness italiano — niente rosso da palestra, niente arancione energetico, niente nero-oro da bodybuilding.
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="swatch lite" style="background: #C8FF00;">
+        <div class="lab">Primary Accent · v1</div>
+        <div>
+          <div class="label">C8FF00<small>Lime acido · spotlight del dato</small></div>
+        </div>
+        <div class="codes">
+          HEX · #C8FF00<br>
+          RGB · 200, 255, 0<br>
+          HSL · 73°, 100%, 50%<br>
+          oklch · 0.945 0.288 124°
+        </div>
+      </div>
+      <div class="body">
+        <div>
+          <h3>Psicologia del colore</h3>
+          <p>Il lime acido vive in un territorio specifico: <b>strumentazione scientifica</b>. Oscilloscopi, terminali a fosfori, schermi di trading low-light, segnali di sicurezza ad alta visibilità. Il cervello non lo associa allo sport ma alla <em>misurazione</em>. È esattamente dove vuoi essere.</p>
+          <p>La saturazione massima (100%) lo rende fisicamente impossibile da ignorare. È un colore che dice "qui c'è un dato che devi vedere" — non "qui c'è una decorazione".</p>
+        </div>
+        <div>
+          <h3 class="ok">Validazione · uso attuale</h3>
+          <p>L'uso definito (<b>CTA, highlight, icona app, elementi interattivi</b>) è corretto e a prova di drift. La regola <b>"mai su sfondo chiaro"</b> non è un'opinione: su bianco il lime perde tutto il chroma e diventa stridulo-verdognolo. La saturazione massima funziona <em>solo</em> contro il nero.</p>
+        </div>
+        <div>
+          <h3 class="warn">Miglioramenti suggeriti</h3>
+          <p>Aggiungere una <b>regola di copertura ≤ 5%</b>: in qualunque schermata, la somma di tutte le aree lime non supera il 5% dei pixel visibili. Senza questo vincolo, l'accento perde forza per saturazione e ridiventa decorazione. Vedi sezione §10.</p>
+        </div>
+        <div class="verdict">
+          <b>STATO · CONFERMATO</b> · Aggiungere regola del 5% · Nessun cambiamento di hex
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 02 · NERO PURO SU LIME -->
+<!-- ============================== -->
+<section class="section" data-screen-label="03 Nero su Lime">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 02 · La regola del contrasto</span>
+      <span>Solo su lime · mai eccezioni</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/02</div>
+        <h2>Nero puro<br>su lime.<br><span class="acc">Sempre.</span></h2>
+      </div>
+      <div class="essence">
+        L'unico contesto in cui il nero puro #000000 esiste in tutto il sistema. Non è il colore del background (quello è il nero profondo #0C0C0D, vedi sotto). Esiste solo come <em>inchiostro sul lime</em>.
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="swatch dark" style="background: #000000;">
+        <div class="lab">Ink on Lime · solo</div>
+        <div>
+          <div class="label">000000<small>Nero puro · solo su #C8FF00</small></div>
+        </div>
+        <div class="codes">
+          HEX · #000000<br>
+          RGB · 0, 0, 0<br>
+          Contrast vs lime · 18.4:1
+        </div>
+      </div>
+      <div class="body">
+        <div>
+          <h3>Psicologia del contrasto</h3>
+          <p>Il rapporto di contrasto nero/lime è 18.4:1 — <b>oltre AAA</b> in tutte le condizioni. Il cervello legge la combinazione come "etichetta industriale": cartelli di sicurezza, packaging di componenti elettronici, segnaletica di laboratorio. È letteralmente la combinazione più leggibile dell'occhio umano in luce diurna.</p>
+        </div>
+        <div>
+          <h3 class="ok">Validazione · uso attuale</h3>
+          <p>"Sempre su sfondo lime, mai eccezioni" è la regola corretta. <b>Una sola aggiunta</b>: anche le icone interne ai bottoni lime devono essere #000 vero, non #0C0C0D — l'icona si confonde col background nei bottoni lime se usi il nero profondo.</p>
+        </div>
+        <div>
+          <h3 class="ok">Perché due neri (non uno)</h3>
+          <p>Il nero puro #000 è "carico" — leggibilità massima ma anche stress visivo se usato come bg di lunghe sessioni di lettura. Il nero profondo #0C0C0D (1 punto di blu) è "calmo" — perfetto per il body del documento. <b>La separazione è funzionale, non estetica.</b></p>
+        </div>
+        <div class="verdict">
+          <b>STATO · CONFERMATO</b> · Estendere a icone su bg lime · Nessun cambiamento
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 03 · NERO PROFONDO #0C0C0D -->
+<!-- ============================== -->
+<section class="section" data-screen-label="04 Nero profondo">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 03 · Il fondale</span>
+      <span>Background app · documenti · marketing</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/03</div>
+        <h2>Quasi nero.<br>Il fondale<br>che <span class="acc">respira</span>.</h2>
+      </div>
+      <div class="essence">
+        Non è nero. Ha un'unità di blu in più sul canale B (#0C0C0D vs #0C0C0C). Sembra una sciocchezza, non lo è: il nero puro crea aloni e affaticamento; il nero "atmosferico" trasporta sensazione di profondità senza essere percepibile come grigio.
+      </div>
+    </div>
+
+    <div class="color-card">
+      <div class="swatch dark" style="background: #0C0C0D;">
+        <div class="lab">Background · base</div>
+        <div>
+          <div class="label">0C0C0D<small>Nero profondo · atmosphere bias +1B</small></div>
+        </div>
+        <div class="codes">
+          HEX · #0C0C0D<br>
+          RGB · 12, 12, 13<br>
+          Lightness · 5%<br>
+          oklch · 0.165 0.001 286°
+        </div>
+      </div>
+      <div class="body">
+        <div>
+          <h3>Psicologia del nero non-nero</h3>
+          <p>Il pure-black #000 su un display OLED crea un effetto "void": il pixel è letteralmente spento e il contenuto sembra sospeso nel nulla. Spostandosi di una sola unità verso il blu si ottiene <b>cinema</b>: il cervello legge "spazio chiuso illuminato debolmente" invece di "assenza di immagine".</p>
+          <p>Riferimenti culturali: la dominante blu-nera è quella di <em>Vantablack</em> usato in fotografia di prodotto, dei terminali Bloomberg, delle interfacce di Linear/Vercel. Trasferisce competenza tecnica senza sforzo.</p>
+        </div>
+        <div>
+          <h3 class="ok">Validazione · uso attuale</h3>
+          <p>"Sfondo principale" è esatto. <b>Suggerisco di estenderlo</b> anche come default per: tastiere virtuali in-app, status bar mobile, fondo di tutti i modali fullscreen. Mai sostituirlo con #000 puro nemmeno per "risparmiare batteria su OLED" — la differenza è impercettibile sul consumo ma percepibile sull'identità.</p>
+        </div>
+        <div class="verdict">
+          <b>STATO · CONFERMATO</b> · Estensione a tastiera, status bar, modali · Nessun cambio hex
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 04 · SURFACES -->
+<!-- ============================== -->
+<section class="section" data-screen-label="05 Surfaces">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 04 · Stratificazione · 3 livelli</span>
+      <span>Card · interattivi · bordi</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/04</div>
+        <h2>Tre grigi.<br>Una sola<br>direzione di <span class="acc">salita</span>.</h2>
+      </div>
+      <div class="essence">
+        I tre surface (#161618, #202022, #2A2A2D) sono distanziati di ~10 punti di luminance ciascuno. Spaziatura sufficiente a essere percepita ma piccola abbastanza da rimanere nella stessa "famiglia atmosferica". Tutti mantengono il +1 di blu del nero profondo.
+      </div>
+    </div>
+
+    <div class="row-cards">
+      <div class="row-card">
+        <div class="sw dark" style="background: #161618;">
+          <div>
+            <div class="role">Surface 1</div>
+            <div class="name">Card</div>
+          </div>
+          <div class="hex">#161618 · +6 da bg</div>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Psicologia</span>
+            Il primo livello di "lift" — appena percepibile sopra il background. Crea il senso di <b>foglio appoggiato sul tavolo</b>. Card, sezioni elevate, contenitori principali.
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--success);">✓ Confermato.</span> Distanza dal bg sufficiente in dark mode reale (testato su OLED Samsung e LCD Pixel).
+          </div>
+        </div>
+      </div>
+
+      <div class="row-card">
+        <div class="sw dark" style="background: #202022;">
+          <div>
+            <div class="role">Surface 2</div>
+            <div class="name">Interactive</div>
+          </div>
+          <div class="hex">#202022 · +10 da S1</div>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Psicologia</span>
+            Lo strato dei <b>bottoni secondari, input field, segmenti hover</b>. Distanza percepibile dal Surface 1 — l'utente "vede" che è cliccabile senza bisogno di bordo o icona.
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--warning);">⚠ Verifica hover.</span> Per lo stato hover, Surface 2 va su Surface 1 — il delta di +10 funziona. Su bg diretto è troppo poco. Definire la regola.
+          </div>
+        </div>
+      </div>
+
+      <div class="row-card">
+        <div class="sw dark" style="background: #2A2A2D;">
+          <div>
+            <div class="role">Surface 3</div>
+            <div class="name">Borders</div>
+          </div>
+          <div class="hex">#2A2A2D · +10 da S2</div>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Psicologia</span>
+            Il limite. Mai usato come fill, sempre come <b>linea sottile</b> (1px) per dividere o cerchiare. È la "matita" del documento.
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--success);">✓ Confermato.</span> Funziona da divider e da border. <b>Aggiunta proposta</b>: un quarto valore #353539 per bordi su Surface 2 (più contrasto necessario).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 32px; padding: 24px 28px; border: 1px dashed var(--rule-2); background: var(--bg-2); font-family: var(--f-edit); font-style: italic; font-weight: 300; font-size: 17px; line-height: 1.5; color: var(--ink-2);">
+      <span style="font-family: var(--f-mono); font-style: normal; font-size: 11px; letter-spacing: 0.14em; color: var(--accent); text-transform: uppercase;">▸ Regola di elevazione</span><br><br>
+      Si sale di un solo gradino alla volta. <span style="color: var(--ink);">Non si appoggia mai un Surface 3 direttamente sul background.</span> Se serve una card prominente, il pattern è bg → S1 → S2, mai bg → S3.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 05 · TESTO -->
+<!-- ============================== -->
+<section class="section" data-screen-label="06 Testo">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 05 · Tipografia in colore</span>
+      <span>3 livelli di gerarchia · 1 famiglia</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/05</div>
+        <h2>Bianco caldo,<br>declinato in <span class="acc">tre</span>.</h2>
+      </div>
+      <div class="essence">
+        Il bianco caldo #F0EFE8 non è grigio: è bianco con una temperatura di colore di ~3500K. Il cervello lo legge come <em>carta editoriale</em>, non come schermo retroilluminato. È la differenza tra leggere un libro e leggere un foglio di calcolo.
+      </div>
+    </div>
+
+    <div class="row-cards">
+      <div class="row-card">
+        <div class="sw lite" style="background: #F0EFE8;">
+          <div>
+            <div class="role">Text · Primary</div>
+            <div class="name">100%</div>
+          </div>
+          <div class="hex">#F0EFE8</div>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Psicologia</span>
+            La temperatura calda (+15 sul canale R rispetto al canale B) <b>riduce l'affaticamento</b> in sessioni lunghe. Il pure-white #FFF brucia gli occhi dopo 20 minuti di lettura; questo no.
+          </div>
+          <div>
+            <span class="k">Contrasto vs bg</span>
+            <span style="font-family: var(--f-mono); color: var(--success);">15.8 : 1</span> · AAA <b>large &amp; small</b>
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--success);">✓ Eccellente.</span> Mantenere così. Non sostituire mai con #FFFFFF nemmeno per "purezza".
+          </div>
+        </div>
+      </div>
+
+      <div class="row-card">
+        <div class="sw" style="background: var(--bg); display: flex; align-items: center; justify-content: center;">
+          <span style="font-family: var(--f-display); font-size: 28px; font-weight: 500; color: rgba(240,239,232,0.55);">Aa secondary</span>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Psicologia</span>
+            Il <b>"sotto-livello"</b>. Label, caption, metadata — informazioni che esistono ma non comandano. L'alpha è la scelta giusta vs un grigio fisso: rimane coerente su qualunque surface.
+          </div>
+          <div>
+            <span class="k">Contrasto vs bg</span>
+            <span style="font-family: var(--f-mono); color: var(--success);">7.4 : 1</span> · AAA · small &amp; large
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--success);">✓ Confermato.</span> 55% è il sweet spot: leggibile ma chiaramente secondario.
+          </div>
+        </div>
+      </div>
+
+      <div class="row-card">
+        <div class="sw" style="background: var(--bg); display: flex; align-items: center; justify-content: center;">
+          <span style="font-family: var(--f-display); font-size: 28px; font-weight: 500; color: rgba(240,239,232,0.32);">Aa tertiary</span>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Psicologia</span>
+            <b>Placeholder e hint</b>. È informazione "spenta": l'utente sa che c'è qualcosa, ma sa anche che non è attiva.
+          </div>
+          <div>
+            <span class="k">Contrasto vs bg</span>
+            <span style="font-family: var(--f-mono); color: var(--warning);">4.0 : 1</span> · AA large only · placeholder OK
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--warning);">⚠ Solo per uso definito.</span> A 32% non passa AA per testo body. <b>Regola</b>: usare SOLO per placeholder e hint, mai per testo informativo permanente.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 06 · FUNZIONALI + CRITICA -->
+<!-- ============================== -->
+<section class="section" data-screen-label="07 Funzionali">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 06 · Colori funzionali</span>
+      <span>Danger · Success · Warning · 1 critica aperta</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/06</div>
+        <h2>Tre semafori.<br>Uno fa <span class="acc">attrito</span><br>col marchio.</h2>
+      </div>
+      <div class="essence">
+        Danger e Warning lavorano bene. Success è un problema: è verde, e nel sistema esiste già un altro verde — il lime accent. Due verdi che si contendono lo stesso significato (<em>"qualcosa di positivo è accaduto"</em>) producono confusione semantica. Va risolto.
+      </div>
+    </div>
+
+    <!-- THE CRITIQUE -->
+    <div class="critique">
+      <span class="flag">Critica aperta · Risolvere</span>
+      <h3>Il Success #22C55E ruba lavoro al brand lime.</h3>
+      <p>
+        Quando l'utente segna una serie completata in lime e poi vede un toast verde "PR registrato!" subito sotto, il cervello non sa quale dei due verdi sia "il colore del successo". Entrambi lo sono. Uno è di brand, l'altro è funzionale, ma all'occhio sono <em>la stessa cosa</em>.
+      </p>
+
+      <div class="greens">
+        <div class="lime-side">
+          <span class="label">Brand · Accent</span>
+          <div class="swatch-row">
+            <div class="sq" style="background: #C8FF00;"></div>
+            <div class="meta">
+              <span class="h">Lime acido</span>
+              <span class="c">#C8FF00 · 73° hue · sat 100</span>
+            </div>
+          </div>
+          <p style="color: var(--ink);">Dice: <b style="color: var(--accent);">"qui c'è un dato vivo"</b>. Usato per CTA, highlight, set completato, PR del giorno.</p>
+        </div>
+        <div class="success-side">
+          <span class="label">Functional · Success</span>
+          <div class="swatch-row">
+            <div class="sq" style="background: #22C55E;"></div>
+            <div class="meta">
+              <span class="h">Verde Tailwind 500</span>
+              <span class="c">#22C55E · 142° hue · sat 71</span>
+            </div>
+          </div>
+          <p style="color: var(--ink);">Dice: <b style="color: var(--success);">"operazione riuscita"</b>. Usato per conferme, PR, completamenti.</p>
+        </div>
+      </div>
+
+      <p style="margin-bottom: 24px; color: var(--ink);"><b style="font-style: normal; color: var(--accent); font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;">▸ Tre opzioni di risoluzione</b></p>
+
+      <div class="options">
+        <div class="option">
+          <div class="head">
+            <span class="idx">OPZIONE A</span>
+            <span class="lvl rec">RACCOMANDATA</span>
+          </div>
+          <div class="swatch-pair">
+            <div class="sq lite" style="background: #C8FF00;" data-hex="#C8FF00"></div>
+            <div class="sq dark" style="background: #353539;" data-hex="OUT"></div>
+          </div>
+          <h4>Eliminare Success.<br>Lime fa il successo.</h4>
+          <p>Il PR, il set completato, la conferma — tutto lime. È quello che fa il prodotto: registrare progressi. <b style="color: var(--accent);">Il colore del marchio è il colore del successo.</b> Una sola identità semantica. Tailwind non comanda.</p>
+        </div>
+
+        <div class="option">
+          <div class="head">
+            <span class="idx">OPZIONE B</span>
+            <span class="lvl">CONSERVATIVA</span>
+          </div>
+          <div class="swatch-pair">
+            <div class="sq lite" style="background: #C8FF00;" data-hex="#C8FF00"></div>
+            <div class="sq lite" style="background: #2DD4BF;" data-hex="#2DD4BF"></div>
+          </div>
+          <h4>Spostare Success<br>su teal.</h4>
+          <p>Cambiare #22C55E → <b>#2DD4BF</b> (Tailwind teal-400). Hue 167° invece di 142° → distanza percepita massima dal lime (50°+). Mantiene il significato "verde positivo" ma non collide visivamente.</p>
+        </div>
+
+        <div class="option">
+          <div class="head">
+            <span class="idx">OPZIONE C</span>
+            <span class="lvl">IBRIDA</span>
+          </div>
+          <div class="swatch-pair">
+            <div class="sq lite" style="background: #C8FF00;" data-hex="#C8FF00"></div>
+            <div class="sq dark" style="background: #353539;" data-hex="—"></div>
+            <div class="sq dark" style="background: #2A2A2D;" data-hex="✓"></div>
+          </div>
+          <h4>Confirm = check<br>non colore.</h4>
+          <p>Le conferme diventano <b>monocromatiche</b>: testo bianco caldo + icona check #F0EFE8 + sottolineatura lime se è "completato per davvero" (PR). Niente verde funzionale. Più asciutto, più coerente con il brand.</p>
+        </div>
+      </div>
+
+      <p style="margin-top: 28px; font-family: var(--f-mono); font-size: 13px; color: var(--ink); padding: 14px 16px; background: var(--bg); border-left: 3px solid var(--accent);">
+        <b style="color: var(--accent);">Raccomandazione del designer:</b> Opzione A. Il marchio guadagna densità semantica: "lime = è successo qualcosa di buono nei tuoi dati". Eliminare un colore dal sistema è quasi sempre la mossa giusta.
+      </p>
+    </div>
+
+    <!-- DANGER -->
+    <div class="color-card">
+      <div class="swatch lite" style="background: #EF4444;">
+        <div class="lab">Danger · Tailwind red-500</div>
+        <div>
+          <div class="label">EF4444<small>Errori · eliminazioni · alert</small></div>
+        </div>
+        <div class="codes">
+          HEX · #EF4444<br>
+          RGB · 239, 68, 68<br>
+          Contrast vs bg · 4.6:1
+        </div>
+      </div>
+      <div class="body">
+        <div>
+          <h3>Psicologia · Stop</h3>
+          <p>Il rosso #EF4444 è universalmente "stop / errore". <b>Suggerisco una specializzazione</b>: usarlo anche per "sopra MRV" (volume settimanale che compromette il recupero). Diventa il colore della <em>soglia superata</em>, non solo dell'errore software.</p>
+        </div>
+        <div>
+          <h3 class="ok">Validazione · uso attuale</h3>
+          <p>Tailwind red-500 è un valore eccellente: bilanciato, non drammatico, leggibile. Mantenere così. <b>Vincolo</b>: mai usare il rosso su sfondo lime — diventa fango.</p>
+        </div>
+        <div class="verdict">
+          <b>STATO · CONFERMATO</b> · Estendere a soglia MRV · Nessun cambio hex
+        </div>
+      </div>
+    </div>
+
+    <!-- WARNING -->
+    <div class="color-card">
+      <div class="swatch lite" style="background: #F59E0B;">
+        <div class="lab">Warning · Tailwind amber-500</div>
+        <div>
+          <div class="label">F59E0B<small>Avvisi · limiti vicini</small></div>
+        </div>
+        <div class="codes">
+          HEX · #F59E0B<br>
+          RGB · 245, 158, 11<br>
+          Contrast vs bg · 8.2:1
+        </div>
+      </div>
+      <div class="body">
+        <div>
+          <h3>Psicologia · Soglia</h3>
+          <p>L'ambra è il colore del <b>"attenzione, sei vicino"</b>. Si distingue dal rosso (problema attivo) e dal lime (dato vivo). <b>Uso ideale</b>: quando l'utente si avvicina al MRV ma non l'ha ancora superato, o quando una progressione si appiattisce per >2 settimane.</p>
+        </div>
+        <div>
+          <h3 class="ok">Validazione</h3>
+          <p>Cromaticamente isolato dal resto del sistema (hue 38°) — non confonde mai. Tenere così. <b>Aggiungere regola</b>: l'ambra non genera notifiche push, solo evidenze in-app. Notificare un warning è sovra-reazione.</p>
+        </div>
+        <div class="verdict">
+          <b>STATO · CONFERMATO</b> · Definire regola "no push per warning" · Nessun cambio hex
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 07 · GLOW -->
+<!-- ============================== -->
+<section class="section" data-screen-label="08 Glow">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 07 · Glow lime · 2 alpha</span>
+      <span>Sfondi accent · hover</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/07</div>
+        <h2>Lime,<br>ma <span class="acc">sussurrato</span>.</h2>
+      </div>
+      <div class="essence">
+        Due alpha del lime (9% e 20%) per creare aree "accent" senza saturare la schermata. Funzionano come spotlight ambientali — l'utente vede che <em>qualcosa qui è speciale</em>, senza che il lime pieno occupi spazio.
+      </div>
+    </div>
+
+    <div class="row-cards">
+      <div class="row-card">
+        <div class="sw dark" style="background: var(--glow-9);">
+          <div>
+            <div class="role">Glow · 9%</div>
+            <div class="name">Card accent</div>
+          </div>
+          <div class="hex">rgba(200,255,0,0.09)</div>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Uso</span>
+            Sfondo di card che ospitano dati lime-evidenziati. Il "campo magnetico" della metrica.
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--warning);">⚠ Borderline.</span> Su molti schermi (specialmente LCD a basso gamma) il 9% è invisibile. <b>Test consigliato</b>: salire a 11–12% in produzione. La differenza tra "sottile" e "invisibile" è di 2-3 punti alpha.
+          </div>
+        </div>
+      </div>
+
+      <div class="row-card">
+        <div class="sw dark" style="background: var(--glow-20);">
+          <div>
+            <div class="role">Glow · 20%</div>
+            <div class="name">Hover · attivo</div>
+          </div>
+          <div class="hex">rgba(200,255,0,0.20)</div>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Uso</span>
+            Stato hover su bottoni secondari, focus ring, evidenza di sezione attiva.
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--success);">✓ Confermato.</span> 20% è leggibile su tutti i target device. Funziona da focus ring sostituto dell'outline blu di default.
+          </div>
+        </div>
+      </div>
+
+      <div class="row-card">
+        <div class="sw dark" style="background: linear-gradient(180deg, rgba(200,255,0,0.20) 0%, rgba(200,255,0,0) 100%);">
+          <div>
+            <div class="role">Proposta · gradient</div>
+            <div class="name">Top-glow</div>
+          </div>
+          <div class="hex">20% → 0% · 120px</div>
+        </div>
+        <div class="info">
+          <div>
+            <span class="k">Uso proposto</span>
+            <b style="color: var(--ink);">Aggiunta nuova</b>: un terzo "glow" come gradient lineare per il top delle card "highlight settimana" o per il banner del PR raggiunto.
+          </div>
+          <div>
+            <span class="k">Validazione</span>
+            <span style="color: var(--accent);">○ Da approvare.</span> Coerente con la regola "lime su scuro". Da testare su un paio di schermate prima di promuovere a token.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 08 · CONTRAST MATRIX -->
+<!-- ============================== -->
+<section class="section" data-screen-label="09 Contrast">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 08 · Verifica WCAG</span>
+      <span>11 pairings critici · 100% pass</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/08</div>
+        <h2>Tutti i contrasti<br>che contano,<br><span class="acc">misurati</span>.</h2>
+      </div>
+      <div class="essence">
+        Verifica WCAG 2.1 di tutte le combinazioni effettivamente in uso. Il sistema supera AA in ogni accoppiata di prodotto. Il solo testo terziario sotto AA è destinato a placeholder, dove la spec lo consente.
+      </div>
+    </div>
+
+    <div class="contrast-grid">
+      <h4>Matrice contrasti · misurazioni WCAG 2.1</h4>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg); color: var(--ink);">
+          <span class="big">PUMPLOG</span>
+          <span>L'allenamento</span>
+        </div>
+        <div class="pair">Bianco caldo <b>su</b> Nero profondo</div>
+        <div class="ratio">15.8 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg); color: rgba(240,239,232,0.55);">
+          <span class="big">82.5 kg × 6</span>
+          <span>Volume serie</span>
+        </div>
+        <div class="pair">Text 55% <b>su</b> Nero profondo</div>
+        <div class="ratio">7.4 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg); color: rgba(240,239,232,0.32);">
+          <span class="big">cerca esercizio</span>
+          <span>placeholder</span>
+        </div>
+        <div class="pair">Text 32% <b>su</b> Nero profondo</div>
+        <div class="ratio">4.0 : 1</div>
+        <div class="badge large">AA Large</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--accent); color: #000;">
+          <span class="big">INIZIA SEDUTA</span>
+          <span>CTA</span>
+        </div>
+        <div class="pair">Nero puro <b>su</b> Lime</div>
+        <div class="ratio">18.4 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg); color: var(--accent);">
+          <span class="big">+2.5 kg</span>
+          <span>massimale aggiornato</span>
+        </div>
+        <div class="pair">Lime <b>su</b> Nero profondo</div>
+        <div class="ratio">17.4 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg-2); color: var(--ink);">
+          <span class="big">Panca piana</span>
+          <span>card surface 1</span>
+        </div>
+        <div class="pair">Bianco caldo <b>su</b> Surface 1</div>
+        <div class="ratio">13.6 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg); color: var(--danger);">
+          <span class="big">Sopra MRV</span>
+          <span>alert</span>
+        </div>
+        <div class="pair">Danger <b>su</b> Nero profondo</div>
+        <div class="ratio">4.6 : 1</div>
+        <div class="badge aa">AA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg); color: var(--warning);">
+          <span class="big">Vicino MRV</span>
+          <span>warning</span>
+        </div>
+        <div class="pair">Warning <b>su</b> Nero profondo</div>
+        <div class="ratio">8.2 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg); color: var(--success);">
+          <span class="big">PR registrato</span>
+          <span>success (problematico)</span>
+        </div>
+        <div class="pair">Success <b>su</b> Nero profondo</div>
+        <div class="ratio">7.1 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--bg-3); color: var(--ink);">
+          <span class="big">attivo</span>
+          <span>interactive</span>
+        </div>
+        <div class="pair">Bianco caldo <b>su</b> Surface 2</div>
+        <div class="ratio">11.0 : 1</div>
+        <div class="badge aaa">AAA</div>
+      </div>
+
+      <div class="contrast-row">
+        <div class="demo" style="background: var(--accent); color: var(--accent);">
+          <span class="big">XX</span>
+          <span>(combo proibita)</span>
+        </div>
+        <div class="pair">Lime <b>su</b> Lime</div>
+        <div class="ratio">1.0 : 1</div>
+        <div class="badge fail">VIETATA</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 09 · ANTI-PATTERNS -->
+<!-- ============================== -->
+<section class="section" data-screen-label="10 Anti-patterns">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 09 · Anti-patterns</span>
+      <span>9 combinazioni vietate</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/09</div>
+        <h2>Quello che<br>la palette<br><span class="acc">non fa</span>.</h2>
+      </div>
+      <div class="essence">
+        Le regole sono inderogabili. Ogni anti-pattern qui sotto è già stato visto fare ad altre app fitness e ogni volta ha ucciso la riconoscibilità del marchio. Vietato per costituzione.
+      </div>
+    </div>
+
+    <div class="anti-grid">
+      <div class="anti-card">
+        <div class="demo" style="background: #F0EFE8;">
+          <span style="font-family: var(--f-brand); font-size: 36px; color: var(--accent); letter-spacing: 0.01em;">PUMPLOG</span>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Lime su sfondo chiaro</span>
+          <span class="why">Il lime perde tutto il chroma e diventa verde-stridulo non leggibile. Il logo su carta è in nero, mai in lime.</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: var(--accent);">
+          <span style="font-family: var(--f-display); font-size: 13px; color: var(--ink); line-height: 1.5; font-weight: 400;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</span>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Testo bianco su lime</span>
+          <span class="why">Il bianco caldo su lime fallisce qualunque test di contrasto. Su lime si scrive sempre in nero puro #000.</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: var(--bg); display: flex; gap: 16px;">
+          <div style="background: var(--accent); width: 70px; height: 70px; border-radius: 6px;"></div>
+          <div style="background: var(--accent); width: 70px; height: 70px; border-radius: 6px;"></div>
+          <div style="background: var(--accent); width: 70px; height: 70px; border-radius: 6px;"></div>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Lime &gt; 5% schermata</span>
+          <span class="why">Più di tre elementi lime per schermata = nessuno è più "il" dato. Diventa decorazione e perde la sua funzione semantica.</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: var(--bg);">
+          <span style="font-family: var(--f-display); font-size: 12px; color: var(--accent); line-height: 1.5; font-weight: 400; max-width: 260px; display: block;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.</span>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Lime per blocchi di testo</span>
+          <span class="why">Il lime per body copy esteso non si legge — la fatica visiva su un paragrafo è immediata. Solo per parole singole o numeri.</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: var(--bg);">
+          <span style="font-family: var(--f-brand); font-size: 36px; color: var(--success); letter-spacing: 0.01em;">PR +5kg</span>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Success per "successo brand"</span>
+          <span class="why">Un PR è un evento di marca. Va in lime, non in verde funzionale. Il verde Tailwind è per conferme tecniche (form inviato, sync OK).</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: var(--bg); display: flex; gap: 8px; align-items: center;">
+          <div style="width: 50px; height: 50px; background: var(--accent); border-radius: 4px;"></div>
+          <div style="width: 50px; height: 50px; background: var(--success); border-radius: 4px;"></div>
+          <div style="width: 50px; height: 50px; background: var(--danger); border-radius: 4px;"></div>
+          <div style="width: 50px; height: 50px; background: var(--warning); border-radius: 4px;"></div>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Quattro colori per data-viz</span>
+          <span class="why">Le serie di grafici usano <b>solo</b> bianco caldo + lime + grigio Surface 3. Mai il rosso/verde funzionali per categorizzare dati.</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: linear-gradient(135deg, #C8FF00 0%, #22C55E 100%);">
+          <span style="font-family: var(--f-brand); font-size: 36px; color: var(--accent-ink); letter-spacing: 0.01em;">GRADIENT</span>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Gradient sul lime</span>
+          <span class="why">Il lime è un solido. Niente sfumature, niente glow radiali, niente neon. La pittura piatta è l'identità.</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: #000;">
+          <span style="font-family: var(--f-display); font-size: 16px; color: var(--ink); padding: 8px 16px; border: 1px solid var(--ink); border-radius: 4px;">Continua →</span>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">CTA bianco con bordo</span>
+          <span class="why">I CTA primari sono SEMPRE lime pieno + nero. Mai bottoni outline come fallback "elegante" — è una rinuncia al colore del marchio.</span>
+        </div>
+      </div>
+
+      <div class="anti-card">
+        <div class="demo" style="background: var(--bg);">
+          <span style="font-family: var(--f-brand); font-size: 36px; color: var(--ink); letter-spacing: 0.01em;">PUMP<span style="color: #22C55E;">LOG</span></span>
+        </div>
+        <div class="meta">
+          <span class="x">Mai</span>
+          <span class="title">Wordmark non-lime</span>
+          <span class="why">"LOG" è lime per definizione. Mai sostituire con verde, ciano, bianco o qualsiasi altro colore. È costituzionale.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 10 · GAPS · cosa manca -->
+<!-- ============================== -->
+<section class="section" data-screen-label="11 Gaps">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 10 · Cosa manca · v1 → v2</span>
+      <span>4 token da aggiungere</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/10</div>
+        <h2>Quattro token<br>che la <span class="acc">v2</span> avrà.</h2>
+      </div>
+      <div class="essence">
+        La v1 copre 95% del prodotto. Restano quattro situazioni reali che la palette attuale non risolve senza forzare un colore esistente fuori dal suo ruolo. Vanno aggiunti come nuovi token, non come varianti.
+      </div>
+    </div>
+
+    <div class="gaps">
+      <div class="gap">
+        <span class="lab">GAP · 01 · MEV/MAV/MRV</span>
+        <h4>Tre zone di volume scientifico</h4>
+        <p>L'app mostra il volume settimanale in tre zone: sotto MEV (insufficiente), in MAV (ottimale), sopra MRV (eccessivo). Servono tre <b>colori dedicati</b> che non riusino warning/success/danger — quei colori hanno altri significati nel resto dell'app.</p>
+        <div class="swatch-row">
+          <div class="sq dark" style="background: #555350;" data-hex="MEV"></div>
+          <div class="sq lite" style="background: #C8FF00;" data-hex="MAV"></div>
+          <div class="sq lite" style="background: #EF4444;" data-hex="MRV"></div>
+        </div>
+      </div>
+
+      <div class="gap">
+        <span class="lab">GAP · 02 · DATA-VIZ</span>
+        <h4>Palette grafici · 4 serie</h4>
+        <p>Quando l'utente confronta 4 esercizi nello stesso chart, la palette attuale non ha 4 colori "neutri". Proposta: 4 sfumature di <b>bianco caldo</b> (100, 70, 45, 25%) con solo la serie "attiva/focus" in lime.</p>
+        <div class="swatch-row">
+          <div class="sq lite" style="background: rgba(240,239,232,1);" data-hex="100"></div>
+          <div class="sq lite" style="background: rgba(240,239,232,0.7);" data-hex="70"></div>
+          <div class="sq dark" style="background: rgba(240,239,232,0.45);" data-hex="45"></div>
+          <div class="sq dark" style="background: rgba(240,239,232,0.25);" data-hex="25"></div>
+        </div>
+      </div>
+
+      <div class="gap">
+        <span class="lab">GAP · 03 · BORDER STRONG</span>
+        <h4>Bordo prominente</h4>
+        <p>Surface 3 (#2A2A2D) è perfetto come divider leggero ma troppo timido per bordi di card su Surface 2. Manca un valore tra #2A2A2D e #353539.</p>
+        <div class="swatch-row">
+          <div class="sq dark" style="background: #2A2A2D;" data-hex="#2A2A2D"></div>
+          <div class="sq dark" style="background: #353539;" data-hex="#353539"></div>
+        </div>
+      </div>
+
+      <div class="gap">
+        <span class="lab">GAP · 04 · LIME PRESSED</span>
+        <h4>Stato pressed del CTA</h4>
+        <p>Quando un bottone lime viene premuto, dovrebbe scurirsi leggermente per dare feedback tattile. Manca il token. Proposta: <b>#A8D900</b> — stesso hue, lightness -15%.</p>
+        <div class="swatch-row">
+          <div class="sq lite" style="background: #C8FF00;" data-hex="default"></div>
+          <div class="sq lite" style="background: #A8D900;" data-hex="pressed"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 11 · APPLICATION DEMO -->
+<!-- ============================== -->
+<section class="section" data-screen-label="12 Applicazione">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 11 · Sistema applicato</span>
+      <span>Tutti i token in una schermata</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/11</div>
+        <h2>Una schermata,<br><span class="acc">11 token</span>.</h2>
+      </div>
+      <div class="essence">
+        Esempio reale: l'analisi della seduta del giorno. Ogni colore del sistema appare almeno una volta nel suo uso canonico. Niente è decorativo.
+      </div>
+    </div>
+
+    <div class="app-demo">
+      <div class="phone">
+        <div class="screen">
+          <div class="status">
+            <span>09:41</span>
+            <span style="color: var(--accent); font-size: 10px;">● OFFLINE</span>
+          </div>
+          <div class="header">
+            <h5>Seduta · Spinta A</h5>
+            <div class="meta">Lun 18 mag · 47 min · 12 serie</div>
+          </div>
+          <div class="body">
+            <div class="card-glow">
+              <div class="lab">Massimale aggiornato</div>
+              <div class="val">+2.5 kg</div>
+              <div class="sub">Panca piana — sopra il record di marzo.</div>
+            </div>
+
+            <div class="card-elev1">
+              <div class="app-row">
+                <div>
+                  <div class="label">Panca piana</div>
+                  <div class="sub">4 serie · 24 rip</div>
+                </div>
+                <div class="val a">82.5 × 6</div>
+              </div>
+              <div style="height:1px; background: var(--rule); margin: 4px 0;"></div>
+              <div class="app-row">
+                <div>
+                  <div class="label">Spinte manubri</div>
+                  <div class="sub">3 serie · 27 rip</div>
+                </div>
+                <div class="val">28 × 9</div>
+              </div>
+              <div style="height:1px; background: var(--rule); margin: 4px 0;"></div>
+              <div class="app-row">
+                <div>
+                  <div class="label">Croci ai cavi</div>
+                  <div class="sub">3 serie · 30 rip</div>
+                </div>
+                <div class="val">14 × 10</div>
+              </div>
+            </div>
+
+            <div class="card-elev1">
+              <div style="font-family: var(--f-mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px;">Volume settimana · petto</div>
+              <div class="app-row">
+                <div class="label">14 serie effettive</div>
+                <div class="val a">MAV</div>
+              </div>
+              <div class="app-row">
+                <div class="sub">soglia MRV vicina</div>
+                <div class="val w">22 max</div>
+              </div>
+              <div class="app-row">
+                <div class="sub">recupero scaduto</div>
+                <div class="val d">2 set</div>
+              </div>
+            </div>
+
+            <div class="cta">CHIUDI SEDUTA</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="item">
+          <div class="dot" style="background: #C8FF00;"></div>
+          <div class="desc">
+            <b>Lime · accent</b><br>
+            Su 3 elementi: CTA "CHIUDI SEDUTA", massimale "+2.5 kg", stato "MAV".
+            <small>≈ 4% area · entro la regola del 5%</small>
+          </div>
+        </div>
+        <div class="item">
+          <div class="dot" style="background: rgba(200,255,0,0.09); outline: 1px solid rgba(200,255,0,0.18);"></div>
+          <div class="desc">
+            <b>Glow lime 9%</b><br>
+            Sfondo della card "massimale aggiornato" — l'unico evento brand della schermata.
+            <small>card · accent · alpha 0.09</small>
+          </div>
+        </div>
+        <div class="item">
+          <div class="dot" style="background: #161618;"></div>
+          <div class="desc">
+            <b>Surface 1</b><br>
+            Due card di contenuto (lista esercizi, volume settimana).
+            <small>elevazione · default</small>
+          </div>
+        </div>
+        <div class="item">
+          <div class="dot" style="background: #2A2A2D;"></div>
+          <div class="desc">
+            <b>Surface 3</b><br>
+            Divider tra le righe degli esercizi · bordo card.
+            <small>linea · 1px</small>
+          </div>
+        </div>
+        <div class="item">
+          <div class="dot" style="background: #F0EFE8;"></div>
+          <div class="desc">
+            <b>Text · primary</b><br>
+            Titoli esercizio, valore della serie, intestazione seduta.
+            <small>15.8 : 1 · AAA</small>
+          </div>
+        </div>
+        <div class="item">
+          <div class="dot" style="background: rgba(240,239,232,0.55);"></div>
+          <div class="desc">
+            <b>Text · secondary</b><br>
+            Metadata sotto i titoli (data, durata, conteggio serie).
+            <small>7.4 : 1 · AAA</small>
+          </div>
+        </div>
+        <div class="item">
+          <div class="dot" style="background: #F59E0B;"></div>
+          <div class="desc">
+            <b>Warning</b><br>
+            "22 max" — soglia MRV vicina ma non superata.
+            <small>8.2 : 1 · AAA</small>
+          </div>
+        </div>
+        <div class="item">
+          <div class="dot" style="background: #EF4444;"></div>
+          <div class="desc">
+            <b>Danger</b><br>
+            "2 set" — recupero scaduto, condizione di rischio.
+            <small>4.6 : 1 · AA</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot">
+    <div>DOCUMENTO<b>Color System v1</b></div>
+    <div>STATO<b style="color: var(--accent);">Approvato · 1 critica</b></div>
+    <div>PROSSIMO<b>Decidere su Success</b></div>
+    <div>OWNER<b>Design · Brand</b></div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — 3 Concept Logo · Designer Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,8..60,300;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C0C0D;
+  --bg-2:      #141415;
+  --bg-3:      #1c1c1e;
+  --ink:       #F0EFE8;
+  --ink-2:     #9A988F;
+  --ink-3:     #555350;
+  --rule:      #232323;
+  --rule-2:    #2e2d2c;
+  --accent:    #C8FF00;
+  --accent-ink:#0C0C0D;
+  --warn:      #ff5e3a;
+
+  --f-display: "Space Grotesk", system-ui, sans-serif;
+  --f-mono:    "JetBrains Mono", ui-monospace, monospace;
+  --f-edit:    "Newsreader", Georgia, serif;
+  --f-brand:   "Bebas Neue", "Space Grotesk", Impact, sans-serif;
+
+  --max: 1280px;
+  --gutter: 32px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--f-mono); }
+.brand { font-family: var(--f-brand); letter-spacing: 0.01em; }
+
+/* TOP BAR */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(12,12,13,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar .lockup { color: var(--ink); display: flex; align-items: center; gap: 10px; }
+.topbar .lockup .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.topbar .right { display: flex; gap: 24px; }
+
+/* HERO */
+.hero { padding: 64px 0 96px; border-bottom: 1px solid var(--rule); }
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding-bottom: 40px; border-bottom: 1px solid var(--rule); margin-bottom: 56px;
+}
+.hero-meta b { display: block; color: var(--ink); font-weight: 500; margin-top: 6px; letter-spacing: 0.04em; }
+
+.hero h1 {
+  font-family: var(--f-display); font-weight: 500;
+  font-size: clamp(40px, 6vw, 84px);
+  line-height: 0.98; letter-spacing: -0.035em;
+  text-wrap: balance; max-width: 18ch;
+}
+.hero h1 b { color: var(--accent); font-weight: 500; }
+.hero .sub {
+  margin-top: 32px;
+  font-family: var(--f-edit); font-style: italic; font-weight: 300;
+  font-size: clamp(18px, 1.8vw, 24px); line-height: 1.4;
+  color: var(--ink-2); max-width: 60ch; text-wrap: pretty;
+}
+
+.toc {
+  margin-top: 64px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.toc a {
+  background: var(--bg); padding: 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: background 0.15s;
+}
+.toc a:hover { background: var(--bg-2); }
+.toc a .idx { font-family: var(--f-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.14em; }
+.toc a .name { font-family: var(--f-brand); font-size: 32px; letter-spacing: 0.02em; line-height: 1; }
+.toc a .desc { font-size: 13px; color: var(--ink-2); font-family: var(--f-edit); font-style: italic; font-weight: 300; }
+
+/* CONCEPT BLOCK */
+.concept {
+  border-top: 1px solid var(--rule);
+  padding: 96px 0;
+  position: relative;
+}
+.concept-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding-bottom: 16px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+
+.concept-head {
+  display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px;
+  align-items: end; margin-bottom: 64px;
+}
+.concept-head .num {
+  font-family: var(--f-mono); font-size: 12px;
+  color: var(--accent); letter-spacing: 0.14em;
+  margin-bottom: 16px;
+}
+.concept-head h2 {
+  font-family: var(--f-brand);
+  font-size: clamp(72px, 10vw, 144px);
+  line-height: 0.9; letter-spacing: 0.005em;
+  text-wrap: balance;
+}
+.concept-head h2 .acc { color: var(--accent); }
+.concept-head .essence {
+  font-family: var(--f-edit); font-style: italic; font-weight: 300;
+  font-size: clamp(20px, 1.8vw, 26px); line-height: 1.4;
+  color: var(--ink); max-width: 50ch; text-wrap: pretty;
+}
+.concept-head .essence::before {
+  content: "—"; display: block; color: var(--accent); margin-bottom: 12px;
+  font-style: normal; font-family: var(--f-mono);
+}
+
+/* CANVAS — big logo display */
+.canvas {
+  background:
+    linear-gradient(var(--bg-3) 1px, transparent 1px) 0 0/100% 40px,
+    linear-gradient(90deg, var(--bg-3) 1px, transparent 1px) 0 0/40px 100%,
+    var(--bg);
+  border: 1px solid var(--rule);
+  padding: 96px 32px;
+  min-height: 420px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.canvas .ruler {
+  position: absolute; top: 12px; left: 16px; right: 16px;
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.12em;
+}
+.canvas .ruler-b {
+  position: absolute; bottom: 12px; left: 16px; right: 16px;
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.12em;
+}
+
+/* --- LOGO 01 · OPERATOR --- */
+.logo-operator {
+  font-family: var(--f-brand);
+  font-size: clamp(80px, 14vw, 200px);
+  line-height: 0.85;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.04em;
+}
+.logo-operator .divider {
+  width: 0.03em;
+  height: 0.72em;
+  background: var(--accent);
+  margin: 0 0.08em;
+}
+.logo-operator .log { color: var(--accent); }
+
+/* --- LOGO 02 · FERRO --- */
+.logo-ferro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.08em;
+  font-family: var(--f-brand);
+  font-size: clamp(80px, 14vw, 200px);
+  line-height: 0.85;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.logo-ferro .glyph {
+  width: 0.88em; height: 0.88em;
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.logo-ferro .disk {
+  width: 100%; height: 100%;
+  background: var(--accent);
+  border-radius: 0.1em;
+  position: relative;
+}
+.logo-ferro .disk::before {
+  content: "";
+  position: absolute;
+  inset: 18% 32%;
+  background: var(--bg);
+  border-radius: 0.04em;
+}
+.logo-ferro .word { letter-spacing: 0.005em; }
+
+/* --- LOGO 03 · TALLY --- */
+.logo-tally {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.18em;
+  font-family: var(--f-brand);
+  font-size: clamp(70px, 12vw, 180px);
+  line-height: 0.85;
+}
+.logo-tally .word {
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.logo-tally .tally {
+  display: flex; gap: 0.06em; align-items: center;
+  height: 0.18em;
+}
+.logo-tally .tally span {
+  display: block;
+  width: 0.5em;
+  height: 100%;
+  background: var(--ink-3);
+  border-radius: 0.02em;
+}
+.logo-tally .tally span.done { background: var(--accent); }
+.logo-tally .tally .label {
+  height: auto;
+  font-family: var(--f-mono);
+  font-size: 0.09em;
+  letter-spacing: 0.2em;
+  color: var(--ink-3);
+  background: transparent;
+  width: auto;
+  margin-left: 0.3em;
+  align-self: center;
+}
+
+/* SPEC GRID — below canvas */
+.spec {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.spec-block {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 32px;
+}
+.spec-block h4 {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.spec-block h4::before {
+  content: ""; width: 8px; height: 8px;
+  background: var(--accent); border-radius: 1px;
+}
+
+.spec-list { display: flex; flex-direction: column; gap: 14px; }
+.spec-list > div {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.spec-list > div:last-child { border-bottom: none; padding-bottom: 0; }
+.spec-list .k {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.spec-list .v {
+  font-family: var(--f-display);
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.emotion {
+  border: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+  padding: 36px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.emotion .kicker {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.emotion .feeling {
+  font-family: var(--f-edit);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 24px;
+  line-height: 1.3;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.emotion .words {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 8px;
+}
+.emotion .word {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 6px 10px;
+  border: 1px solid var(--rule-2);
+  background: var(--bg);
+  border-radius: 2px;
+}
+.emotion .anti {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--rule-2);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+.emotion .anti b { color: var(--warn); font-weight: 500; }
+.emotion .anti s { color: var(--ink-3); }
+
+/* VARIANTS — small applications row */
+.variants {
+  margin-top: 48px;
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 32px;
+}
+.variants h4 {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 28px;
+  display: flex; align-items: center; gap: 10px;
+}
+.variants h4::before {
+  content: ""; width: 8px; height: 8px;
+  background: var(--accent); border-radius: 1px;
+}
+.variants-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.variant {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  display: flex; flex-direction: column;
+  min-height: 180px;
+}
+.variant .v-canvas {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.variant.light .v-canvas { background: var(--ink); }
+.variant.lime  .v-canvas { background: var(--accent); }
+.variant .v-meta {
+  padding: 12px 14px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.variant .v-meta b { display: block; color: var(--ink); margin-top: 2px; font-weight: 500; letter-spacing: 0.04em; }
+
+/* AI PROMPT BLOCK */
+.prompt {
+  margin-top: 48px;
+  border: 1px solid var(--accent);
+  background: rgba(200,255,0,0.025);
+  padding: 32px;
+  position: relative;
+}
+.prompt .head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.prompt .head .label {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.prompt .head .label::before {
+  content: "▸ "; color: var(--accent);
+}
+.prompt .head .copy {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: var(--bg);
+  padding: 8px 14px;
+  border: 1px solid var(--rule-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.prompt .head .copy:hover { color: var(--accent); border-color: var(--accent); }
+.prompt .head .copy.done { color: var(--accent); border-color: var(--accent); }
+.prompt .body {
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.prompt .body .h { color: var(--accent); }
+.prompt .body .v { color: var(--ink-2); }
+
+.briefs {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.brief {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 32px;
+}
+.brief h4 {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 20px;
+}
+.brief h4 .flag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 9px;
+  border-radius: 1px;
+}
+.brief ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.brief li {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.brief li:last-child { border-bottom: none; padding-bottom: 0; }
+.brief li::before {
+  content: "+";
+  color: var(--accent);
+  font-family: var(--f-mono);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.brief.dont li::before { content: "×"; color: var(--warn); }
+.brief li b { color: var(--accent); font-weight: 500; }
+
+/* COMPARISON FOOTER */
+.compare {
+  border-top: 1px solid var(--rule);
+  padding: 96px 0;
+}
+.compare-grid {
+  display: grid;
+  grid-template-columns: 160px repeat(3, 1fr);
+  border-top: 1px solid var(--rule);
+  font-family: var(--f-mono);
+  font-size: 12px;
+}
+.compare-grid > div {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+  display: flex; align-items: center;
+}
+.compare-grid > div:nth-child(4n+1) { border-left: 1px solid var(--rule); color: var(--ink); }
+.compare-grid .h {
+  background: var(--bg-2);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-family: var(--f-brand);
+}
+.compare-grid .h:nth-child(2) { color: var(--accent); }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.foot b { display: block; color: var(--ink); margin-top: 6px; font-weight: 500; letter-spacing: 0.04em; }
+
+/* responsive */
+@media (max-width: 900px) {
+  :root { --gutter: 20px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .toc { grid-template-columns: 1fr; }
+  .concept-head { grid-template-columns: 1fr; gap: 24px; }
+  .canvas { padding: 64px 16px; min-height: 320px; }
+  .spec { grid-template-columns: 1fr; }
+  .variants-grid { grid-template-columns: 1fr 1fr; }
+  .briefs { grid-template-columns: 1fr; }
+  .compare-grid { font-size: 10px; }
+  .foot { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="00 Logo Concepts">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="lockup">
+      <span class="dot"></span>
+      <span>PumpLog</span>
+      <span style="color:var(--ink-3);">/</span>
+      <span style="color:var(--ink-3);">Logo Concepts · v1</span>
+    </div>
+    <div class="right">
+      <span>ITA</span>
+      <span>15.05.2026</span>
+      <span style="color:var(--accent);">● BRIEF</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <div>DOCUMENTO<b>Creative Brief — Logo</b></div>
+      <div>SCOPO<b>Handoff designer / AI image</b></div>
+      <div>OUTPUT<b>3 concept distinti</b></div>
+      <div>FONT BRAND<b>Bebas Neue · all-caps</b></div>
+    </div>
+
+    <h1>Tre modi diversi<br>di firmare lo stesso <b>strumento</b>.</h1>
+    <p class="sub">
+      Ogni concept parte dallo stesso DNA — Bebas Neue, lime #C8FF00, nero #0C0C0D — e occupa un territorio emotivo diverso. Non sono varianti, sono ipotesi alternative. Sotto ogni concept trovi la scheda tecnica in italiano per il designer e il prompt in inglese per gli strumenti di image generation.
+    </p>
+
+    <div class="toc">
+      <a href="#operator">
+        <span class="idx">CONCEPT / 01</span>
+        <span class="name">OPERATOR</span>
+        <span class="desc">Il terminale. Solo tipografia, niente simbolo.</span>
+      </a>
+      <a href="#ferro">
+        <span class="idx">CONCEPT / 02</span>
+        <span class="name">FERRO</span>
+        <span class="desc">Il monogramma fisico. Disco da bilanciere.</span>
+      </a>
+      <a href="#tally">
+        <span class="idx">CONCEPT / 03</span>
+        <span class="name">TALLY</span>
+        <span class="desc">Il registro. Wordmark + serie loggate.</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CONCEPT 01 — OPERATOR -->
+<section class="concept" id="operator" data-screen-label="02 Operator">
+  <div class="wrap">
+    <div class="concept-meta">
+      <span>§ Concept / 01 · OPERATOR</span>
+      <span>Direzione: pure typographic · No symbol</span>
+    </div>
+
+    <div class="concept-head">
+      <div>
+        <div class="num">/01</div>
+        <h2>PUMP<span class="acc">|</span>LOG</h2>
+      </div>
+      <div class="essence">
+        Lo strumento da terminale. Nessun simbolo, perché lo strumento <em>è</em> il nome. Il divisore lime al centro è l'unico ornamento: il pipe del command-line, il separatore di campo di un log entry, il colpo di matita che chiude una serie nel diario.
+      </div>
+    </div>
+
+    <div class="canvas">
+      <div class="ruler"><span>00.00</span><span>FORM · WORDMARK</span><span>16:5</span></div>
+      <span class="logo-operator">
+        PUMP<span class="divider"></span><span class="log">LOG</span>
+      </span>
+      <div class="ruler-b"><span>BEBAS NEUE</span><span>● BIANCO + LIME</span><span>x = altezza M</span></div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-block">
+        <h4>Scheda forma · 01 / Operator</h4>
+        <div class="spec-list">
+          <div><span class="k">Forma</span><span class="v">Wordmark orizzontale, due parole + separatore verticale. Allineamento baseline, capolinea sui tagli verticali della M e della G.</span></div>
+          <div><span class="k">Tipografia</span><span class="v">Bebas Neue regular, all-caps. Tracking +1%. Mai bold (non esiste in Bebas), mai italic. Stessa altezza-x per entrambe le parole.</span></div>
+          <div><span class="k">Colore</span><span class="v">PUMP in #F0EFE8 · separatore + LOG in #C8FF00. Versione mono possibile (tutto bianco) ma sconsigliata: il dialogo tra le due parole è il logo.</span></div>
+          <div><span class="k">Separatore</span><span class="v">Barra verticale, altezza 72% della cap-height, larghezza pari a 3% della cap-height. Mai sostituire con "/" o "·".</span></div>
+          <div><span class="k">Simbolo</span><span class="v">Nessuno. È una scelta, non un'omissione.</span></div>
+        </div>
+      </div>
+
+      <div class="emotion">
+        <span class="kicker">Emozione · Territorio</span>
+        <div class="feeling">"Apro la console e mi dice esattamente quello che è successo. Niente in più."</div>
+        <div class="words">
+          <span class="word">Terminale</span>
+          <span class="word">Bloomberg</span>
+          <span class="word">Console</span>
+          <span class="word">Riga di comando</span>
+          <span class="word">Misurazione</span>
+          <span class="word">Forense</span>
+        </div>
+        <div class="anti">
+          <b>NON</b> deve sembrare: <s>gym brand</s> · <s>energy drink</s> · <s>esport team</s> · <s>app fitness mainstream</s>
+        </div>
+      </div>
+    </div>
+
+    <div class="variants">
+      <h4>Applicazioni · 4 contesti</h4>
+      <div class="variants-grid">
+        <div class="variant">
+          <div class="v-canvas">
+            <span class="logo-operator" style="font-size: 36px;">PUMP<span class="divider"></span><span class="log">LOG</span></span>
+          </div>
+          <div class="v-meta">SCURO · STANDARD<b>Default</b></div>
+        </div>
+        <div class="variant light">
+          <div class="v-canvas">
+            <span class="logo-operator" style="font-size: 36px; color: var(--bg);">PUMP<span class="divider" style="background: var(--bg);"></span><span class="log" style="color: var(--bg);">LOG</span></span>
+          </div>
+          <div class="v-meta">CHIARO · MONOCROMO<b>Su carta</b></div>
+        </div>
+        <div class="variant">
+          <div class="v-canvas" style="background: var(--accent); flex-direction: column; gap: 4px;">
+            <span style="font-family: var(--f-brand); font-size: 68px; line-height: 0.85; color: var(--bg); letter-spacing: 0.02em;">P|L</span>
+          </div>
+          <div class="v-meta">APP ICON · 1024px<b>P|L mono</b></div>
+        </div>
+        <div class="variant">
+          <div class="v-canvas">
+            <span class="logo-operator" style="font-size: 18px;">PUMP<span class="divider"></span><span class="log">LOG</span></span>
+          </div>
+          <div class="v-meta">FAVICON · 16px<b>Min size</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="briefs">
+      <div class="brief">
+        <h4>Brief al designer · DO</h4>
+        <ul>
+          <li>Mantieni il separatore come <b>oggetto autonomo</b>, non come glifo della font. Deve essere disegnato a mano, non un "|" da tastiera.</li>
+          <li>Testa due varianti del separatore: rettangolo pieno vs trattino verticale spezzato (come un pulse). <b>Default: rettangolo pieno.</b></li>
+          <li>Verifica la versione mono (solo #F0EFE8 su #0C0C0D) per stampa B/N e watermark. Deve reggere anche senza il lime.</li>
+          <li>Lavora su una griglia base-8. Tutti gli stacchi devono essere multipli di 8.</li>
+        </ul>
+      </div>
+      <div class="brief dont">
+        <h4>Brief al designer · DON'T</h4>
+        <ul>
+          <li>Non aggiungere outline, ombre, drop shadow, glow. Il logo è solo riempimento solido.</li>
+          <li>Non usare il separatore "/". Quello è già il delimiter usato nella UI dell'app, non nel logo.</li>
+          <li>Non distorcere Bebas Neue (no condensed extra, no expanded, no italic). La font è la font.</li>
+          <li>Non mettere mai lime sul bianco: solo lime su nero o nero su lime. Mai lime su carta.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="prompt">
+      <div class="head">
+        <span class="label">AI Image Prompt · EN · Concept 01</span>
+        <button class="copy" data-target="prompt-1">▢ Copy</button>
+      </div>
+      <pre class="body" id="prompt-1"><span class="h">Subject:</span> A minimalist horizontal wordmark logo for a serious gym training tracker app called PUMPLOG.
+
+<span class="h">Composition:</span> Two condensed all-caps words "PUMP" and "LOG" set side by side, separated by a single vertical lime-yellow bar acting as a command-line pipe divider. The word "PUMP" is rendered in warm off-white (#F0EFE8), the divider and "LOG" in acid lime-yellow (#C8FF00). All letters share the same x-height and baseline.
+
+<span class="h">Typography:</span> Bebas Neue or equivalent tall narrow condensed grotesque all-caps sans-serif. Strong vertical strokes, tight tracking, no decoration, sharp terminals, solid fills only.
+
+<span class="h">Background:</span> Solid near-black #0C0C0D, completely flat, no gradient, no texture, no glow.
+
+<span class="h">Style:</span> Industrial-scientific, terminal interface aesthetic, Bloomberg-meets-laboratory-equipment, technical precision instrument signage. Brutalist typographic logo design. Reminiscent of CLI command prompts and forensic data readouts.
+
+<span class="h">Negative:</span> no gym imagery, no barbell, no dumbbell, no flame, no fire emoji, no muscle, no human figure, no gradient, no 3D, no bevel, no drop shadow, no glow, no neon, no chrome, no metallic, no italic, no script, no serif, no illustration, no mascot, no cartoon, no Y2K, no retro 80s, no synthwave.
+
+<span class="h">Format:</span> Vector-style flat logo, centered, generous negative space, 16:9 canvas.
+
+<span class="h">Aspect:</span> --ar 16:9 --style raw --v 6</pre>
+    </div>
+  </div>
+</section>
+
+<!-- CONCEPT 02 — FERRO -->
+<section class="concept" id="ferro" data-screen-label="03 Ferro">
+  <div class="wrap">
+    <div class="concept-meta">
+      <span>§ Concept / 02 · FERRO</span>
+      <span>Direzione: monogramma + wordmark · Symbol-led</span>
+    </div>
+
+    <div class="concept-head">
+      <div>
+        <div class="num">/02</div>
+        <h2>P<span class="acc">●</span>L</h2>
+      </div>
+      <div class="essence">
+        Il logo che sa di sala. Tra la P e la L c'è un disco da bilanciere stilizzato — un quadrato con angoli leggermente smussati e il foro centrale visibile. Non è un'illustrazione: è un <em>componente meccanico</em>, come una rondella in un disegno tecnico. Il lime diventa la massa del ferro.
+      </div>
+    </div>
+
+    <div class="canvas">
+      <div class="ruler"><span>00.00</span><span>FORM · MONOGRAM</span><span>1:1</span></div>
+      <span class="logo-ferro">
+        <span>P</span>
+        <span class="glyph"><span class="disk"></span></span>
+        <span class="word">L</span>
+      </span>
+      <div class="ruler-b"><span>BEBAS NEUE + DISK</span><span>● LIME DISK</span><span>x = altezza P</span></div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-block">
+        <h4>Scheda forma · 02 / Ferro</h4>
+        <div class="spec-list">
+          <div><span class="k">Forma</span><span class="v">Monogramma orizzontale P+disco+L. Tre elementi della stessa altezza ottica. Il disco occupa lo spazio di una "U" stretta.</span></div>
+          <div><span class="k">Tipografia</span><span class="v">Bebas Neue, all-caps, due lettere isolate. Le aste verticali di P e L incorniciano il disco come due montanti.</span></div>
+          <div><span class="k">Simbolo</span><span class="v">Disco quadrato con angoli arrotondati (radius = 10% lato), foro centrale rettangolare al 36% × 64% (rapporto perno olimpionico).</span></div>
+          <div><span class="k">Colore</span><span class="v">Lettere in #F0EFE8, disco in #C8FF00 con foro che mostra il background. Mai disco bianco: la massa è sempre lime.</span></div>
+          <div><span class="k">Wordmark associato</span><span class="v">"PUMPLOG" in Bebas Neue sotto o accanto al monogramma. Mai sostituire la O della parola con il disco — il disco è un oggetto, non un glifo.</span></div>
+        </div>
+      </div>
+
+      <div class="emotion">
+        <span class="kicker">Emozione · Territorio</span>
+        <div class="feeling">"Riconosco la forma. È un pezzo di ferro che ho avuto in mano questa mattina."</div>
+        <div class="words">
+          <span class="word">Sala pesi</span>
+          <span class="word">Ghisa</span>
+          <span class="word">Disegno tecnico</span>
+          <span class="word">Componente</span>
+          <span class="word">Eagle / Eleiko</span>
+          <span class="word">Industrial</span>
+        </div>
+        <div class="anti">
+          <b>NON</b> deve sembrare: <s>cartoon barbell</s> · <s>fitness clip-art</s> · <s>vintage gym logo</s> · <s>strongman badge</s>
+        </div>
+      </div>
+    </div>
+
+    <div class="variants">
+      <h4>Applicazioni · 4 contesti</h4>
+      <div class="variants-grid">
+        <div class="variant">
+          <div class="v-canvas">
+            <span class="logo-ferro" style="font-size: 56px;">
+              <span>P</span>
+              <span class="glyph"><span class="disk"></span></span>
+              <span class="word">L</span>
+            </span>
+          </div>
+          <div class="v-meta">SCURO · LOCKUP<b>Default</b></div>
+        </div>
+        <div class="variant">
+          <div class="v-canvas" style="flex-direction: column; gap: 6px;">
+            <span class="logo-ferro" style="font-size: 44px;">
+              <span>P</span>
+              <span class="glyph"><span class="disk"></span></span>
+              <span class="word">L</span>
+            </span>
+            <span style="font-family: var(--f-brand); font-size: 17px; letter-spacing: 0.22em; color: var(--ink-2);">PUMPLOG</span>
+          </div>
+          <div class="v-meta">VERTICAL LOCKUP<b>+ wordmark</b></div>
+        </div>
+        <div class="variant lime">
+          <div class="v-canvas">
+            <span class="logo-ferro" style="font-size: 56px;">
+              <span style="color: var(--bg);">P</span>
+              <span class="glyph"><span class="disk" style="background: var(--bg);"><span style="position:absolute;inset:18% 32%;background:var(--accent);"></span></span></span>
+              <span class="word" style="color: var(--bg);">L</span>
+            </span>
+          </div>
+          <div class="v-meta">APP ICON · LIME BG<b>Inverso</b></div>
+        </div>
+        <div class="variant light">
+          <div class="v-canvas">
+            <span class="logo-ferro" style="font-size: 56px;">
+              <span style="color: var(--bg);">P</span>
+              <span class="glyph"><span class="disk" style="background: var(--bg);"><span style="position:absolute;inset:18% 32%;background:var(--ink);"></span></span></span>
+              <span class="word" style="color: var(--bg);">L</span>
+            </span>
+          </div>
+          <div class="v-meta">CARTA · MONO<b>B/N</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="briefs">
+      <div class="brief">
+        <h4>Brief al designer · DO</h4>
+        <ul>
+          <li>Il disco è un <b>componente meccanico</b>, non un'illustrazione. Disegnalo come se fosse in un manuale di officina: vista frontale, simmetria assoluta, foro centrale visibile.</li>
+          <li>Il <b>foro centrale</b> deve mostrare il colore del background — è un buco, non un punto. Sul lime mostra il nero, sul nero mostra il nero (il foro diventa una taglia).</li>
+          <li>Testa due rapporti: foro stretto (36%) e foro largo (52%). Il largo è più "olimpionico", lo stretto più "massa".</li>
+          <li>Lavora con angoli smussati a 10% del lato. Non usare un cerchio puro — il quadrato smussato è più tecnico, meno cartoon.</li>
+        </ul>
+      </div>
+      <div class="brief dont">
+        <h4>Brief al designer · DON'T</h4>
+        <ul>
+          <li>Non disegnare un bilanciere intero. Solo il disco. Il bilanciere è clip-art.</li>
+          <li>Non aggiungere "kg" o numeri sul disco. Non è merchandise, è marchio.</li>
+          <li>Non sostituire la O di PUMPLOG con il disco quando il wordmark è presente. Sono due livelli separati.</li>
+          <li>Non usare un cerchio perfetto. Cerchio = bottone iOS. Quadrato smussato = ferro reale.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="prompt">
+      <div class="head">
+        <span class="label">AI Image Prompt · EN · Concept 02</span>
+        <button class="copy" data-target="prompt-2">▢ Copy</button>
+      </div>
+      <pre class="body" id="prompt-2"><span class="h">Subject:</span> A monogram logo for a serious strength training app called PUMPLOG, combining two tall condensed sans-serif letters with a single stylized weight plate between them.
+
+<span class="h">Composition:</span> Horizontal lockup of three elements at identical optical height. Left: capital letter "P" in warm off-white (#F0EFE8). Center: a single Olympic weight plate rendered as a rounded square (corner radius 10%) in acid lime-yellow (#C8FF00) with a rectangular center hole (36% wide, 64% tall) cut clean through to reveal the dark background. Right: capital letter "L" in the same warm off-white. The vertical strokes of P and L visually frame the lime plate like two upright posts.
+
+<span class="h">Typography:</span> Bebas Neue or equivalent tall narrow condensed grotesque all-caps sans-serif, solid fills only, no decoration.
+
+<span class="h">Plate symbol:</span> Front-on technical view, perfect bilateral symmetry, like a part in a mechanical engineering manual or an Eleiko equipment catalog. Flat 2D rendering, no perspective, no 3D shading, no metallic sheen.
+
+<span class="h">Background:</span> Solid near-black #0C0C0D, completely flat.
+
+<span class="h">Style:</span> Industrial component aesthetic, mechanical part diagram, German workshop precision, Vignelli grid, Massimo Vignelli signage system. Strength sport branding with zero pageantry. Reminiscent of premium European gym equipment manufacturers.
+
+<span class="h">Negative:</span> no full barbell, no dumbbell, no human silhouette, no muscle, no flame, no shield, no laurel, no crown, no badge, no vintage texture, no distressed effect, no script, no serif, no Y2K, no chrome, no metallic gradient, no 3D bevel, no neon glow, no drop shadow, no cartoon, no mascot, no realistic photography.
+
+<span class="h">Format:</span> Vector-style flat logo, centered, generous negative space, 1:1 canvas.
+
+<span class="h">Aspect:</span> --ar 1:1 --style raw --v 6</pre>
+    </div>
+  </div>
+</section>
+
+<!-- CONCEPT 03 — TALLY -->
+<section class="concept" id="tally" data-screen-label="04 Tally">
+  <div class="wrap">
+    <div class="concept-meta">
+      <span>§ Concept / 03 · TALLY</span>
+      <span>Direzione: wordmark + data-mark · Editorial</span>
+    </div>
+
+    <div class="concept-head">
+      <div>
+        <div class="num">/03</div>
+        <h2>PUMPLOG <span class="acc">▮▮▮</span></h2>
+      </div>
+      <div class="essence">
+        Il logo che <em>è</em> un log. Quattro trattini orizzontali — tre lime accesi, uno spento — sotto il wordmark. Sono le serie loggate della seduta. Il logo dice quello che fa il prodotto: registra, conta, mostra il progresso. Letterale e onesto.
+      </div>
+    </div>
+
+    <div class="canvas">
+      <div class="ruler"><span>00.00</span><span>FORM · WORDMARK + DATA</span><span>4:3</span></div>
+      <span class="logo-tally">
+        <span class="word">PUMPLOG</span>
+        <span class="tally">
+          <span class="done"></span>
+          <span class="done"></span>
+          <span class="done"></span>
+          <span></span>
+          <span class="label">03/04 · SERIE</span>
+        </span>
+      </span>
+      <div class="ruler-b"><span>BEBAS NEUE + TICKS</span><span>● 3 LIME + 1 OFF</span><span>x = altezza P</span></div>
+    </div>
+
+    <div class="spec">
+      <div class="spec-block">
+        <h4>Scheda forma · 03 / Tally</h4>
+        <div class="spec-list">
+          <div><span class="k">Forma</span><span class="v">Composizione su due righe: wordmark in alto, riga di 4 tally marks orizzontali in basso con label monospaziata opzionale.</span></div>
+          <div><span class="k">Tipografia</span><span class="v">Bebas Neue per PUMPLOG. Label tecnica in JetBrains Mono 9% della cap-height, all-caps, color ink-3.</span></div>
+          <div><span class="k">Tally marks</span><span class="v">4 rettangoli orizzontali, larghezza 50% della cap-height, altezza 18% della cap-height, gap 6%. Tre in lime (done), uno in ink-3 (to-do).</span></div>
+          <div><span class="k">Colore</span><span class="v">PUMPLOG in #F0EFE8. Tally done in #C8FF00. Tally to-do in #555350. Label in #9A988F.</span></div>
+          <div><span class="k">Stato del logo</span><span class="v">Il rapporto done/to-do può variare nelle applicazioni: 4/4 per la versione "celebrativa", 0/4 per il primo lancio dell'app, 3/4 default per il marchio.</span></div>
+        </div>
+      </div>
+
+      <div class="emotion">
+        <span class="kicker">Emozione · Territorio</span>
+        <div class="feeling">"Il logo è già un dato. Mi dice qualcosa anche prima che apra l'app."</div>
+        <div class="words">
+          <span class="word">Registro</span>
+          <span class="word">Conteggio</span>
+          <span class="word">Diario tecnico</span>
+          <span class="word">Editoriale</span>
+          <span class="word">Tally book</span>
+          <span class="word">Evidence-based</span>
+        </div>
+        <div class="anti">
+          <b>NON</b> deve sembrare: <s>progress bar</s> · <s>loading indicator</s> · <s>battery icon</s> · <s>signal bar</s>
+        </div>
+      </div>
+    </div>
+
+    <div class="variants">
+      <h4>Applicazioni · 4 contesti</h4>
+      <div class="variants-grid">
+        <div class="variant">
+          <div class="v-canvas">
+            <span class="logo-tally" style="font-size: 40px;">
+              <span class="word">PUMPLOG</span>
+              <span class="tally">
+                <span class="done"></span><span class="done"></span><span class="done"></span><span></span>
+              </span>
+            </span>
+          </div>
+          <div class="v-meta">SCURO · 3/4<b>Default</b></div>
+        </div>
+        <div class="variant">
+          <div class="v-canvas">
+            <span class="logo-tally" style="font-size: 40px;">
+              <span class="word">PUMPLOG</span>
+              <span class="tally">
+                <span class="done"></span><span class="done"></span><span class="done"></span><span class="done"></span>
+              </span>
+            </span>
+          </div>
+          <div class="v-meta">FINE SEDUTA · 4/4<b>Compl.</b></div>
+        </div>
+        <div class="variant">
+          <div class="v-canvas" style="background: var(--accent); flex-direction: column; gap: 4px;">
+            <span style="font-family: var(--f-brand); font-size: 56px; line-height: 0.85; color: var(--bg); letter-spacing: 0.02em;">PL</span>
+            <span style="display: flex; gap: 3px;"><span style="width:18px;height:5px;background:var(--bg);border-radius:1px;"></span><span style="width:18px;height:5px;background:var(--bg);border-radius:1px;"></span><span style="width:18px;height:5px;background:var(--bg);border-radius:1px;"></span></span>
+          </div>
+          <div class="v-meta">APP ICON · LIME<b>PL + tally</b></div>
+        </div>
+        <div class="variant light">
+          <div class="v-canvas">
+            <span class="logo-tally" style="font-size: 28px;">
+              <span class="word" style="color: var(--bg);">PUMPLOG</span>
+              <span class="tally">
+                <span class="done" style="background: var(--bg);"></span><span class="done" style="background: var(--bg);"></span><span class="done" style="background: var(--bg);"></span><span style="background: rgba(0,0,0,0.2);"></span>
+              </span>
+            </span>
+          </div>
+          <div class="v-meta">CARTA · MONO<b>B/N</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="briefs">
+      <div class="brief">
+        <h4>Brief al designer · DO</h4>
+        <ul>
+          <li>Tratta i tally marks come <b>dati, non decorazione</b>. Ognuno deve avere la stessa identità grafica delle "celle" della tabella serie nella UI.</li>
+          <li>Mantieni il rapporto 3/4 come default del marchio. È la posizione narrativa: <b>"siamo in corso, non finiti"</b>.</li>
+          <li>I tally devono essere allineati a destra rispetto al wordmark, a margine della G di "LOG". Mai centrati.</li>
+          <li>Per il favicon usa "PL" + 2 tally accesi. Sotto i 16px il wordmark intero è illeggibile.</li>
+        </ul>
+      </div>
+      <div class="brief dont">
+        <h4>Brief al designer · DON'T</h4>
+        <ul>
+          <li>I tally NON sono una progress bar continua: sono <b>quattro elementi distinti</b> con gap visibile.</li>
+          <li>Non arrotondare i tally come pillole. Devono essere quasi rettangolari (radius minimo, 2% del lato).</li>
+          <li>Non animare il logo sul lancio dell'app. Il logo non si muove. È il prodotto che si muove.</li>
+          <li>Non usare più di 4 tally. Una serie tipica è 3-4. Più sarebbero noise.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="prompt">
+      <div class="head">
+        <span class="label">AI Image Prompt · EN · Concept 03</span>
+        <button class="copy" data-target="prompt-3">▢ Copy</button>
+      </div>
+      <pre class="body" id="prompt-3"><span class="h">Subject:</span> An editorial-technical wordmark logo for a strength training tracking app called PUMPLOG, with the wordmark accompanied by a row of four horizontal tally marks acting as completed-set indicators.
+
+<span class="h">Composition:</span> Stacked two-line layout. Top line: "PUMPLOG" in tall condensed all-caps sans-serif, rendered in warm off-white (#F0EFE8). Bottom line: a row of four short horizontal bars, each roughly half a cap-height wide and one-fifth of a cap-height tall, with tiny gaps between them. Three bars are filled in acid lime-yellow (#C8FF00) representing completed sets; one bar at the end is filled in muted dark gray representing the remaining set. The tally row is right-aligned to the wordmark above. Optional small monospaced label "03/04 · SERIE" beside the tally row in light gray.
+
+<span class="h">Typography:</span> Bebas Neue or equivalent for the wordmark — tall narrow condensed grotesque all-caps, solid fills only. JetBrains Mono or equivalent for the small label.
+
+<span class="h">Background:</span> Solid near-black #0C0C0D, completely flat.
+
+<span class="h">Style:</span> Scientific journal aesthetic, technical logbook, evidence-based data display, Whoop-meets-academic-paper, brutalist editorial design, Manuel Krebs / Norm-style typographic precision. The logo itself is a piece of structured data.
+
+<span class="h">Negative:</span> no progress bar that looks like loading, no battery indicator, no signal bars, no medal, no badge, no trophy, no flame, no human figure, no barbell, no muscle, no gradient, no 3D, no glow, no neon, no chrome, no script, no serif, no Y2K, no synthwave, no retro 80s, no cartoon, no mascot.
+
+<span class="h">Format:</span> Vector-style flat logo, centered with generous negative space, 4:3 canvas.
+
+<span class="h">Aspect:</span> --ar 4:3 --style raw --v 6</pre>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="compare" data-screen-label="05 Compare">
+  <div class="wrap">
+    <div class="concept-meta">
+      <span>§ Confronto · A colpo d'occhio</span>
+      <span>Tre territori, una decisione</span>
+    </div>
+
+    <h2 style="font-family: var(--f-display); font-weight: 500; font-size: clamp(32px, 4vw, 56px); line-height: 1.02; letter-spacing: -0.025em; margin-bottom: 56px; max-width: 24ch;">
+      Dove si tocca,<br>dove si stacca,<br>dove si decide.
+    </h2>
+
+    <div class="compare-grid">
+      <div class="h">Dimensione</div>
+      <div class="h">01 · OPERATOR</div>
+      <div class="h">02 · FERRO</div>
+      <div class="h">03 · TALLY</div>
+
+      <div>Tipo di marca</div>
+      <div>Wordmark puro</div>
+      <div>Monogramma + lockup</div>
+      <div>Wordmark + data-mark</div>
+
+      <div>Tono</div>
+      <div>Console / terminale</div>
+      <div>Ferro / officina</div>
+      <div>Registro / editoriale</div>
+      <div>Memorabilità</div>
+      <div>Media · si ricorda il /</div>
+      <div>Alta · oggetto unico</div>
+      <div>Media · concept ricco</div>
+      <div>Scala minima · favicon</div>
+      <div>Forte · il / regge a 16px</div>
+      <div>Forte · disco regge a 16px</div>
+      <div>Debole · serve "PL"</div>
+
+      <div>Versatilità contesti</div>
+      <div>Massima · è solo testo</div>
+      <div>Alta · monogramma flessibile</div>
+      <div>Media · serve due righe</div>
+
+      <div>Rischio "AI slop"</div>
+      <div>Basso · troppo asciutto per slop</div>
+      <div>Medio · evitare cartoon barbell</div>
+      <div>Basso · concept troppo tecnico</div>
+
+      <div>Anti-valori coperti</div>
+      <div>Tutti · non sembra mai gym</div>
+      <div>Tutti tranne "minimal"</div>
+      <div>Tutti · zero ornamento</div>
+
+      <div>Italianità</div>
+      <div>Neutra · universale</div>
+      <div>Tradizione gym italiana</div>
+      <div>Forte · label in italiano</div>
+    </div>
+
+    <p style="margin-top: 48px; font-family: var(--f-edit); font-style: italic; font-weight: 300; font-size: 22px; line-height: 1.4; color: var(--ink-2); max-width: 60ch;">
+      Raccomandazione direzionale: <span style="color: var(--ink);">testare 01 e 02 con 5–8 utenti del target.</span> 01 è più sicuro, 02 è più ownable. 03 vive meglio come elemento sistemico (header app, splash) che come marchio primario.
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot">
+    <div>DOCUMENTO<b>Logo Concepts v1</b></div>
+    <div>FASE<b style="color:var(--accent);">Ricerca · Pre-test</b></div>
+    <div>NEXT<b>User test · 5–8 target</b></div>
+    <div>OWNER<b>Brand · Design</b></div>
+  </div>
+</footer>
+
+<script>
+// Copy-to-clipboard for AI prompts
+document.querySelectorAll('.copy').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const target = document.getElementById(btn.dataset.target);
+    if (!target) return;
+    const text = target.innerText;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.classList.add('done');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copiato';
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('done'); }, 1800);
+    } catch (e) {
+      // fallback: select range
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  });
+});
+</script>
+</body>
+</html>

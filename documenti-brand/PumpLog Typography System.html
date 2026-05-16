@@ -1,0 +1,1812 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Typography System · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;700&family=Barlow:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C0C0D;
+  --bg-2:      #161618;
+  --bg-3:      #202022;
+  --rule:      #2A2A2D;
+  --rule-2:    #353539;
+  --ink:       #F0EFE8;
+  --ink-2:     rgba(240,239,232,0.55);
+  --ink-3:     rgba(240,239,232,0.32);
+  --accent:    #C8FF00;
+  --accent-ink:#000000;
+  --danger:    #EF4444;
+  --warning:   #F59E0B;
+  --success:   #C8FF00; /* lime fa il successo */
+
+  --f-display: "Bebas Neue", Impact, sans-serif;
+  --f-condensed: "Barlow Condensed", "Bebas Neue", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-mono: "Roboto Mono", ui-monospace, monospace;
+  --f-serif: "Source Serif 4", Georgia, serif; /* solo per sezione opzionale */
+
+  --max: 1280px;
+  --gutter: 32px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* utility classes embodying the system */
+.t-display { font-family: var(--f-display); font-weight: 400; letter-spacing: 0.005em; text-transform: uppercase; }
+.t-label { font-family: var(--f-condensed); font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; }
+.t-body { font-family: var(--f-body); font-weight: 400; }
+.t-bold { font-family: var(--f-body); font-weight: 600; }
+.t-data { font-family: var(--f-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* TOP BAR */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(12,12,13,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar .lockup { color: var(--ink); display: flex; align-items: center; gap: 12px; }
+.topbar .lockup .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.topbar .right { display: flex; gap: 24px; }
+
+/* HERO */
+.hero { padding: 56px 0 96px; border-bottom: 1px solid var(--rule); }
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: 40px; border-bottom: 1px solid var(--rule); margin-bottom: 56px;
+}
+.hero-meta b { display: block; font-family: var(--f-body); font-size: 14px; font-weight: 500; color: var(--ink); margin-top: 8px; letter-spacing: 0; text-transform: none; }
+
+.hero h1 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(72px, 14vw, 200px);
+  line-height: 0.88; letter-spacing: 0.005em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  max-width: 14ch;
+}
+.hero h1 .acc { color: var(--accent); }
+
+.hero .sub {
+  margin-top: 40px;
+  font-family: var(--f-body); font-weight: 400;
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.55; color: var(--ink-2);
+  max-width: 62ch;
+}
+.hero .sub b { color: var(--ink); font-weight: 600; }
+.hero .sub .lime { color: var(--accent); font-weight: 600; }
+
+/* Specimen stack — 4 faces tasting menu */
+.specimens {
+  margin-top: 80px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.spec-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 80px;
+  gap: 32px;
+  padding: 36px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-row .label {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.spec-row .label b {
+  display: block;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 15px; letter-spacing: 0;
+  text-transform: none; color: var(--ink);
+  margin-top: 6px;
+}
+.spec-row .demo { color: var(--ink); }
+.spec-row .demo.display { font-family: var(--f-display); font-size: clamp(56px, 8vw, 112px); line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; }
+.spec-row .demo.cond   { font-family: var(--f-condensed); font-weight: 700; font-size: clamp(28px, 3.4vw, 44px); line-height: 1; letter-spacing: 0.25em; text-transform: uppercase; }
+.spec-row .demo.body   { font-family: var(--f-body); font-weight: 400; font-size: clamp(20px, 2vw, 28px); line-height: 1.45; }
+.spec-row .demo.body b { font-weight: 600; color: var(--accent); }
+.spec-row .demo.mono   { font-family: var(--f-mono); font-weight: 500; font-size: clamp(20px, 2.4vw, 32px); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.spec-row .ratio {
+  font-family: var(--f-mono); font-weight: 500; font-size: 14px;
+  color: var(--ink-2); text-align: right;
+}
+
+/* SECTION */
+.section { border-top: 1px solid var(--rule); padding: 96px 0; position: relative; }
+.section-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding-bottom: 16px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+.section-head { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; align-items: end; margin-bottom: 64px; }
+.section-head .num {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 13px; color: var(--accent);
+  letter-spacing: 0.16em; margin-bottom: 16px;
+}
+.section-head h2 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(56px, 8vw, 112px);
+  line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.section-head h2 .acc { color: var(--accent); }
+.section-head .essence {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: clamp(18px, 1.6vw, 22px); line-height: 1.55;
+  color: var(--ink-2); max-width: 56ch;
+}
+.section-head .essence b { color: var(--ink); font-weight: 600; }
+
+/* TYPE CARD — single face deep dive */
+.type-card {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+.type-card .specimen {
+  padding: 72px 48px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  position: relative;
+  overflow: hidden;
+}
+.type-card .specimen .meta-top {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.type-card .specimen .big {
+  color: var(--ink);
+  line-height: 0.88;
+}
+.type-card .specimen .big.bebas {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(96px, 16vw, 220px);
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+.type-card .specimen .big.barlow-c {
+  font-family: var(--f-condensed);
+  font-weight: 700;
+  font-size: clamp(72px, 12vw, 144px);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.type-card .specimen .big.barlow {
+  font-family: var(--f-body);
+  font-weight: 600;
+  font-size: clamp(72px, 11vw, 128px);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.type-card .specimen .big.mono {
+  font-family: var(--f-mono);
+  font-weight: 500;
+  font-size: clamp(64px, 10vw, 120px);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.type-card .specimen .big .lime { color: var(--accent); }
+
+.type-card .specimen .glyphs {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 13px; color: var(--ink-2);
+  letter-spacing: 0.06em;
+  padding-top: 16px; border-top: 1px dashed var(--rule);
+  display: flex; flex-wrap: wrap; gap: 20px;
+}
+.type-card .specimen .glyphs span b { color: var(--ink); font-weight: 500; }
+
+.type-card .body {
+  padding: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
+.type-card .body .col { display: flex; flex-direction: column; gap: 28px; }
+.type-card .body h3 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--ink); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.type-card .body h3::before {
+  content: ""; width: 8px; height: 8px;
+  background: var(--accent); border-radius: 1px;
+}
+.type-card .body p {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 15px; line-height: 1.65; color: var(--ink);
+}
+.type-card .body p + p { margin-top: 14px; }
+.type-card .body p b { color: var(--accent); font-weight: 600; }
+.type-card .body ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.type-card .body ul li {
+  padding-left: 20px; position: relative;
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.6; color: var(--ink);
+}
+.type-card .body ul li::before {
+  content: "+";
+  position: absolute; left: 0; top: 0;
+  font-family: var(--f-mono); color: var(--accent);
+}
+.type-card .body ul.dont li::before { content: "×"; color: var(--danger); }
+
+.fact-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.fact-row:last-child { border-bottom: none; }
+.fact-row .k {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.fact-row .v {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 14px; color: var(--ink);
+}
+.fact-row .v.mono { font-family: var(--f-mono); font-weight: 500; }
+.fact-row .v a { color: var(--accent); border-bottom: 1px solid var(--accent); }
+
+.verdict-row {
+  margin-top: 32px;
+  padding: 18px 20px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink);
+}
+.verdict-row b { color: var(--accent); }
+.verdict-row.warn { border-left-color: var(--warning); }
+.verdict-row.warn b { color: var(--warning); }
+
+/* TYPE SCALE table */
+.scale-table {
+  border: 1px solid var(--rule); background: var(--bg-2);
+}
+.scale-row {
+  display: grid;
+  grid-template-columns: 140px 80px 80px 90px 100px 1fr;
+  gap: 24px;
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.scale-row:last-child { border-bottom: none; }
+.scale-row.head {
+  background: var(--bg-3);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.scale-row .role { font-family: var(--f-condensed); font-weight: 700; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink); }
+.scale-row .size, .scale-row .line, .scale-row .track, .scale-row .weight {
+  font-family: var(--f-mono); font-weight: 500; font-size: 13px;
+  color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.scale-row .sample { color: var(--ink); }
+.scale-row .sample.s-display { font-family: var(--f-display); font-weight: 400; line-height: 1; letter-spacing: 0.005em; text-transform: uppercase; }
+.scale-row .sample.s-cond { font-family: var(--f-condensed); font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; }
+.scale-row .sample.s-body { font-family: var(--f-body); }
+.scale-row .sample.s-mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* EMPHASIS strategy demo */
+.emph-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.emph-card {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 280px;
+}
+.emph-card .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--accent);
+}
+.emph-card .demo {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 17px; line-height: 1.55;
+  color: var(--ink);
+  flex: 1;
+}
+.emph-card .demo b { font-weight: 600; color: var(--accent); }
+.emph-card .demo .caps {
+  font-family: var(--f-condensed); font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  font-size: 14px; color: var(--ink);
+}
+.emph-card .demo .lime { color: var(--accent); font-weight: 600; }
+.emph-card .demo .scale {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 28px; letter-spacing: 0.005em; text-transform: uppercase;
+  color: var(--ink); display: inline-block;
+}
+.emph-card .note {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* PAIRING DEMO — real UI mini-mock */
+.pair-demo {
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  padding: 48px;
+}
+.pair-demo .head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-bottom: 24px; border-bottom: 1px solid var(--rule);
+}
+.pair-demo .h-title {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 64px; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+.pair-demo .h-meta {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.pair-demo .section-lab {
+  margin-top: 32px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pair-demo .ex-row {
+  margin-top: 16px;
+  display: grid; grid-template-columns: 1fr auto auto auto;
+  gap: 20px; align-items: center;
+  padding: 16px 0; border-bottom: 1px solid var(--rule);
+}
+.pair-demo .ex-row:last-child { border-bottom: none; }
+.pair-demo .ex-name {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 17px; color: var(--ink); letter-spacing: -0.005em;
+}
+.pair-demo .ex-name small {
+  display: block;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--ink-3);
+  margin-top: 2px;
+}
+.pair-demo .val {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 17px; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  min-width: 80px; text-align: right;
+}
+.pair-demo .val.acc { color: var(--accent); }
+.pair-demo .val .u {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--ink-3);
+  margin-left: 4px;
+}
+.pair-demo .body-copy {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 16px; line-height: 1.65; color: var(--ink);
+  max-width: 68ch;
+}
+.pair-demo .body-copy b { font-weight: 600; color: var(--accent); }
+
+.legend-pair {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.legend-pair .li {
+  padding: 16px;
+  border: 1px dashed var(--rule);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.legend-pair .li b {
+  display: block;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 13px; letter-spacing: 0;
+  text-transform: none; color: var(--ink);
+  margin-top: 6px;
+}
+.legend-pair .li b small {
+  display: block;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 10px; color: var(--ink-2);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* PRINT section */
+.print-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.print-card {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.print-card .canvas {
+  padding: 40px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+.print-card .canvas.paper {
+  background: #f3f1ea;
+  color: #0c0c0d;
+}
+.print-card .canvas.lime {
+  background: var(--accent);
+}
+
+.print-card .meta {
+  padding: 28px;
+}
+.print-card .meta h4 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.print-card .meta h5 {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 20px; letter-spacing: -0.01em;
+  color: var(--ink); margin-bottom: 12px;
+}
+.print-card .meta p {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.6; color: var(--ink-2);
+}
+.print-card .meta p + p { margin-top: 10px; }
+.print-card .meta .specs {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.06em; line-height: 1.7;
+}
+.print-card .meta .specs b { color: var(--ink); font-weight: 500; }
+
+/* Business card mocks */
+.bcard {
+  width: 320px; aspect-ratio: 85/55;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding: 24px;
+  position: relative;
+}
+.bcard.front {
+  background: var(--bg);
+  color: var(--ink);
+}
+.bcard.back {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.bcard .wm-h {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 40px; line-height: 0.9; letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.bcard .wm-h .acc { color: var(--accent); }
+.bcard.back .wm-h { font-size: 56px; }
+.bcard .bottom {
+  display: flex; justify-content: space-between; align-items: flex-end;
+}
+.bcard .who {
+  font-family: var(--f-body); font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+}
+.bcard.front .who { color: var(--ink); }
+.bcard .who small {
+  display: block;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 4px; font-weight: 700;
+}
+.bcard.back .who small { color: rgba(0,0,0,0.55); }
+.bcard .contact {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 10px; line-height: 1.7;
+  text-align: right;
+  letter-spacing: 0.04em;
+}
+.bcard.front .contact { color: var(--ink-2); }
+.bcard.back .contact { color: rgba(0,0,0,0.65); }
+
+/* deck mock */
+.deck-mock {
+  width: 100%; aspect-ratio: 16/9;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 40px 44px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative;
+}
+.deck-mock .top {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.deck-mock .center { display: flex; flex-direction: column; gap: 12px; }
+.deck-mock .kicker {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.deck-mock .title {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(36px, 5vw, 64px); line-height: 0.9;
+  letter-spacing: 0.005em; text-transform: uppercase;
+  color: var(--ink);
+}
+.deck-mock .title .acc { color: var(--accent); }
+.deck-mock .lede {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.55; color: var(--ink-2);
+  max-width: 50ch;
+}
+.deck-mock .bottom {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.deck-mock .bottom .pg {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 11px; color: var(--ink-2); letter-spacing: 0.1em;
+}
+.deck-mock .bottom .brand {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 18px; letter-spacing: 0.01em; text-transform: uppercase;
+  color: var(--ink);
+}
+.deck-mock .bottom .brand .acc { color: var(--accent); }
+
+/* poster mock */
+.poster-mock {
+  width: 100%; aspect-ratio: 2/3;
+  background: var(--bg);
+  padding: 28px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.poster-mock .top { font-family: var(--f-condensed); font-weight: 700; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink-3); }
+.poster-mock .huge {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(60px, 8vw, 96px);
+  line-height: 0.85; letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.poster-mock .huge .acc { color: var(--accent); }
+.poster-mock .footer {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 11px; letter-spacing: 0.08em; color: var(--ink-2);
+}
+
+/* RULES grid */
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.rule-card {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 32px;
+  display: flex; flex-direction: column; gap: 16px;
+  position: relative;
+}
+.rule-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--accent);
+}
+.rule-card.dont::before { background: var(--danger); }
+.rule-card .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.rule-card.dont .lab { color: var(--danger); }
+.rule-card h4 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 32px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.rule-card p {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.6; color: var(--ink-2);
+}
+.rule-card p b { color: var(--ink); font-weight: 600; }
+.rule-card .example {
+  margin-top: 4px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; color: var(--ink);
+}
+.rule-card.dont .example { border-color: rgba(239,68,68,0.3); color: var(--ink-3); }
+
+/* PROPOSAL — optional 5th face */
+.proposal {
+  border: 1px solid var(--warning);
+  background: linear-gradient(180deg, rgba(245,158,11,0.05) 0%, var(--bg-2) 100%);
+  padding: 48px;
+}
+.proposal .flag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--warning);
+  padding: 8px 12px;
+  border: 1px solid var(--warning);
+  margin-bottom: 24px;
+}
+.proposal .flag::before { content: "○"; }
+.proposal h3 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(32px, 4vw, 56px);
+  line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: var(--ink); max-width: 22ch;
+  margin-bottom: 20px;
+}
+.proposal > p {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 17px; line-height: 1.6; color: var(--ink-2);
+  max-width: 64ch; margin-bottom: 32px;
+}
+.proposal .demo-roman {
+  font-family: var(--f-serif); font-weight: 400;
+  font-size: clamp(28px, 3vw, 40px); line-height: 1.35;
+  color: var(--ink); padding: 32px; background: var(--bg);
+  border: 1px solid var(--rule);
+  margin-bottom: 16px;
+}
+.proposal .demo-roman b { font-weight: 600; }
+.proposal .meta-roman {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 16px 0;
+}
+.proposal .meta-roman b {
+  display: block;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 13px; letter-spacing: 0; text-transform: none;
+  color: var(--ink); margin-top: 4px;
+}
+.proposal .verdict-row { margin-top: 32px; border-left-color: var(--warning); }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.foot b {
+  display: block;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 14px; color: var(--ink);
+  margin-top: 6px; letter-spacing: 0; text-transform: none;
+}
+
+@media (max-width: 1024px) {
+  :root { --gutter: 20px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .spec-row { grid-template-columns: 1fr; gap: 12px; }
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+  .type-card .body { grid-template-columns: 1fr; gap: 32px; padding: 28px; }
+  .type-card .specimen { padding: 36px 24px; }
+  .scale-row { grid-template-columns: 100px 60px 60px 80px 1fr; font-size: 12px; padding: 16px 18px; }
+  .scale-row .track { display: none; }
+  .emph-grid { grid-template-columns: 1fr; }
+  .pair-demo { padding: 24px; }
+  .print-grid { grid-template-columns: 1fr; }
+  .rule-grid { grid-template-columns: 1fr; }
+  .legend-pair { grid-template-columns: 1fr 1fr; }
+  .foot { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="00 Typography System">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="lockup">
+      <span class="dot"></span>
+      <span>PumpLog</span>
+      <span style="color: var(--ink-3);">/</span>
+      <span style="color: var(--ink-3);">Typography v1</span>
+    </div>
+    <div class="right">
+      <span>ITA</span>
+      <span>15.05.2026</span>
+      <span style="color: var(--accent);">● REVIEW</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <div>Documento<b>Type system v1</b></div>
+      <div>Famiglie<b>4 + 1 opzionale</b></div>
+      <div>Sorgente<b>Google Fonts · open license</b></div>
+      <div>Regole inderogabili<b>3 vincoli costituzionali</b></div>
+    </div>
+
+    <h1>QUATTRO<br>VOCI.<br><span class="acc">UN</span> SOLO<br>STRUMENTO.</h1>
+
+    <p class="sub">
+      Un sistema tipografico costituzionalmente coerente: <b>Bebas Neue</b> per i titoli che gridano in maiuscolo, <b>Barlow Condensed</b> per le etichette tecniche, <b>Barlow</b> per il corpo umanista del prodotto, <b>Roboto Mono</b> per i numeri che devono allinearsi in colonna. <span class="lime">Nessun corsivo.</span> Niente. Mai.
+    </p>
+
+    <div class="specimens">
+      <div class="spec-row">
+        <div class="label">01 · Display<b>Bebas Neue · 400</b></div>
+        <div class="demo display">CARICHI<br>&amp; VOLUME.</div>
+        <div class="ratio">/01<br>0.9 lh</div>
+      </div>
+      <div class="spec-row">
+        <div class="label">02 · Etichette<b>Barlow Condensed · 700</b></div>
+        <div class="demo cond">SERIE · RIPETIZIONI · RPE</div>
+        <div class="ratio">/02<br>0.25 tr</div>
+      </div>
+      <div class="spec-row">
+        <div class="label">03 · Corpo<b>Barlow · 400/500/600</b></div>
+        <div class="demo body">L'allenamento, <b>davvero tracciato.</b></div>
+        <div class="ratio">/03<br>1.55 lh</div>
+      </div>
+      <div class="spec-row">
+        <div class="label">04 · Dati<b>Roboto Mono · 500</b></div>
+        <div class="demo mono">82.5 × 6 · RPE 8</div>
+        <div class="ratio">/04<br>tabular</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 01 · BEBAS NEUE -->
+<!-- ============================== -->
+<section class="section" data-screen-label="02 Bebas Neue">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 01 · Display · Voce della marca</span>
+      <span>Bebas Neue · 400</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/01 · DISPLAY</div>
+        <h2>BEBAS<br><span class="acc">NEUE</span>.</h2>
+      </div>
+      <div class="essence">
+        Il carattere che dice <b>PUMPLOG</b>. Condensato, tutto in maiuscolo per costituzione, senza pesi alternativi. Non è una scelta polivalente: è uno strumento monouso, e proprio per questo non ammette confusione su quando usarlo.
+      </div>
+    </div>
+
+    <div class="type-card">
+      <div class="specimen">
+        <div class="meta-top">
+          <span>Display · sans condensato all-caps</span>
+          <span>Ryoichi Tsunekawa · 2010 · Dharma Type</span>
+        </div>
+        <div class="big bebas">
+          PUMP<span class="lime">/</span>LOG<br>82.5 KG
+        </div>
+        <div class="glyphs">
+          <span><b>A</b>BCDEFGHIJKLMNOPQRSTUVWXYZ</span>
+          <span><b>0</b>123456789</span>
+          <span><b>!</b>?.,:;·/</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="col">
+          <div>
+            <h3>Razionale brand</h3>
+            <p>Bebas Neue è il carattere del cartello industriale: si trova sulla segnaletica di palestre Olimpiche, sui poster di fight night, sulle etichette dei pesi olimpionici. <b>Trasferisce gravitas senza sforzo.</b> Lo riconosci prima ancora di sapere cos'è.</p>
+            <p>La sua natura condensata permette di mettere parole lunghe in spazi stretti — fondamentale per il nome "PUMPLOG" su touch target piccoli (app icon, favicon, badge). E il fatto che esista <b>solo in maiuscolo</b> elimina l'ambiguità: non puoi sbagliarlo.</p>
+          </div>
+          <div>
+            <h3>Dove usarlo</h3>
+            <ul>
+              <li>Wordmark "PUMPLOG" — sempre, ovunque</li>
+              <li>Titoli hero in landing page (≥72px)</li>
+              <li>Splash screen e app icon</li>
+              <li>Numeri massimi e celebrativi (es. "+2.5 KG" in evidenza)</li>
+              <li>Section divider in deck/print (sezione 02, 03…)</li>
+              <li>Headlines pubblicitarie outdoor (poster, social cover)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col">
+          <div>
+            <h3>Dove NON usarlo</h3>
+            <ul class="dont">
+              <li>Body copy: l'all-caps condensato è illeggibile oltre 5 parole</li>
+              <li>UI di prodotto sotto 32px: perde la sua forza</li>
+              <li>Tabelle di dati: usa Roboto Mono</li>
+              <li>Forms e input field: usa Barlow</li>
+              <li>Label tecniche brevi: usa Barlow Condensed (è più leggibile a 11–14px)</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scheda tecnica</h3>
+            <div class="fact-row"><span class="k">Famiglia</span><span class="v">Bebas Neue</span></div>
+            <div class="fact-row"><span class="k">Pesi</span><span class="v">400 (unico)</span></div>
+            <div class="fact-row"><span class="k">Classificazione</span><span class="v">Sans condensato, all-caps</span></div>
+            <div class="fact-row"><span class="k">Licenza</span><span class="v">SIL Open Font</span></div>
+            <div class="fact-row"><span class="k">Cyrillic / Greek</span><span class="v">Sì · ottimo per ITA</span></div>
+            <div class="fact-row"><span class="k">Tabular nums</span><span class="v mono">No · usa Roboto Mono</span></div>
+            <div class="fact-row"><span class="k">Fonte</span><span class="v"><a href="https://fonts.google.com/specimen/Bebas+Neue" target="_blank">fonts.google.com/specimen/Bebas+Neue ↗</a></span></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 0 48px 48px;">
+        <div class="verdict-row"><b>STATO · CONFERMATO.</b> Carattere giusto, uso giusto. Nessun cambio.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 02 · BARLOW CONDENSED -->
+<!-- ============================== -->
+<section class="section" data-screen-label="03 Barlow Condensed">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 02 · Etichette · Voce della struttura</span>
+      <span>Barlow Condensed · 700</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/02 · ETICHETTE</div>
+        <h2>BARLOW<br><span class="acc">CONDENSED</span>.</h2>
+      </div>
+      <div class="essence">
+        Il carattere che organizza. Etichette, sezioni, categorie. Pensato come "il condensato che lavora dove Bebas è troppo aggressivo" — sotto i 24px, in tracking aperto, su sfondi rumorosi. <b>È la voce dei sottotitoli.</b>
+      </div>
+    </div>
+
+    <div class="type-card">
+      <div class="specimen">
+        <div class="meta-top">
+          <span>Sans condensato umanista · 700 bold</span>
+          <span>Jeremy Tribby · 2017 · open source</span>
+        </div>
+        <div class="big barlow-c">SERIE · RIPETIZIONI · CARICO</div>
+        <div class="glyphs">
+          <span><b>Aa</b> Bb Cc · Aa</span>
+          <span><b>0</b>123456789</span>
+          <span><b>letter-spacing:</b> 0.25em</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="col">
+          <div>
+            <h3>Razionale brand</h3>
+            <p>Barlow Condensed è la versione "civile" di Bebas: stessa larghezza compressa, ma con discendenti, ascendenti normali, e tutti i pesi. La forma è leggermente più <b>umanista</b> — non grida, organizza.</p>
+            <p>L'uso in <b>uppercase + tracking 0.25em</b> è la firma del sistema: trasforma qualunque parola breve in un'etichetta tecnica, da disegno di officina. Il tracking ampio è anti-ottimizzazione: dichiara "io sono una label, non un titolo, non un body".</p>
+          </div>
+          <div>
+            <h3>Dove usarlo</h3>
+            <ul>
+              <li>Sottotitoli sotto i titoli Bebas (es. "ALLENAMENTO · SETT 19")</li>
+              <li>Label uppercase con tracking 0.25em (regola fissa)</li>
+              <li>Categorie di sezione ("RECUPERO", "VOLUME", "MASSIMALE")</li>
+              <li>Navigation top-bar e tab</li>
+              <li>Caption di metric card (sopra il numero in Roboto Mono)</li>
+              <li>Bottoni secondari testuali ("DETTAGLI", "MODIFICA")</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col">
+          <div>
+            <h3>Dove NON usarlo</h3>
+            <ul class="dont">
+              <li>Body copy esteso: troppa fatica visiva oltre 1 riga</li>
+              <li>Numeri in tabella: usa Roboto Mono</li>
+              <li>Mixed case: l'all-caps è la sua identità</li>
+              <li>Sotto 10px su mobile: meglio Roboto Mono o Barlow</li>
+              <li>Titoli hero: usa Bebas, è più impattante</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scheda tecnica</h3>
+            <div class="fact-row"><span class="k">Famiglia</span><span class="v">Barlow Condensed</span></div>
+            <div class="fact-row"><span class="k">Pesi in uso</span><span class="v">700 (bold)</span></div>
+            <div class="fact-row"><span class="k">Pesi disponibili</span><span class="v">100–900 + italic*</span></div>
+            <div class="fact-row"><span class="k">Tracking di sistema</span><span class="v mono">0.25em (uppercase)</span></div>
+            <div class="fact-row"><span class="k">Min size mobile</span><span class="v mono">11px (regola)</span></div>
+            <div class="fact-row"><span class="k">Licenza</span><span class="v">SIL Open Font</span></div>
+            <div class="fact-row"><span class="k">Fonte</span><span class="v"><a href="https://fonts.google.com/specimen/Barlow+Condensed" target="_blank">fonts.google.com/specimen/Barlow+Condensed ↗</a></span></div>
+          </div>
+          <p style="font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); margin-top: 14px; line-height: 1.5;">* l'italic è disponibile ma vietato dal sistema. Vedi §05 regole.</p>
+        </div>
+      </div>
+      <div style="padding: 0 48px 48px;">
+        <div class="verdict-row"><b>STATO · CONFERMATO.</b> Coppia perfetta con Bebas — stessa famiglia visiva, ruolo distinto. Nessun cambio.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 03 · BARLOW -->
+<!-- ============================== -->
+<section class="section" data-screen-label="04 Barlow">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 03 · Corpo · Voce della lettura</span>
+      <span>Barlow · 400 · 500 · 600</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/03 · CORPO</div>
+        <h2>BARLOW.<br><span class="acc">UMANO.</span></h2>
+      </div>
+      <div class="essence">
+        Il carattere che lavora di più, e si nota di meno. Barlow è un sans <b>geometrico-umanista</b> nato per la segnaletica del trasporto urbano californiano (cugino del FF Transit). Le forme sono <em>aperte</em>: la a a due piani, la g a due occhi, contatori generosi. Si legge a qualunque dimensione.
+      </div>
+    </div>
+
+    <div class="type-card">
+      <div class="specimen">
+        <div class="meta-top">
+          <span>Sans umanista · 400 reg · 500 med · 600 semi</span>
+          <span>Jeremy Tribby · 2017</span>
+        </div>
+        <div class="big barlow">L'allenamento,<br><span class="lime">davvero</span> tracciato.</div>
+        <div class="glyphs">
+          <span><b>Aa Bb Cc</b> · ascendenti aperti</span>
+          <span>0123456789</span>
+          <span>«àèìòù» · ITA OK</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="col">
+          <div>
+            <h3>Razionale brand</h3>
+            <p>La personalità del marchio è "compagno di palestra esperto, non urlante". Barlow è esattamente questo: <b>diretto ma non aggressivo</b>. La struttura geometrica dà ordine (matrice quadrata, asse verticale), i dettagli umanisti danno calore (apici e basi leggermente svasati, terminali bilanciati).</p>
+            <p>Tre pesi sono il giusto: 400 per il body, 500 per i titoli di card (h3/h4), 600 per enfasi forte. <b>Non aggiungere 300 light</b> — l'eleganza-snob non è del marchio.</p>
+          </div>
+          <div>
+            <h3>Dove usarlo</h3>
+            <ul>
+              <li>Tutto il body copy dell'app e marketing (400)</li>
+              <li>Titoli di card e sezioni interne (500)</li>
+              <li>Enfasi forte in linea di body (600 + lime)</li>
+              <li>Bottoni primari testo (500–600, mai 700)</li>
+              <li>Input field e form (400)</li>
+              <li>Notifiche e toast (500)</li>
+              <li>Email transazionali (400)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col">
+          <div>
+            <h3>Dove NON usarlo</h3>
+            <ul class="dont">
+              <li>Titoli hero ≥48px: usa Bebas — Barlow perde grinta a quelle dimensioni</li>
+              <li>Numeri in colonna: usa Roboto Mono (tabular)</li>
+              <li>Label uppercase strette: usa Barlow Condensed</li>
+              <li>Tracking ampio (&gt;0.05em): non è disegnato per questo</li>
+              <li>Body sotto 14px su mobile: <b>violazione di regola</b></li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scheda tecnica</h3>
+            <div class="fact-row"><span class="k">Famiglia</span><span class="v">Barlow</span></div>
+            <div class="fact-row"><span class="k">Pesi in uso</span><span class="v">400, 500, 600</span></div>
+            <div class="fact-row"><span class="k">Min size mobile</span><span class="v mono">14px (regola)</span></div>
+            <div class="fact-row"><span class="k">Min size desktop</span><span class="v mono">15px (raccomandato)</span></div>
+            <div class="fact-row"><span class="k">Line-height body</span><span class="v mono">1.55–1.65</span></div>
+            <div class="fact-row"><span class="k">Tracking body</span><span class="v mono">0 (default)</span></div>
+            <div class="fact-row"><span class="k">Licenza</span><span class="v">SIL Open Font</span></div>
+            <div class="fact-row"><span class="k">Fonte</span><span class="v"><a href="https://fonts.google.com/specimen/Barlow" target="_blank">fonts.google.com/specimen/Barlow ↗</a></span></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 0 48px 48px;">
+        <div class="verdict-row"><b>STATO · CONFERMATO.</b> Sistema body completo · cugino di Barlow Condensed = coerenza di famiglia · nessun cambio.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 04 · ROBOTO MONO -->
+<!-- ============================== -->
+<section class="section" data-screen-label="05 Roboto Mono">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 04 · Dati · Voce della misurazione</span>
+      <span>Roboto Mono · 500 · tabular-nums</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/04 · DATI</div>
+        <h2>ROBOTO<br><span class="acc">MONO</span>.</h2>
+      </div>
+      <div class="essence">
+        Il carattere che <em>conta</em>. Monospace, larghezza fissa, cifre tabulari: 8 e 1 occupano lo stesso spazio. Indispensabile in qualunque app che mette numeri in colonna. <b>È il carattere della verità misurabile.</b>
+      </div>
+    </div>
+
+    <div class="type-card">
+      <div class="specimen">
+        <div class="meta-top">
+          <span>Monospace · 500 medium · tabular-nums</span>
+          <span>Christian Robertson · 2015 · Google</span>
+        </div>
+        <div class="big mono">
+          82.5 × 6<br>
+          <span class="lime">RPE 8</span>
+        </div>
+        <div class="glyphs">
+          <span><b>0</b>123456789 · tabular</span>
+          <span>kg · m · s · % · ↗ ↘</span>
+          <span>font-variant-numeric: tabular-nums</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="col">
+          <div>
+            <h3>Razionale brand</h3>
+            <p>Il monospaced non è una scelta estetica: è una <b>esigenza funzionale</b>. Quando l'utente vede una progressione settimanale di 4 valori, il "82,5 ≤ 82,5 → 85,0" deve allinearsi colonna su colonna. Con un sans proporzionale i numeri ballano. Con Roboto Mono ballano mai.</p>
+            <p>Roboto Mono in 500 è la scelta corretta: la 400 è troppo gracile per i dati, la 600 è troppo aggressiva. <b>500 è "preciso ma non urlante"</b> — coincide con la personalità del marchio.</p>
+            <p>L'attivazione di <code class="mono" style="font-size: 13px; background: var(--bg); padding: 2px 6px; color: var(--accent);">font-variant-numeric: tabular-nums</code> è una <b>regola di sistema</b>, non un'opzione.</p>
+          </div>
+          <div>
+            <h3>Dove usarlo</h3>
+            <ul>
+              <li>Pesi: 82.5 kg, 45 kg, +2.5 kg</li>
+              <li>Ripetizioni: × 6, × 8, × 10</li>
+              <li>Timer di recupero (mm:ss)</li>
+              <li>Statistiche aggregate (volume, e1RM, %)</li>
+              <li>Date e ore in metadata (12.05 · 09:41)</li>
+              <li>Codici (versione, ID seduta, hash)</li>
+              <li>Tutto ciò che si conta o si confronta</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col">
+          <div>
+            <h3>Dove NON usarlo</h3>
+            <ul class="dont">
+              <li>Body copy: monospace stanca l'occhio dopo 2-3 righe</li>
+              <li>Titoli: usa Bebas (display) o Barlow (UI)</li>
+              <li>Label uppercase: usa Barlow Condensed</li>
+              <li>Bottoni: usa Barlow per coerenza visiva</li>
+              <li>Numeri "celebrativi" in poster: in quel caso il numero diventa titolo, e va in Bebas</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Scheda tecnica</h3>
+            <div class="fact-row"><span class="k">Famiglia</span><span class="v">Roboto Mono</span></div>
+            <div class="fact-row"><span class="k">Peso in uso</span><span class="v">500</span></div>
+            <div class="fact-row"><span class="k">Feature obbligatoria</span><span class="v mono">tabular-nums</span></div>
+            <div class="fact-row"><span class="k">Min size mobile</span><span class="v mono">12px</span></div>
+            <div class="fact-row"><span class="k">Tracking</span><span class="v mono">0 (default)</span></div>
+            <div class="fact-row"><span class="k">Separatore decimali</span><span class="v">"," (italiano)</span></div>
+            <div class="fact-row"><span class="k">Licenza</span><span class="v">Apache 2.0</span></div>
+            <div class="fact-row"><span class="k">Fonte</span><span class="v"><a href="https://fonts.google.com/specimen/Roboto+Mono" target="_blank">fonts.google.com/specimen/Roboto+Mono ↗</a></span></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding: 0 48px 48px;">
+        <div class="verdict-row warn"><b>STATO · CONFERMATO · MA…</b> Una sola attenzione: il "," vs "." nei decimali. <b>Regola</b>: in UI italiana sempre virgola (82,5). API e codice possono usare il punto.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 05 · TYPE SCALE -->
+<!-- ============================== -->
+<section class="section" data-screen-label="06 Scala">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 05 · Scala tipografica</span>
+      <span>10 livelli · ratio 1.25 · mobile-first</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/05 · SCALA</div>
+        <h2>UNA SCALA<br><span class="acc">DECIMALE</span>.</h2>
+      </div>
+      <div class="essence">
+        Dieci livelli, ratio 1.25 ("major third"). Ogni dimensione ha un solo ruolo, e ogni ruolo una sola dimensione. <b>Se serve un livello tra due, è quasi sempre il segnale che la gerarchia va ripensata, non aggiunta.</b>
+      </div>
+    </div>
+
+    <div class="scale-table">
+      <div class="scale-row head">
+        <div>Ruolo</div>
+        <div>Size</div>
+        <div>Line</div>
+        <div>Tracking</div>
+        <div>Peso</div>
+        <div>Esempio</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Hero</div>
+        <div class="size">120</div>
+        <div class="line">0.9</div>
+        <div class="track">0.005</div>
+        <div class="weight">Bebas 400</div>
+        <div class="sample s-display" style="font-size: 56px;">CARICHI</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Display 1</div>
+        <div class="size">72</div>
+        <div class="line">0.92</div>
+        <div class="track">0.005</div>
+        <div class="weight">Bebas 400</div>
+        <div class="sample s-display" style="font-size: 44px;">VOLUME</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Display 2</div>
+        <div class="size">48</div>
+        <div class="line">0.95</div>
+        <div class="track">0.01</div>
+        <div class="weight">Bebas 400</div>
+        <div class="sample s-display" style="font-size: 32px;">PUMPLOG</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Title 1</div>
+        <div class="size">32</div>
+        <div class="line">1.1</div>
+        <div class="track">-0.01</div>
+        <div class="weight">Barlow 600</div>
+        <div class="sample s-body" style="font-size: 22px; font-weight: 600;">Panca piana</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Title 2</div>
+        <div class="size">22</div>
+        <div class="line">1.2</div>
+        <div class="track">-0.005</div>
+        <div class="weight">Barlow 600</div>
+        <div class="sample s-body" style="font-size: 18px; font-weight: 600;">Spinte manubri</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Body L</div>
+        <div class="size">17</div>
+        <div class="line">1.6</div>
+        <div class="track">0</div>
+        <div class="weight">Barlow 400</div>
+        <div class="sample s-body" style="font-size: 16px;">Hai aggiunto 2,5 kg alla panca. Sei sopra il massimale.</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Body</div>
+        <div class="size">15</div>
+        <div class="line">1.55</div>
+        <div class="track">0</div>
+        <div class="weight">Barlow 400</div>
+        <div class="sample s-body" style="font-size: 14px;">Volume settimanale: 14 serie effettive sul petto.</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Label L</div>
+        <div class="size">14</div>
+        <div class="line">1</div>
+        <div class="track">0.25</div>
+        <div class="weight">Barlow C. 700</div>
+        <div class="sample s-cond" style="font-size: 12px;">VOLUME · SETTIMANA</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Label</div>
+        <div class="size">11</div>
+        <div class="line">1</div>
+        <div class="track">0.25</div>
+        <div class="weight">Barlow C. 700</div>
+        <div class="sample s-cond" style="font-size: 10px;">SERIE · RIP · RPE</div>
+      </div>
+
+      <div class="scale-row">
+        <div class="role">Data</div>
+        <div class="size">13</div>
+        <div class="line">1.4</div>
+        <div class="track">0</div>
+        <div class="weight">Roboto Mono 500</div>
+        <div class="sample s-mono" style="font-size: 13px;">82,5 × 6 · RPE 8</div>
+      </div>
+    </div>
+
+    <p style="margin-top: 32px; font-family: var(--f-body); font-weight: 400; font-size: 14px; color: var(--ink-2); line-height: 1.6; max-width: 60ch;">
+      Tutti i valori sono <span class="mono" style="color: var(--ink);">px</span> per mobile (small screens). Su desktop possono crescere fino al 125% via media query. Mantenere sempre il ratio.
+    </p>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 06 · EMPHASIS STRATEGY -->
+<!-- ============================== -->
+<section class="section" data-screen-label="07 Enfasi">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 06 · Strategia di enfasi</span>
+      <span>Niente corsivo · serve un piano</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/06 · ENFASI</div>
+        <h2>SENZA<br><span class="acc">CORSIVO</span>.</h2>
+      </div>
+      <div class="essence">
+        Vietare il corsivo è una regola forte ma <b>richiede una strategia alternativa</b> per l'enfasi inline. Tre strumenti disponibili: peso, scala, colore. Quattro se conti il tracking. Mai aggregarne più di due nella stessa enfasi: l'enfasi sovrapposta è rumore.
+      </div>
+    </div>
+
+    <div class="emph-grid">
+      <div class="emph-card">
+        <span class="lab">Strategia 01 · Peso</span>
+        <div class="demo">
+          L'allenamento, <b>davvero tracciato.</b><br><br>
+          La parola "davvero" diventa Barlow 600 (semibold). Stesso colore, stessa dimensione, peso aumentato. <b>L'enfasi default.</b>
+        </div>
+        <span class="note">Uso: 80% dei casi</span>
+      </div>
+
+      <div class="emph-card">
+        <span class="lab">Strategia 02 · Colore</span>
+        <div class="demo">
+          L'allenamento, <span class="lime">davvero</span> tracciato.<br><br>
+          La parola assume il lime accent. Va usato <b>quando la parola è il dato</b>: PR, valori, momenti chiave. Mai per espressività generica.
+        </div>
+        <span class="note">Uso: enfasi semantica forte</span>
+      </div>
+
+      <div class="emph-card">
+        <span class="lab">Strategia 03 · Scala/famiglia</span>
+        <div class="demo">
+          L'allenamento,<br><span class="scale">DAVVERO</span><br>tracciato.<br><br>
+          La parola viene <b>strappata</b> dal flusso e messa in Bebas Neue su una riga propria. È enfasi editoriale, da landing page o slide.
+        </div>
+        <span class="note">Uso: titoli e marketing</span>
+      </div>
+
+      <div class="emph-card">
+        <span class="lab">Strategia 04 · Caps + tracking</span>
+        <div class="demo">
+          L'allenamento, <span class="caps">davvero</span>, tracciato.<br><br>
+          Trasforma la parola in label (Barlow Condensed uppercase, 0.25em). <b>Da usare con parsimonia</b>: cambia il ritmo della frase.
+        </div>
+        <span class="note">Uso: enfasi tecnica/editoriale</span>
+      </div>
+
+      <div class="emph-card">
+        <span class="lab">Combo · Peso + colore</span>
+        <div class="demo">
+          Hai aggiunto <b>2,5 kg</b> alla panca.<br><br>
+          Per dati incorporati in una frase. <b>Massimo della combinazione ammessa</b>: peso + colore. Niente scala in più.
+        </div>
+        <span class="note">Uso: notifiche con metric inline</span>
+      </div>
+
+      <div class="emph-card">
+        <span class="lab">Vietato · Combo eccessiva</span>
+        <div class="demo" style="opacity: 0.5; text-decoration: line-through; text-decoration-color: var(--danger);">
+          L'allenamento, <span class="caps lime"><b>DAVVERO</b></span>, tracciato.<br><br>
+          Peso + colore + caps + tracking insieme. <b>Esplosione di enfasi</b> — il lettore non sa dove guardare.
+        </div>
+        <span class="note" style="color: var(--danger);">× Mai combinare 3+ strategie</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 07 · PAIRING DEMO -->
+<!-- ============================== -->
+<section class="section" data-screen-label="08 Pairing">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 07 · Sistema in azione</span>
+      <span>Una schermata · quattro voci</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/07 · APPLICAZIONE</div>
+        <h2>TUTTE LE VOCI<br>INSIEME, IN <span class="acc">UNA</span><br>SCHERMATA.</h2>
+      </div>
+      <div class="essence">
+        Sezione di chiusura: una vista realistica della seduta del giorno, dove le quattro famiglie convivono e fanno ognuna il proprio mestiere. Sotto, la legenda di quale carattere è quale.
+      </div>
+    </div>
+
+    <div class="pair-demo">
+      <div class="head">
+        <div class="h-title">SETTIMANA 19</div>
+        <div class="h-meta">12 · 18 MAGGIO 2026</div>
+      </div>
+
+      <div class="section-lab">Seduta del giorno · Spinta A</div>
+      <div class="ex-row">
+        <div class="ex-name">
+          Panca piana
+          <small>Bilanciere · 4 serie</small>
+        </div>
+        <div class="val acc">82,5<span class="u">kg</span></div>
+        <div class="val">× 6</div>
+        <div class="val">RPE 8</div>
+      </div>
+      <div class="ex-row">
+        <div class="ex-name">
+          Spinte con manubri
+          <small>Inclinata 30° · 3 serie</small>
+        </div>
+        <div class="val">28<span class="u">kg</span></div>
+        <div class="val">× 9</div>
+        <div class="val">RPE 7</div>
+      </div>
+      <div class="ex-row">
+        <div class="ex-name">
+          Croci ai cavi
+          <small>Stazione · 3 serie</small>
+        </div>
+        <div class="val">14<span class="u">kg</span></div>
+        <div class="val">× 10</div>
+        <div class="val">RPE 8</div>
+      </div>
+
+      <div class="body-copy">
+        Hai aggiunto <b>2,5 kg</b> sulla panca rispetto a martedì scorso. Il volume settimanale sul petto è a 14 serie effettive — sei in <b>MAV</b>, l'intervallo dove il muscolo cresce. Recupera bene, vediamoci giovedì.
+      </div>
+
+      <div class="legend-pair">
+        <div class="li">
+          Display<b>"SETTIMANA 19"<small>Bebas Neue 400 · 64px</small></b>
+        </div>
+        <div class="li">
+          Etichetta<b>"SEDUTA DEL GIORNO"<small>Barlow Cond. 700 · 12/0.25</small></b>
+        </div>
+        <div class="li">
+          Corpo<b>"Panca piana", body copy<small>Barlow 400/500/600</small></b>
+        </div>
+        <div class="li">
+          Dati<b>"82,5 × 6 · RPE 8"<small>Roboto Mono 500 · tab</small></b>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 08 · RULES & ANTI-PATTERNS -->
+<!-- ============================== -->
+<section class="section" data-screen-label="09 Regole">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 08 · Regole costituzionali</span>
+      <span>3 inderogabili · 5 raccomandate</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/08 · REGOLE</div>
+        <h2>OTTO REGOLE.<br>TRE <span class="acc">INDEROGABILI</span>.</h2>
+      </div>
+      <div class="essence">
+        Le tre regole del brief restano costituzionali. Aggiungo cinque raccomandate che derivano direttamente da loro: corollari operativi.
+      </div>
+    </div>
+
+    <div class="rule-grid">
+      <div class="rule-card">
+        <span class="lab">/01 · Inderogabile</span>
+        <h4>Numeri sempre<br>in Roboto Mono.</h4>
+        <p>Con <b>tabular-nums attivo</b> per default. Le colonne di numeri devono allinearsi. Sempre. Anche un singolo numero in una frase di body va in Roboto Mono — eccezione: i numeri "celebrativi" tipo titolo (es. "+2,5 KG" come headline) che diventano Bebas.</p>
+        <div class="example mono" style="font-family: var(--f-mono); font-variant-numeric: tabular-nums;">82,5 kg · 14 serie · 18:32</div>
+      </div>
+
+      <div class="rule-card dont">
+        <span class="lab">/02 · Inderogabile</span>
+        <h4>Niente corsivo.<br>Mai.</h4>
+        <p>Vale per <b>tutte e quattro le famiglie</b>. Anche Barlow ha l'italic disponibile: vietato. L'enfasi si fa con peso, colore, scala o caps (§06). Il corsivo nel sistema sportivo italiano evoca "letterario", "morbido" — non è il marchio.</p>
+        <div class="example"><span style="font-style: italic; opacity: 0.4;">davvero tracciato</span> → <b style="color: var(--accent);">davvero</b> tracciato</div>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">/03 · Inderogabile</span>
+        <h4>Label =<br>Barlow Condensed<br>uppercase 0.25em.</h4>
+        <p>Le label sono <b>una sola cosa visivamente</b>. Sempre uppercase, sempre con tracking 0.25em, sempre Barlow Condensed 700. Anche per parole di una lettera. Anche su sfondo lime (dove il colore diventa nero #000).</p>
+        <div class="example t-label" style="font-family: var(--f-condensed); font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;">volume · settimana 19</div>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">/04 · Raccomandata</span>
+        <h4>Min 14px body mobile.</h4>
+        <p>Sotto i 14px il testo body è <b>fatica</b>. Mai sotto, anche per caption brevi (per le caption usa label uppercase, che a 11px regge perché tracciato).</p>
+        <div class="example" style="font-size: 14px;">Sotto i 14px il testo si stringe troppo.</div>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">/05 · Raccomandata</span>
+        <h4>Tracking solo sulle label.</h4>
+        <p>Il body Barlow va a tracking <b>0 (default)</b>. Il titolo Bebas a 0.005em. Il tracking 0.25em è riservato alle label condensate. Tracking intermedi (0.05–0.1em) non esistono nel sistema.</p>
+        <div class="example mono" style="font-family: var(--f-mono);">0 · 0.005em · 0.25em → solo questi</div>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">/06 · Raccomandata</span>
+        <h4>Decimali con la virgola.</h4>
+        <p>UI italiana: sempre <b>82,5 kg</b>, mai 82.5. Vale anche per la stampa. API, codice e file di log usano il punto. Il "," in UI è una micro-affermazione di italianità coerente con il lessico (serie, ripetizioni, recupero).</p>
+        <div class="example mono">82,5 kg · 2,5 kg · 47,3%</div>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">/07 · Raccomandata</span>
+        <h4>Mai mischiare<br>condensed nel body.</h4>
+        <p>Barlow e Barlow Condensed nello stesso paragrafo creano "salti" di larghezza. Le label vivono SEPARATE dal body, mai inline. Eccezione: il monogramma "kg" / "rip" dopo un numero (vedi §07).</p>
+        <div class="example">Volume <span style="font-family: var(--f-condensed); font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.4;">SETTIMANALE</span> alto → <b>volume settimanale</b> alto.</div>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">/08 · Raccomandata</span>
+        <h4>Mai Bebas sotto 32px.</h4>
+        <p>Bebas Neue perde tutta la grinta a piccole dimensioni. Sotto i 32px, la sua funzione la fa <b>Barlow Condensed 700 uppercase</b>. Sopra i 32px, sempre Bebas. Limite chiaro, nessuna zona grigia.</p>
+        <div class="example" style="font-family: var(--f-display); font-size: 32px; letter-spacing: 0.005em; text-transform: uppercase;">PUMPLOG <span style="font-size: 14px; color: var(--accent);">↘ minimo</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 09 · PRINT EXTENSIONS -->
+<!-- ============================== -->
+<section class="section" data-screen-label="10 Print">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 09 · Estensione stampa</span>
+      <span>Biglietti · pitch deck · poster · letterhead</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/09 · STAMPA</div>
+        <h2>QUATTRO VOCI<br><span class="acc">SU CARTA</span>.</h2>
+      </div>
+      <div class="essence">
+        Lo stesso sistema in stampa. La regola critica: <b>nessuna nuova famiglia</b> per applicazioni standard. Le quattro voci esistenti coprono biglietti, deck, poster, letterhead. La sezione successiva propone (opzionale) una quinta famiglia <em>solo</em> per editoriale lungo stampato — da approvare separatamente.
+      </div>
+    </div>
+
+    <div class="print-grid">
+      <!-- BUSINESS CARD -->
+      <div class="print-card">
+        <div class="canvas">
+          <div class="bcard front">
+            <div class="wm-h">PUMP<span class="acc">/</span>LOG</div>
+            <div class="bottom">
+              <div class="who">
+                Marco Bianchi
+                <small>Founder</small>
+              </div>
+              <div class="contact">
+                marco@pumplog.it<br>
+                +39 333 1234 567<br>
+                pumplog.it
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="meta">
+          <h4>/01 · Front · Biglietto</h4>
+          <h5>Lockup primario su nero</h5>
+          <p>Wordmark Bebas Neue 40pt al centro-alto. Nome in Barlow 600 14pt, ruolo in Barlow Condensed 700 9pt/0.25em. Contatti in Roboto Mono 10pt per allineamento, anche se non sono "dati": è un richiamo identitario.</p>
+          <div class="specs">
+            FRONT · <b>nero #0C0C0D</b><br>
+            FORMATO · <b>85×55 mm · 350gsm uncoated</b><br>
+            STAMPA · <b>1 colore + spot lime fluorescente Pantone 389C</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUSINESS CARD BACK -->
+      <div class="print-card">
+        <div class="canvas">
+          <div class="bcard back">
+            <div class="wm-h">PUMP/LOG</div>
+            <div class="bottom">
+              <div class="who">
+                L'allenamento, davvero tracciato.
+                <small>brand · 2026</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="meta">
+          <h4>/02 · Back · Biglietto</h4>
+          <h5>Lockup massimo su lime</h5>
+          <p>Wordmark a tutta larghezza in Bebas Neue 56pt nero puro #000. Tagline in Barlow 600 14pt nero. Niente Pantone fluo qui: solo PMS standard. Il dorso è <b>il manifesto</b> di chi te lo dà.</p>
+          <div class="specs">
+            BACK · <b>lime #C8FF00 · spot fluo Pantone 389C</b><br>
+            INCHIOSTRO · <b>nero pieno offset</b><br>
+            FINITURA · <b>opaca · no laminazione</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- PITCH DECK COVER -->
+      <div class="print-card">
+        <div class="canvas" style="padding: 24px;">
+          <div class="deck-mock">
+            <div class="top">
+              <span>PUMPLOG · DECK · v1</span>
+              <span>15.05.2026 · CONFIDENZIALE</span>
+            </div>
+            <div class="center">
+              <span class="kicker">Capitolo 01 · Posizionamento</span>
+              <span class="title">L'UNICO LOG<br>CHE UNISCE<br>PESI E <span class="acc">CALISTHENICS</span>.</span>
+              <span class="lede">Il primo strumento italiano per il tracking dell'allenamento serio. Offline-first. Niente social. Solo dati che servono a progredire.</span>
+            </div>
+            <div class="bottom">
+              <span class="pg">02 / 24</span>
+              <span class="brand">PUMP<span class="acc">/</span>LOG</span>
+            </div>
+          </div>
+        </div>
+        <div class="meta">
+          <h4>/03 · Pitch deck · slide</h4>
+          <h5>Sistema in 16:9 stampabile</h5>
+          <p>Bebas a 64–96pt per titoli. Kicker e numerazione in Barlow Condensed 11pt/0.25em — è la voce strutturale che organizza il deck. Body in Barlow 14–16pt. Numeri di pagina in Roboto Mono — è un dato (n/totale), va trattato come tale.</p>
+          <div class="specs">
+            FORMATO · <b>1920×1080 · export PDF print-ready 16:9</b><br>
+            MARGINI · <b>44px laterali · 40px top/bottom</b><br>
+            FONT EMBED · <b>tutti subset OFL/Apache (no license fee)</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- POSTER -->
+      <div class="print-card">
+        <div class="canvas" style="padding: 32px;">
+          <div class="poster-mock">
+            <div class="top">
+              <span>POSTER · LAUNCH · v1</span>
+            </div>
+            <div>
+              <div class="huge">L'ALLEN&shy;<br>AMENTO,<br><span class="acc">DAVVERO</span><br>TRACC&shy;<br>IATO.</div>
+            </div>
+            <div class="footer">
+              PUMPLOG · PWA disponibile da settembre 2026 · pumplog.it
+            </div>
+          </div>
+        </div>
+        <div class="meta">
+          <h4>/04 · Poster · outdoor</h4>
+          <h5>Bebas a tutto formato</h5>
+          <p>Bebas Neue a 220–320pt (su formato 70×100 cm). La parola "davvero" assume il lime — è l'unica concessione cromatica. Footer in Roboto Mono 14pt: è un'informazione tecnica (URL, data lancio). Niente body, niente claim. <b>Una sola frase, gridata bene.</b></p>
+          <div class="specs">
+            FORMATO · <b>70×100 cm · 50×70 cm · A3</b><br>
+            STAMPA · <b>offset 2 colori (nero + Pantone 389C fluo)</b><br>
+            CARTA · <b>matte 150gsm interno · 250gsm esposizione</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 10 · OPTIONAL FIFTH -->
+<!-- ============================== -->
+<section class="section" data-screen-label="11 Quinta opzionale">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 10 · Proposta opzionale</span>
+      <span>Quinta famiglia · solo editoriale stampato</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/10 · OPZIONE</div>
+        <h2>UNA QUINTA<br>VOCE,<br><span class="acc">FORSE</span>.</h2>
+      </div>
+      <div class="essence">
+        Il sistema attuale funziona dappertutto tranne in <b>un caso specifico</b>: lunghi paragrafi stampati su carta (brand book interno, manuale di prodotto, copertine di rivista). Lì, un sans geometrico anche umanista come Barlow stanca. <em>Forse</em> serve una serif in roman. Espongo la proposta come opzione separata da approvare.
+      </div>
+    </div>
+
+    <div class="proposal">
+      <span class="flag">Proposta · da approvare separatamente</span>
+      <h3>Source Serif 4 come<br>quinta voce editoriale.</h3>
+      <p>
+        Per testi lunghi stampati (≥500 parole su carta), una serif in <b>roman puro</b> aggiunge respiro: i serif guidano l'occhio lungo la riga e abbassano la fatica visiva di un body geometrico. <b>Source Serif 4</b> (Frank Grießhammer · Adobe · 2014/2023) è un transitional moderno: pulito, di ingegneria, niente decoro. Si può attivare in <b>solo regular + semibold roman</b>, ignorando gli italic — perfettamente coerente con la regola "niente corsivo".
+      </p>
+
+      <div class="demo-roman">
+        Il volume settimanale è 14 serie effettive sul petto — sei in MAV, la zona dove il muscolo cresce per davvero. <b>Recupera bene</b>, vediamoci giovedì.
+      </div>
+
+      <div class="meta-roman">
+        <div>Famiglia<b>Source Serif 4</b></div>
+        <div>Pesi<b>400 · 600 (solo roman)</b></div>
+        <div>Uso esclusivo<b>Editoriale stampato &gt;500 parole</b></div>
+        <div>Link<b><a href="https://fonts.google.com/specimen/Source+Serif+4" target="_blank" style="color: var(--accent); border-bottom: 1px solid var(--accent);">Google Fonts ↗</a></b></div>
+      </div>
+
+      <p style="margin-top: 24px;">
+        <b>Costo dell'aggiunta</b>: un'altra famiglia da gestire (subset, licenza, knowledge sharing col team). <b>Beneficio</b>: leggibilità superiore su 5–10 pagine consecutive. <b>Mio voto</b>: non aggiungerla finché non c'è un caso reale che la richiede. Sistema più piccolo = sistema più forte. Tornare a discuterne <em>quando</em> e <em>se</em> serve un brand book stampato lungo.
+      </p>
+
+      <div class="verdict-row warn"><b>STATO · NON APPROVARE PER DEFAULT.</b> Tenere in tasca · attivare solo su trigger (brand book stampato, manuale, edizione cartacea)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== -->
+<!-- 11 · SUMMARY -->
+<!-- ============================== -->
+<section class="section" data-screen-label="12 Sintesi">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 11 · Sintesi della consegna</span>
+      <span>Cosa portare in produzione</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/11 · TL;DR</div>
+        <h2>QUATTRO<br>FAMIGLIE.<br><span class="acc">ZERO</span> AGGIUNTE.</h2>
+      </div>
+      <div class="essence">
+        Il sistema esistente è <b>completo, opinionato, costituzionalmente solido</b>. Le mie raccomandazioni operative qui sotto: cinque corollari da scrivere nel design system del codice, e una variabile CSS che ti regala consistenza per sempre.
+      </div>
+    </div>
+
+    <div class="rule-grid">
+      <div class="rule-card">
+        <span class="lab">Raccomandazione 01</span>
+        <h4>Pubblicare le 8 regole.</h4>
+        <p>Le tre inderogabili + cinque raccomandate del §08 vanno nello storybook/design system del codice. <b>Una violazione = un PR non mergiato</b>, non un nice-to-have.</p>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">Raccomandazione 02</span>
+        <h4>CSS custom properties.</h4>
+        <p>Definire <span class="mono" style="color: var(--accent);">--f-display</span>, <span class="mono" style="color: var(--accent);">--f-condensed</span>, <span class="mono" style="color: var(--accent);">--f-body</span>, <span class="mono" style="color: var(--accent);">--f-mono</span> nel root. Niente import di font sparsi nei componenti. Una sola sorgente di verità.</p>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">Raccomandazione 03</span>
+        <h4>Subset + preload.</h4>
+        <p>Bebas e Barlow Condensed: <b>solo subset latin + latin-ext</b> (no cyrillic, no greek). Pre-caricare Bebas e Barlow 400 con <span class="mono">font-display: swap</span> per evitare il flash.</p>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">Raccomandazione 04</span>
+        <h4>Decisione "tabular".</h4>
+        <p>Applicare <span class="mono" style="color: var(--accent);">font-variant-numeric: tabular-nums</span> a tutto Roboto Mono <b>via base CSS</b>, non per istanza. Eliminare il rischio di dimenticarsi su una cella di tabella.</p>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">Raccomandazione 05</span>
+        <h4>Decisione sulla quinta.</h4>
+        <p>Non promuovere Source Serif 4 finché non c'è un caso editoriale reale. <b>Mantenere il sistema a 4 famiglie</b> per ora. Riaprire la discussione tra 6 mesi se nasce un brand book stampato.</p>
+      </div>
+
+      <div class="rule-card">
+        <span class="lab">Raccomandazione 06</span>
+        <h4>Audit trimestrale.</h4>
+        <p>Una volta a trimestre, audit di tutti gli use case di font nel prodotto. Catturare gli "spaghetti", normalizzarli. <b>Il sistema sopravvive solo se si manutiene</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot">
+    <div>Documento<b>Typography System v1</b></div>
+    <div>Stato<b style="color: var(--accent);">Confermato + 1 opzione aperta</b></div>
+    <div>Prossimo<b>Pubblicare nel design system codice</b></div>
+    <div>Owner<b>Design · Brand</b></div>
+  </div>
+</footer>
+
+</body>
+</html>

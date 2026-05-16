@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Brand Style Guide · One-Pager v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* CANONICAL — v1 */
+  --bg:        #0C0C0D;
+  --bg-2:      #161618;
+  --bg-3:      #202022;
+  --rule:      #2A2A2D;
+  --rule-2:    #353539;
+  --ink:       #F0EFE8;
+  --ink-2:     rgba(240,239,232,0.55);
+  --ink-3:     rgba(240,239,232,0.32);
+  --accent:    #C8FF00;
+  --accent-ink:#000000;
+  --danger:    #EF4444;
+  --success:   #22C55E;
+  --warning:   #F59E0B;
+
+  --f-display:   "Bebas Neue", Impact, sans-serif;
+  --f-condensed: "Barlow Condensed", "Bebas Neue", sans-serif;
+  --f-body:      "Barlow", system-ui, sans-serif;
+  --f-mono:      "Roboto Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #050506;
+  color: var(--ink);
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 13.5px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+.stage {
+  min-height: 100vh;
+  padding: 40px 24px 64px;
+  display: flex; justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 1180px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+  padding: 44px 52px 36px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 22px 28px;
+}
+
+/* ─── LABELS ─── */
+.t-label {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10.5px; letter-spacing: 0.25em; text-transform: uppercase;
+}
+.t-mono {
+  font-family: var(--f-mono); font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.t-display { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; letter-spacing: 0.005em; }
+
+/* ─── HEAD ─── */
+.head { grid-column: span 12; display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: end; padding-bottom: 22px; border-bottom: 2px solid var(--accent); }
+.head .wm {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(72px, 9.6vw, 116px); line-height: 0.85; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.head .wm .acc { color: var(--accent); }
+.head .doc { display: grid; grid-template-columns: auto auto; gap: 6px 20px; justify-content: end; align-items: end; text-align: right; }
+.head .doc .kicker { grid-column: 1 / -1; color: var(--accent); }
+.head .doc .title { grid-column: 1 / -1; font-family: var(--f-body); font-weight: 600; font-size: 18px; color: var(--ink); letter-spacing: -0.005em; }
+.head .doc dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, auto); gap: 4px 18px; justify-content: end; margin-top: 6px; }
+.head .doc dl dt { color: var(--ink-3); }
+.head .doc dl dd { color: var(--ink); }
+.head .doc dl dt, .head .doc dl dd { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* ─── SECTION ─── */
+.sec { display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+.sec.s-6 { grid-column: span 6; }
+.sec.s-4 { grid-column: span 4; }
+.sec.s-8 { grid-column: span 8; }
+.sec.s-12 { grid-column: span 12; }
+.sec h2 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 30px; line-height: 0.95; letter-spacing: 0.01em;
+  text-transform: uppercase;
+  display: flex; align-items: baseline; gap: 14px;
+}
+.sec h2 .num { font-family: var(--f-mono); font-weight: 500; font-size: 11px; color: var(--accent); letter-spacing: 0.14em; transform: translateY(-2px); }
+.sec .rule-top { border-top: 1px solid var(--rule); padding-top: 12px; }
+
+/* ─── BRAND ESSENTIALS ─── */
+.essence { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.essence .row { display: grid; grid-template-columns: 140px 1fr; gap: 18px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--rule); }
+.essence .row:first-of-type { border-top: 1px solid var(--rule-2); }
+.essence .row .k { color: var(--ink-3); font-family: var(--f-condensed); font-weight: 700; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; }
+.essence .row .v { font-size: 14px; color: var(--ink); }
+.essence .row .v b { font-weight: 600; }
+.essence .row .v .lime { color: var(--accent); font-weight: 600; }
+.tagline-card {
+  background: var(--accent); color: var(--accent-ink);
+  padding: 22px 22px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.tagline-card .lbl { font-family: var(--f-condensed); font-weight: 700; font-size: 10.5px; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(0,0,0,0.55); }
+.tagline-card .line { font-family: var(--f-display); font-size: 36px; line-height: 0.95; letter-spacing: 0.005em; text-transform: uppercase; }
+
+/* ─── COLORS ─── */
+.lime-card {
+  background: var(--accent); color: var(--accent-ink);
+  padding: 14px 16px;
+  display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 16px;
+  border: 1px solid var(--accent);
+}
+.lime-card .meta { display: flex; flex-direction: column; gap: 4px; }
+.lime-card .meta .n { font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(0,0,0,0.55); }
+.lime-card .meta .name { font-family: var(--f-display); font-weight: 400; font-size: 32px; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; }
+.lime-card .meta .role { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.06em; color: rgba(0,0,0,0.65); }
+.lime-card .hex { font-family: var(--f-mono); font-weight: 600; font-size: 22px; letter-spacing: 0.02em; color: #000; text-align: right; line-height: 1; }
+.lime-card .hex small { display: block; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.55); font-weight: 500; margin-top: 4px; }
+
+.surface-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.sw { padding: 11px 12px; min-height: 84px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; border: 1px solid var(--rule); }
+.sw .n { font-family: var(--f-condensed); font-weight: 700; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; }
+.sw .h { font-family: var(--f-mono); font-size: 10px; color: var(--ink-2); }
+.sw .role { font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.sw.b1 { background: var(--bg); color: var(--ink); }
+.sw.b2 { background: var(--bg-2); color: var(--ink); }
+.sw.b3 { background: var(--bg-3); color: var(--ink); }
+
+.color-line2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.bar { padding: 9px 11px; border: 1px solid var(--rule); display: flex; align-items: center; gap: 9px; min-width: 0; }
+.bar .dot { width: 10px; height: 10px; border-radius: 999px; flex: 0 0 10px; border: 1px solid var(--rule-2); }
+.bar .lbl { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.bar .n { font-family: var(--f-condensed); font-weight: 700; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink); white-space: nowrap; }
+.bar .h { font-family: var(--f-mono); font-size: 9.5px; color: var(--ink-3); white-space: nowrap; }
+
+.color-rule {
+  background: var(--bg-2); border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 12px 14px; font-size: 12.5px; color: var(--ink);
+}
+.color-rule b { color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ─── TYPOGRAPHY ─── */
+.type-rows { display: flex; flex-direction: column; }
+.type-row { display: grid; grid-template-columns: 96px 1fr 130px; gap: 18px; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--rule); }
+.type-row:first-child { border-top: 1px solid var(--rule-2); }
+.type-row .role { font-family: var(--f-condensed); font-weight: 700; font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
+.type-row .spec { font-family: var(--f-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; }
+.type-row .spec b { display: block; color: var(--ink); font-weight: 500; letter-spacing: 0.04em; margin-top: 2px; }
+.type-row .sample.display  { font-family: var(--f-display); font-weight: 400; font-size: 38px; line-height: 1; letter-spacing: 0.005em; text-transform: uppercase; }
+.type-row .sample.label    { font-family: var(--f-condensed); font-weight: 700; font-size: 18px; letter-spacing: 0.25em; text-transform: uppercase; }
+.type-row .sample.body     { font-family: var(--f-body); font-weight: 400; font-size: 16px; line-height: 1.4; }
+.type-row .sample.body b   { font-weight: 600; }
+.type-row .sample.mono     { font-family: var(--f-mono); font-weight: 500; font-size: 18px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+
+.no-italic {
+  margin-top: 4px;
+  background: var(--bg-2); border: 1px solid var(--rule);
+  border-left: 3px solid var(--danger);
+  padding: 10px 12px; font-size: 12px; color: var(--ink);
+  display: flex; align-items: center; gap: 12px;
+}
+.no-italic span:first-child { font-family: var(--f-mono); color: var(--danger); font-size: 14px; }
+.no-italic em { font-style: italic; color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--danger); }
+
+/* ─── LOGO ─── */
+.logo-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 8px; }
+.logo-cell {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 14px 16px;
+  min-height: 110px;
+  position: relative;
+  overflow: hidden;
+}
+.logo-cell .canvas { flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px 0; }
+.logo-cell .tag { font-family: var(--f-mono); font-size: 9.5px; color: var(--ink-3); letter-spacing: 0.12em; text-transform: uppercase; }
+.logo-cell.icon { background: var(--accent); border-color: var(--accent); }
+.logo-cell.icon .tag { color: rgba(0,0,0,0.55); }
+.logo-cell.wide { grid-column: span 2; }
+
+.wm-logo {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(40px, 5vw, 60px); line-height: 0.85; letter-spacing: 0.01em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.wm-logo .pump { color: var(--ink); }
+.wm-logo .log  { color: var(--accent); }
+.mono-logo {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 52px; line-height: 0.85; letter-spacing: 0.01em; text-transform: uppercase;
+  color: var(--ink);
+}
+.mono-logo .acc { color: var(--accent); }
+.icon-glyph {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 52px; line-height: 0.85; letter-spacing: 0.005em; text-transform: uppercase;
+  color: #000;
+}
+
+.logo-rules {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-top: 4px;
+}
+.lr { padding: 9px 11px; border: 1px solid var(--rule); display: flex; align-items: center; gap: 10px; font-size: 11.5px; }
+.lr .ok  { color: var(--success); font-family: var(--f-mono); font-weight: 600; }
+.lr .ko  { color: var(--danger);  font-family: var(--f-mono); font-weight: 600; }
+
+/* ─── VOICE ─── */
+.voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.voice-col {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 14px 16px;
+}
+.voice-col.do  { border-left: 3px solid var(--accent); }
+.voice-col.dont { border-left: 3px solid var(--danger); }
+.voice-col h3 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.voice-col.do h3 { color: var(--accent); }
+.voice-col.dont h3 { color: var(--danger); }
+.voice-col h3::before { font-family: var(--f-mono); font-size: 14px; }
+.voice-col.do h3::before { content: "+"; }
+.voice-col.dont h3::before { content: "×"; }
+.voice-col p { font-size: 13px; color: var(--ink); line-height: 1.45; }
+.voice-col.dont p { color: var(--ink-2); }
+.voice-col .tags {
+  margin-top: 10px;
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.voice-col .tags span {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.04em;
+  padding: 3px 7px; border-radius: 999px;
+  border: 1px solid var(--rule-2); color: var(--ink);
+}
+.voice-col.do .tags span { border-color: rgba(200,255,0,0.4); color: var(--ink); }
+.voice-col.dont .tags span { border-color: rgba(239,68,68,0.4); color: var(--ink-2); text-decoration: line-through; text-decoration-color: var(--danger); }
+
+/* ─── VISUAL RULES ─── */
+.rules-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.rule {
+  border: 1px solid var(--rule); background: var(--bg-2);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+  min-height: 92px;
+}
+.rule .k { font-family: var(--f-condensed); font-weight: 700; font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
+.rule .v { font-family: var(--f-mono); font-size: 12px; color: var(--ink); line-height: 1.5; }
+.rule .v b { font-weight: 600; }
+.never {
+  grid-column: span 4;
+  border: 1px solid var(--rule); border-left: 3px solid var(--danger); background: var(--bg-2);
+  padding: 10px 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  font-size: 12px; color: var(--ink);
+}
+.never b { color: var(--danger); font-family: var(--f-condensed); font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; font-size: 11px; }
+.never s { color: var(--ink-3); text-decoration-color: var(--danger); }
+
+/* ─── FOOT ─── */
+.foot {
+  grid-column: span 12;
+  margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--rule);
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center;
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.foot .center { text-align: center; color: var(--accent); }
+.foot .right { text-align: right; }
+
+@media (max-width: 920px) {
+  .sheet { padding: 28px 22px; grid-template-columns: repeat(6, 1fr); }
+  .sec.s-6, .sec.s-4, .sec.s-8, .sec.s-12 { grid-column: span 6; }
+  .head { grid-template-columns: 1fr; gap: 18px; }
+  .head .doc { text-align: left; justify-content: start; }
+  .head .doc dl { justify-content: start; grid-template-columns: auto auto; }
+  .color-grid { grid-template-columns: 1fr 1fr; }
+  .color-line2 { grid-template-columns: 1fr 1fr 1fr; }
+  .logo-grid { grid-template-columns: 1fr 1fr; }
+  .rules-grid { grid-template-columns: 1fr 1fr; }
+  .never { grid-column: span 2; }
+  .voice-grid { grid-template-columns: 1fr; }
+  .type-row { grid-template-columns: 80px 1fr; }
+  .type-row .spec { grid-column: 1 / -1; }
+}
+
+@media print {
+  body, .stage { background: #fff; padding: 0; }
+  .stage { min-height: auto; padding: 0; }
+  .sheet { box-shadow: none; border: none; max-width: 100%; padding: 24px 28px; }
+}
+</style>
+</head>
+<body data-screen-label="00 Brand Style Guide One-Pager">
+
+<div class="stage">
+  <article class="sheet" data-screen-label="01 Sheet">
+
+    <!-- ───────── HEAD ───────── -->
+    <header class="head">
+      <div class="wm">PUMP<span class="acc">LOG</span></div>
+      <div class="doc">
+        <div class="kicker t-label">Brand Style Guide</div>
+        <div class="title">One-pager v1 · per collaboratori, freelance, team</div>
+        <dl>
+          <dt>Versione</dt><dd>v1.0</dd>
+          <dt>Data</dt><dd>05 · 2026</dd>
+          <dt>Lingua</dt><dd>IT</dd>
+          <dt>Stato</dt><dd>Canonico</dd>
+        </dl>
+      </div>
+    </header>
+
+    <!-- ───────── 01 BRAND ───────── -->
+    <section class="sec s-6">
+      <h2><span class="num">/01</span>Brand</h2>
+      <div class="tagline-card">
+        <div class="lbl">Tagline</div>
+        <div class="line">L'allenamento,<br>davvero tracciato.</div>
+      </div>
+      <div class="essence">
+        <div class="row">
+          <div class="k">Nome</div>
+          <div class="v"><b>PumpLog</b> — log di allenamento. Wordmark sempre maiuscolo: <b>PUMPLOG</b>.</div>
+        </div>
+        <div class="row">
+          <div class="k">Posizionamento</div>
+          <div class="v">L'unica app italiana che unisce <b>sala pesi</b> e <b>calisthenics</b>, con analisi del volume scientifico <span class="lime">MEV / MAV / MRV</span>, offline-first, senza social.</div>
+        </div>
+        <div class="row">
+          <div class="k">Personalità</div>
+          <div class="v">Compagno di allenamento esperto — diretto, tecnico, zero bullshit. Sa, non spiega. Da pari, non da coach.</div>
+        </div>
+        <div class="row">
+          <div class="k">Target</div>
+          <div class="v">Italia · 20–35 anni · pesi + calisthenics seri. PWA, iOS, Android.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── 02 COLORI ───────── -->
+    <section class="sec s-6">
+      <h2><span class="num">/02</span>Colori</h2>
+
+      <div class="lime-card">
+        <div class="meta">
+          <div class="n">Accent · Spotlight</div>
+          <div class="name">Lime</div>
+          <div class="role">Solo su scuro · testo su lime = #000</div>
+        </div>
+        <div class="hex">#C8FF00<small>Pantone 389 C</small></div>
+      </div>
+
+      <div class="surface-grid">
+        <div class="sw b1">
+          <div class="n">Background</div>
+          <div><div class="role">Base</div><div class="h">#0C0C0D</div></div>
+        </div>
+        <div class="sw b2">
+          <div class="n">Surface 1</div>
+          <div><div class="role">Card</div><div class="h">#161618</div></div>
+        </div>
+        <div class="sw b3">
+          <div class="n">Surface 2</div>
+          <div><div class="role">Elevated</div><div class="h">#202022</div></div>
+        </div>
+      </div>
+
+      <div class="color-line2">
+        <div class="bar"><span class="dot" style="background:#F0EFE8;"></span><span class="lbl"><span class="n">Ink 1</span><span class="h">#F0EFE8</span></span></div>
+        <div class="bar"><span class="dot" style="background:rgba(240,239,232,0.55);"></span><span class="lbl"><span class="n">Ink 2</span><span class="h">0.55α</span></span></div>
+        <div class="bar"><span class="dot" style="background:rgba(240,239,232,0.32);"></span><span class="lbl"><span class="n">Ink 3</span><span class="h">0.32α</span></span></div>
+        <div class="bar"><span class="dot" style="background:var(--danger);"></span><span class="lbl"><span class="n">Danger</span><span class="h">#EF4444</span></span></div>
+        <div class="bar"><span class="dot" style="background:var(--success);"></span><span class="lbl"><span class="n">Success</span><span class="h">#22C55E</span></span></div>
+        <div class="bar"><span class="dot" style="background:var(--warning);"></span><span class="lbl"><span class="n">Warning</span><span class="h">#F59E0B</span></span></div>
+      </div>
+
+      <div class="color-rule">
+        <b>Regola assoluta:</b> dark mode only. Lime solo su fondo scuro, mai su bianco o chiaro. Niente.
+      </div>
+    </section>
+
+    <!-- ───────── 03 TIPOGRAFIA ───────── -->
+    <section class="sec s-8">
+      <h2><span class="num">/03</span>Tipografia</h2>
+      <div class="type-rows">
+        <div class="type-row">
+          <div class="role">Display</div>
+          <div class="sample display">PUMPLOG · SERIE 4 / 8</div>
+          <div class="spec">Bebas Neue<b>Regular 400</b>+0.005em · Caps</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Label</div>
+          <div class="sample label">SEDUTA · PETTO · OGGI</div>
+          <div class="spec">Barlow Condensed<b>Bold 700</b>+0.25em · Caps</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Corpo</div>
+          <div class="sample body">Sei sotto al MEV per il petto questa settimana. <b>Aggiungi 2 serie effettive.</b></div>
+          <div class="spec">Barlow<b>400 / 500 / 600</b>Min 14px mobile</div>
+        </div>
+        <div class="type-row">
+          <div class="role">Dati</div>
+          <div class="sample mono">82,5 kg · 4×8 · RPE 7,5</div>
+          <div class="spec">Roboto Mono<b>Medium 500</b>tabular-nums</div>
+        </div>
+      </div>
+      <div class="no-italic">
+        <span>×</span>
+        <span><b style="color:var(--danger);text-transform:uppercase;letter-spacing:.04em;font-family:var(--f-condensed);font-weight:700;font-size:11px;letter-spacing:.22em;">Mai corsivo.</b> Né per enfasi, né per citazioni, né per <em>vibes</em>. Mai.</span>
+      </div>
+    </section>
+
+    <!-- ───────── 04 LOGO ───────── -->
+    <section class="sec s-4">
+      <h2><span class="num">/04</span>Logo</h2>
+      <div class="logo-grid">
+        <div class="logo-cell wide">
+          <div class="canvas"><div class="wm-logo"><span class="pump">PUMP</span><span class="log">LOG</span></div></div>
+          <div class="tag">A · Wordmark principale</div>
+        </div>
+        <div class="logo-cell">
+          <div class="canvas"><div class="mono-logo">P<span class="acc">L</span></div></div>
+          <div class="tag">B · Monogramma</div>
+        </div>
+        <div class="logo-cell icon">
+          <div class="canvas"><div class="icon-glyph">PL</div></div>
+          <div class="tag">C · App icon</div>
+        </div>
+      </div>
+      <div class="logo-rules">
+        <div class="lr"><span class="ok">✓</span><span>Lime su fondo scuro</span></div>
+        <div class="lr"><span class="ko">×</span><span>Lime su fondo chiaro</span></div>
+      </div>
+    </section>
+
+    <!-- ───────── 05 VOCE ───────── -->
+    <section class="sec s-12">
+      <h2><span class="num">/05</span>Voce</h2>
+      <div class="voice-grid">
+        <div class="voice-col do">
+          <h3>Diciamo</h3>
+          <p>Diretto, tecnico, asciutto. Dai del <b>"tu"</b>. Frasi brevi, dati concreti, numeri davanti. Una metrica è la protagonista, il copy è la didascalia.</p>
+          <div class="tags">
+            <span>serie</span><span>ripetizioni</span><span>volume</span><span>tonnellaggio</span><span>sessione</span><span>scheda</span><span>MEV / MAV / MRV</span><span>PR</span><span>e1RM</span><span>recupero</span><span>progressione</span>
+          </div>
+        </div>
+        <div class="voice-col dont">
+          <h3>Non diciamo</h3>
+          <p>Niente motivazionale-bro. Niente emoji decorative. Niente slang inglese. Niente punti esclamativi multipli. Niente prediche, niente celebrazioni.</p>
+          <div class="tags">
+            <span>workout</span><span>gains</span><span>grind</span><span>beast mode</span><span>crush it</span><span>journey</span><span>trasforma</span><span>sblocca</span><span>domina</span><span>streak</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── 06 REGOLE VISIVE ───────── -->
+    <section class="sec s-12">
+      <h2><span class="num">/06</span>Regole visive</h2>
+      <div class="rules-grid">
+        <div class="rule">
+          <div class="k">Icone</div>
+          <div class="v"><b>Line</b> · stroke 1.5–2 px · rounded. Mai filled / solid.</div>
+        </div>
+        <div class="rule">
+          <div class="k">Animazioni</div>
+          <div class="v"><b>120–250 ms</b> · ease-out · scale(0.96) su tap.</div>
+        </div>
+        <div class="rule">
+          <div class="k">Radius</div>
+          <div class="v">6 px badge · <b>10 px</b> card &amp; bottoni · 14 px modal · 999 px pill.</div>
+        </div>
+        <div class="rule">
+          <div class="k">Numeri</div>
+          <div class="v">Sempre <b>tabular-nums</b>. Virgola decimale IT, non punto: <b>82,5 kg</b>.</div>
+        </div>
+        <div class="never">
+          <b>Mai</b>
+          <s>gradienti</s>
+          <s>cartoon</s>
+          <s>illustrazioni decorative</s>
+          <s>pattern di sfondo</s>
+          <s>drop shadow morbide</s>
+          <s>emoji nei prodotti</s>
+          <s>maiuscolo gridato nei messaggi</s>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── FOOT ───────── -->
+    <footer class="foot">
+      <div>PumpLog · Brand Style Guide v1</div>
+      <div class="center">● Canonico — sostituisce ogni versione precedente</div>
+      <div class="right">Domande → brand@pumplog.it</div>
+    </footer>
+
+  </article>
+</div>
+
+</body>
+</html>

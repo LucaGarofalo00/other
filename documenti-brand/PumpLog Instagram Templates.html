@@ -1,0 +1,1473 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Instagram Templates · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0C0C0D;
+  --bg-2:      #161618;
+  --bg-3:      #202022;
+  --rule:      #2A2A2D;
+  --rule-2:    #353539;
+  --ink:       #F0EFE8;
+  --ink-2:     rgba(240,239,232,0.55);
+  --ink-3:     rgba(240,239,232,0.32);
+  --accent:    #C8FF00;
+  --accent-ink:#000000;
+  --danger:    #EF4444;
+  --warning:   #F59E0B;
+
+  --f-display: "Bebas Neue", Impact, sans-serif;
+  --f-condensed: "Barlow Condensed", "Bebas Neue", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-mono: "Roboto Mono", ui-monospace, monospace;
+
+  --max: 1320px;
+  --gutter: 32px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-weight: 400; font-size: 16px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* TOPBAR */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(12,12,13,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.topbar .lockup { color: var(--ink); display: flex; align-items: center; gap: 12px; }
+.topbar .lockup .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+.topbar .right { display: flex; gap: 24px; }
+
+/* HERO */
+.hero { padding: 56px 0 80px; border-bottom: 1px solid var(--rule); }
+.hero-meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3);
+  padding-bottom: 32px; border-bottom: 1px solid var(--rule); margin-bottom: 48px;
+}
+.hero-meta b { display: block; font-family: var(--f-body); font-weight: 500; font-size: 14px; color: var(--ink); margin-top: 6px; letter-spacing: 0; text-transform: none; }
+.hero h1 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(64px, 11vw, 160px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  max-width: 14ch; text-wrap: balance;
+}
+.hero h1 .acc { color: var(--accent); }
+.hero .sub {
+  margin-top: 32px;
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 60ch;
+}
+.hero .sub b { color: var(--ink); font-weight: 600; }
+.hero .sub .lime { color: var(--accent); font-weight: 600; }
+
+.toc {
+  margin-top: 56px;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+  background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.toc a {
+  background: var(--bg); padding: 22px 18px;
+  display: flex; flex-direction: column; gap: 8px;
+  transition: background 0.15s;
+}
+.toc a:hover { background: var(--bg-2); }
+.toc a .idx { font-family: var(--f-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.14em; }
+.toc a .name { font-family: var(--f-display); font-size: 26px; letter-spacing: 0.005em; text-transform: uppercase; line-height: 1; }
+.toc a .fmt { font-family: var(--f-condensed); font-weight: 700; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3); }
+
+/* SECTION */
+.section { border-top: 1px solid var(--rule); padding: 88px 0; }
+.section-meta {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  padding-bottom: 16px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 48px;
+}
+.section-head { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; align-items: end; margin-bottom: 56px; }
+.section-head .num { font-family: var(--f-mono); font-size: 13px; color: var(--accent); letter-spacing: 0.16em; margin-bottom: 14px; }
+.section-head h2 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(56px, 8vw, 112px);
+  line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase;
+  text-wrap: balance;
+}
+.section-head h2 .acc { color: var(--accent); }
+.section-head .essence {
+  font-size: clamp(17px, 1.5vw, 21px); line-height: 1.55;
+  color: var(--ink-2); max-width: 54ch;
+}
+.section-head .essence b { color: var(--ink); font-weight: 600; }
+
+/* TEMPLATE LAYOUT — preview + spec */
+.template-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 56px;
+  align-items: start;
+}
+.preview-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+.preview-stage .frame-meta {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex; gap: 14px;
+}
+.preview-stage .frame-meta b { color: var(--accent); letter-spacing: 0.14em; }
+.preview-stage .frame-meta .dot { color: var(--ink-3); }
+
+/* ASPECT RATIO POSTS */
+.post {
+  background: var(--bg);
+  color: var(--ink);
+  padding: 56px 48px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+}
+.post.r-1\:1     { width: 480px; height: 480px; }
+.post.r-4\:5     { width: 480px; height: 600px; }
+.post.r-9\:16    { width: 360px; height: 640px; }
+.post.r-carousel { width: 320px; height: 320px; padding: 40px 32px; }
+
+/* COMMON IN-POST elements */
+.post .corner-tl, .post .corner-tr, .post .corner-bl, .post .corner-br {
+  position: absolute;
+}
+.post .corner-tl { top: 28px; left: 32px; }
+.post .corner-tr { top: 28px; right: 32px; }
+.post .corner-bl { bottom: 28px; left: 32px; }
+.post .corner-br { bottom: 28px; right: 32px; }
+.post.r-carousel .corner-tl { top: 20px; left: 24px; }
+.post.r-carousel .corner-tr { top: 20px; right: 24px; }
+.post.r-carousel .corner-bl { bottom: 20px; left: 24px; }
+.post.r-carousel .corner-br { bottom: 20px; right: 24px; }
+
+.brand-mark {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 18px; letter-spacing: 0.01em; text-transform: uppercase;
+  color: var(--ink);
+}
+.brand-mark .acc { color: var(--accent); }
+.post.r-carousel .brand-mark { font-size: 14px; }
+
+.kicker {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex; align-items: center; gap: 8px;
+}
+.kicker .pill {
+  background: var(--accent); color: var(--accent-ink);
+  padding: 4px 8px; font-size: 10px; letter-spacing: 0.18em;
+  font-weight: 700;
+}
+.post.r-carousel .kicker { font-size: 9px; letter-spacing: 0.22em; }
+.post.r-carousel .kicker .pill { font-size: 8px; padding: 3px 6px; }
+
+.swipe-hint {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 6px;
+}
+.swipe-hint::after {
+  content: ""; width: 18px; height: 1.5px; background: var(--accent);
+  position: relative;
+}
+
+/* ========================= */
+/* TEMPLATE 01 — EDUCATIONAL */
+/* ========================= */
+.t01 .headline {
+  position: absolute;
+  top: 96px; left: 32px; right: 32px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 56px; line-height: 0.92; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.t01 .headline .acc { color: var(--accent); }
+
+.t01 .formula {
+  position: absolute;
+  bottom: 140px; left: 32px; right: 32px;
+  padding: 16px 18px;
+  background: var(--bg-2);
+  border-left: 3px solid var(--accent);
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 15px; line-height: 1.5;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.t01 .formula .lbl {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 4px;
+}
+.t01 .formula b { color: var(--accent); font-weight: 500; }
+
+/* ========================= */
+/* TEMPLATE 02 — PRODUCT */
+/* ========================= */
+.t02 {
+  display: flex; align-items: center; justify-content: center;
+  background:
+    linear-gradient(var(--bg-2) 1px, transparent 1px) 0 0/100% 32px,
+    linear-gradient(90deg, var(--bg-2) 1px, transparent 1px) 0 0/32px 100%,
+    var(--bg);
+}
+.t02 .phone-mock {
+  width: 140px;
+  aspect-ratio: 9/19.5;
+  background: #000;
+  border-radius: 22px;
+  padding: 5px;
+  border: 1px solid var(--rule-2);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 2;
+}
+.t02 .phone-mock .screen {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: 12px 10px;
+}
+.t02 .ph-status {
+  display: flex; justify-content: space-between;
+  font-family: var(--f-mono); font-weight: 600;
+  font-size: 7px; color: var(--ink); margin-bottom: 8px;
+}
+.t02 .ph-status .acc { color: var(--accent); }
+.t02 .ph-title {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 12px; letter-spacing: 0.005em; text-transform: uppercase;
+  color: var(--ink); padding-bottom: 6px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 8px;
+}
+.t02 .ph-card {
+  background: var(--bg-2); border-radius: 4px; padding: 8px;
+  margin-bottom: 6px;
+}
+.t02 .ph-card .lbl {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 6px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 4px;
+}
+.t02 .ph-card .val {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 18px; letter-spacing: 0.005em; color: var(--ink);
+  line-height: 1;
+}
+.t02 .ph-row { display: flex; justify-content: space-between; padding: 3px 0; }
+.t02 .ph-row .l { font-family: var(--f-body); font-weight: 500; font-size: 7px; color: var(--ink); }
+.t02 .ph-row .v { font-family: var(--f-mono); font-weight: 500; font-size: 7px; color: var(--ink); }
+.t02 .ph-row .v.acc { color: var(--accent); }
+.t02 .ph-cta {
+  margin-top: auto;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 9px; letter-spacing: 0.02em; text-transform: uppercase;
+  text-align: center; padding: 6px; border-radius: 4px;
+}
+
+.t02 .product-label {
+  position: absolute;
+  top: 70px; left: 32px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 36px; line-height: 0.92; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+  max-width: 130px;
+}
+.t02 .product-label .acc { color: var(--accent); }
+.t02 .product-tag {
+  position: absolute;
+  top: 70px; right: 32px;
+  max-width: 130px; text-align: right;
+}
+.t02 .product-tag .l {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 6px;
+}
+.t02 .product-tag .v {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 12px; line-height: 1.4; color: var(--ink);
+}
+
+/* ========================= */
+/* TEMPLATE 03 — STATISTIC */
+/* ========================= */
+.t03 .stat-kicker {
+  position: absolute;
+  top: 100px; left: 32px; right: 32px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.t03 .stat-num {
+  position: absolute;
+  top: 130px; left: 32px; right: 32px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 160px; line-height: 0.85; letter-spacing: -0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.t03 .stat-num .acc { color: var(--accent); }
+.t03 .stat-num .unit {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 32px; letter-spacing: 0.15em;
+  vertical-align: top; color: var(--ink-2);
+  margin-left: 8px;
+}
+.t03 .stat-label {
+  position: absolute;
+  bottom: 140px; left: 32px; right: 32px;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 17px; line-height: 1.4; color: var(--ink);
+}
+.t03 .stat-label .meta {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 6px; display: block;
+}
+.t03 .stat-chart {
+  position: absolute;
+  bottom: 70px; left: 32px; right: 32px;
+  height: 36px;
+  display: flex; align-items: end; gap: 4px;
+}
+.t03 .stat-chart .bar {
+  flex: 1; background: var(--ink-3); border-radius: 1px 1px 0 0;
+}
+.t03 .stat-chart .bar.acc { background: var(--accent); }
+.t03 .stat-chart .bar.cur { background: var(--ink); }
+
+/* ========================= */
+/* TEMPLATE 04 — QUOTE */
+/* ========================= */
+.t04 {
+  display: flex; flex-direction: column; justify-content: center;
+}
+.t04 .quote-mark {
+  position: absolute;
+  top: 80px; left: 32px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 80px; line-height: 0.6; color: var(--accent);
+}
+.t04 .quote-body {
+  margin-top: 80px;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 28px; line-height: 1.25;
+  color: var(--ink); letter-spacing: -0.015em;
+  text-wrap: balance;
+  padding: 0 32px;
+}
+.t04 .quote-body b { color: var(--accent); font-weight: 600; }
+.t04 .quote-rule {
+  margin: 32px 32px 0;
+  height: 1px; background: var(--rule);
+  position: relative;
+}
+.t04 .quote-rule::before {
+  content: ""; position: absolute; left: 0; top: 0;
+  width: 60px; height: 1.5px; background: var(--accent);
+}
+.t04 .quote-attr {
+  margin: 16px 32px 0;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ========================= */
+/* TEMPLATE 05 — CAROUSEL */
+/* ========================= */
+.carousel-track {
+  display: grid;
+  grid-template-columns: repeat(5, 320px);
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  scrollbar-color: var(--rule-2) var(--bg);
+}
+.carousel-track::-webkit-scrollbar { height: 6px; }
+.carousel-track::-webkit-scrollbar-track { background: var(--bg-2); }
+.carousel-track::-webkit-scrollbar-thumb { background: var(--rule-2); }
+
+.car-slide { display: flex; flex-direction: column; gap: 8px; }
+.car-slide .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* COVER slide */
+.car-cover .car-num {
+  position: absolute;
+  top: 58px; left: 24px; right: 24px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 80px; line-height: 0.85; color: var(--accent);
+}
+.car-cover .car-num .small { font-size: 24px; color: var(--ink-2); vertical-align: top; letter-spacing: 0.15em; }
+.car-cover .car-title {
+  position: absolute;
+  bottom: 54px; left: 24px; right: 24px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 26px; line-height: 0.92; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.car-cover .car-title .acc { color: var(--accent); }
+
+/* STEP slide */
+.car-step .step-num {
+  position: absolute;
+  top: 48px; left: 24px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 44px; line-height: 0.9; letter-spacing: 0.005em;
+  color: var(--accent);
+}
+.car-step .step-title {
+  position: absolute;
+  top: 96px; left: 24px; right: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.car-step .step-h {
+  position: absolute;
+  top: 118px; left: 24px; right: 24px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 20px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.car-step .step-body {
+  position: absolute;
+  bottom: 50px; left: 24px; right: 24px;
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 11px; line-height: 1.45; color: var(--ink-2);
+}
+.car-step .step-body b { color: var(--ink); font-weight: 600; }
+.car-step .step-body .lime { color: var(--accent); font-weight: 600; }
+.car-step .step-page {
+  position: absolute;
+  bottom: 24px; left: 24px;
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 10px; color: var(--ink-3); letter-spacing: 0.1em;
+}
+
+/* CLOSE slide */
+.car-close .close-h {
+  position: absolute;
+  top: 90px; left: 24px; right: 24px;
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 32px; line-height: 0.92; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.car-close .close-h .acc { color: var(--accent); }
+.car-close .close-cta {
+  position: absolute;
+  bottom: 80px; left: 24px; right: 24px;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 16px; letter-spacing: 0.02em; text-transform: uppercase;
+  text-align: center; padding: 14px;
+}
+
+/* SPEC SHEET */
+.spec-sheet {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-height: 600px;
+}
+.spec-sheet h3 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink); display: flex; align-items: center; gap: 10px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.spec-sheet h3::before { content: ""; width: 8px; height: 8px; background: var(--accent); border-radius: 1px; }
+
+.spec-block { display: flex; flex-direction: column; gap: 10px; }
+.spec-block .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.spec-block .val {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.55; color: var(--ink);
+}
+.spec-block .val b { color: var(--accent); font-weight: 600; }
+.spec-block .val.mono { font-family: var(--f-mono); font-weight: 500; font-size: 13px; }
+.spec-block .val ul { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.spec-block .val ul li {
+  padding-left: 18px; position: relative;
+  font-size: 13px; line-height: 1.55;
+}
+.spec-block .val ul li::before {
+  content: "+"; position: absolute; left: 0; top: 0;
+  font-family: var(--f-mono); color: var(--accent);
+}
+
+.spec-row {
+  display: grid; grid-template-columns: 130px 1fr;
+  gap: 20px; padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-row .k {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.spec-row .v {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 13px; color: var(--ink); line-height: 1.5;
+}
+.spec-row .v.mono { font-family: var(--f-mono); font-weight: 500; }
+.spec-row .v b { color: var(--accent); font-weight: 600; }
+
+/* WHY-IT-WORKS */
+.rationale {
+  margin-top: 56px;
+  padding: 36px;
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  border-left: 3px solid var(--accent);
+}
+.rationale h4 {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 16px;
+}
+.rationale p {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 16px; line-height: 1.6; color: var(--ink); max-width: 72ch;
+}
+.rationale p b { color: var(--accent); font-weight: 600; }
+
+/* COPY EXAMPLES */
+.copy-examples {
+  margin-top: 32px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+}
+.copy-examples .ex {
+  border: 1px dashed var(--rule-2);
+  background: var(--bg);
+  padding: 20px;
+}
+.copy-examples .ex .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 10px;
+}
+.copy-examples .ex .body {
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.55; color: var(--ink);
+}
+.copy-examples .ex .body b { color: var(--ink); font-weight: 600; }
+.copy-examples .ex .body .mono { font-family: var(--f-mono); font-weight: 500; }
+
+/* RULES section */
+.rules-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+}
+.rule-c {
+  border: 1px solid var(--rule);
+  background: var(--bg-2);
+  padding: 28px;
+  display: flex; flex-direction: column; gap: 14px;
+  min-height: 220px;
+  position: relative;
+}
+.rule-c::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+.rule-c.dont::before { background: var(--danger); }
+.rule-c .lab {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.rule-c.dont .lab { color: var(--danger); }
+.rule-c h4 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 22px; line-height: 0.95; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.rule-c p {
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+}
+.rule-c p b { color: var(--ink); font-weight: 600; }
+
+/* CADENCE */
+.cadence-grid {
+  display: grid; grid-template-columns: 160px repeat(5, 1fr);
+  border-top: 1px solid var(--rule);
+  font-family: var(--f-mono); font-size: 12px;
+}
+.cadence-grid > div {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  color: var(--ink-2); letter-spacing: 0.04em;
+  display: flex; align-items: center;
+}
+.cadence-grid > div:nth-child(6n+1) { border-left: 1px solid var(--rule); color: var(--ink); }
+.cadence-grid .h {
+  background: var(--bg-2); color: var(--ink);
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+}
+.cadence-grid .acc { color: var(--accent); }
+
+/* FOOTER */
+.foot {
+  border-top: 1px solid var(--rule);
+  padding: 32px 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.foot b {
+  display: block;
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 14px; color: var(--ink); margin-top: 6px;
+  letter-spacing: 0; text-transform: none;
+}
+
+@media (max-width: 1100px) {
+  .template-grid { grid-template-columns: 1fr; gap: 32px; }
+  .preview-stage { align-items: flex-start; }
+}
+@media (max-width: 700px) {
+  :root { --gutter: 20px; }
+  .hero-meta { grid-template-columns: 1fr 1fr; }
+  .toc { grid-template-columns: 1fr 1fr; }
+  .section-head { grid-template-columns: 1fr; gap: 16px; }
+  .post.r-1\:1, .post.r-4\:5 { width: 100%; max-width: 380px; aspect-ratio: 1; height: auto; }
+  .post.r-4\:5 { aspect-ratio: 4/5; }
+  .post.r-9\:16 { width: 100%; max-width: 300px; aspect-ratio: 9/16; height: auto; }
+  .copy-examples { grid-template-columns: 1fr; }
+  .rules-grid { grid-template-columns: 1fr; }
+  .cadence-grid { font-size: 10px; }
+  .foot { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="00 Instagram Templates">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="lockup">
+      <span class="dot"></span>
+      <span>PumpLog</span>
+      <span style="color: var(--ink-3);">/</span>
+      <span style="color: var(--ink-3);">Instagram Templates v1</span>
+    </div>
+    <div class="right">
+      <span>ITA</span>
+      <span>15.05.2026</span>
+      <span style="color: var(--accent);">● REVIEW</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="wrap">
+    <div class="hero-meta">
+      <div>Documento<b>Social templates · v1</b></div>
+      <div>Canale<b>Instagram feed + stories</b></div>
+      <div>Formati<b>1:1 · 4:5 · 9:16</b></div>
+      <div>Tipi di contenuto<b>5 template canonici</b></div>
+    </div>
+
+    <h1>CINQUE<br>TEMPLATE.<br><span class="acc">ZERO</span><br>BEAST MODE.</h1>
+
+    <p class="sub">
+      Cinque post-system disegnati per Instagram, ognuno per un tipo di contenuto specifico: <b>lezione</b>, <b>prodotto</b>, <b>numero</b>, <b>massima</b>, <b>carosello</b>. Tutti dentro le regole costituzionali del marchio — <span class="lime">lime ≤5% area</span>, niente corsivo, niente motivational quote. Il feed deve sembrare uno strumento, non un poster.
+    </p>
+
+    <div class="toc">
+      <a href="#t01"><span class="idx">/01</span><span class="name">LEZIONE</span><span class="fmt">4:5 · educativo</span></a>
+      <a href="#t02"><span class="idx">/02</span><span class="name">PRODOTTO</span><span class="fmt">1:1 · screenshot</span></a>
+      <a href="#t03"><span class="idx">/03</span><span class="name">NUMERO</span><span class="fmt">1:1 · stat</span></a>
+      <a href="#t04"><span class="idx">/04</span><span class="name">MASSIMA</span><span class="fmt">4:5 · quote</span></a>
+      <a href="#t05"><span class="idx">/05</span><span class="name">CAROSELLO</span><span class="fmt">1:1 · guida</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= -->
+<!-- TEMPLATE 01 — LEZIONE -->
+<!-- ========================= -->
+<section class="section" id="t01" data-screen-label="02 Lezione">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 01 · Educativo / Dato</span>
+      <span>4:5 portrait · feed engagement</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">TEMPLATE /01</div>
+        <h2>LA <span class="acc">LEZIONE</span><br>TECNICA.</h2>
+      </div>
+      <div class="essence">
+        Il template che insegna una cosa precisa in una sola immagine. Titolo grande in Bebas che pone la domanda; sotto, la formula o la regola in box monospaced con bordo lime. <b>Il valore è nel formato</b>: il lettore si salva il post per consultarlo dopo.
+      </div>
+    </div>
+
+    <div class="template-grid">
+      <!-- PREVIEW -->
+      <div class="preview-stage">
+        <div class="frame-meta"><b>FORMATO</b> 4:5 · <span class="dot">·</span> 1080×1350 px</div>
+        <div class="post r-4:5 t01">
+          <div class="corner-tl">
+            <span class="kicker"><span class="pill">LEZIONE 03</span>VOLUME · PETTO</span>
+          </div>
+          <div class="corner-tr brand-mark">PUMP<span class="acc">/</span>LOG</div>
+
+          <div class="headline">
+            COME<br>CALCOLARE<br>IL TUO <span class="acc">MEV</span><br>PER IL PETTO.
+          </div>
+
+          <div class="formula">
+            <div class="lbl">Formula · principianti → intermedi</div>
+            MEV petto = <b>8–10 serie</b> effettive / settimana<br>
+            su 2 sedute, distanza ≥48h, RPE 7–8.
+          </div>
+
+          <div class="corner-bl">
+            <span class="kicker">SCORRI · 1/1</span>
+          </div>
+          <div class="corner-br swipe-hint">SALVA</div>
+        </div>
+      </div>
+
+      <!-- SPEC -->
+      <div class="spec-sheet">
+        <h3>Scheda template /01</h3>
+
+        <div class="spec-row"><span class="k">Formato</span><span class="v mono">1080×1350 · 4:5 portrait</span></div>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v mono">#0C0C0D · piatto · grid opzionale 32px</span></div>
+        <div class="spec-row"><span class="k">Margini</span><span class="v mono">32 px laterali · 28 top/bottom</span></div>
+        <div class="spec-row"><span class="k">Kicker top-left</span><span class="v">Pill lime "LEZIONE 03" + label Barlow Cond. 11px / 0.25em</span></div>
+        <div class="spec-row"><span class="k">Headline</span><span class="v">Bebas Neue 96–120 px · max 4 righe · 1 parola in lime</span></div>
+        <div class="spec-row"><span class="k">Box formula</span><span class="v">Surface 1 + border-left 3px lime · Roboto Mono 18px</span></div>
+        <div class="spec-row"><span class="k">Brand mark</span><span class="v">Bebas 22px top-right · "/" lime</span></div>
+        <div class="spec-row"><span class="k">CTA implicita</span><span class="v">"SALVA" in Barlow Cond. bottom-right</span></div>
+        <div class="spec-row"><span class="k">Lime area</span><span class="v"><b>≈ 4%</b> · pill + slash + parola headline + border</span></div>
+
+        <div class="spec-block" style="margin-top: 8px;">
+          <span class="lab">Quando usarlo</span>
+          <div class="val">
+            <ul>
+              <li>Spiegare un concetto scientifico (MEV/MAV/MRV, e1RM, RPE, deload)</li>
+              <li>Una formula, una regola, una soglia numerica</li>
+              <li>Confronto pesi vs calisthenics su un parametro</li>
+              <li>FAQ ricorrenti del target intermedio</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <span class="lab">Quando NON usarlo</span>
+          <div class="val">
+            <ul style="opacity: 0.7;">
+              <li>Concetti che richiedono 2+ formule → usa /05 carosello</li>
+              <li>Solo numero senza contesto → usa /03 statistico</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rationale">
+      <h4>Perché funziona</h4>
+      <p>Il post-lezione è il <b>post che si salva</b>. Su Instagram il "save" è il segnale più forte che hai dato valore reale, non intrattenimento. Bebas grande pone la domanda dall'angolo del lettore ("come calcolare il MIO MEV"), il box monospaced trasforma la risposta in un oggetto consultabile, e la pill "LEZIONE 03" suggerisce serialità — l'utente segue per non perdere le prossime.</p>
+    </div>
+
+    <div class="copy-examples">
+      <div class="ex">
+        <div class="lab">Esempio · headline 01</div>
+        <div class="body">COME CALCOLARE<br>IL TUO <b>MEV</b><br>PER IL PETTO.</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · headline 02</div>
+        <div class="body">QUANDO FARE<br>UNA <b>SETTIMANA</b><br>DI SCARICO.</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · headline 03</div>
+        <div class="body">PERCHÉ L'<b>e1RM</b><br>VALE PIÙ<br>DEL MASSIMALE.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= -->
+<!-- TEMPLATE 02 — PRODOTTO -->
+<!-- ========================= -->
+<section class="section" id="t02" data-screen-label="03 Prodotto">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 02 · Prodotto / Screenshot</span>
+      <span>1:1 square · feed default</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">TEMPLATE /02</div>
+        <h2>IL <span class="acc">PRODOTTO</span><br>AL LAVORO.</h2>
+      </div>
+      <div class="essence">
+        Il template più letterale: l'app in funzione, in mano, alla luce della sala. Screenshot inquadrato in un mockup phone, niente persone, niente fronzoli. <b>Lo screenshot è il claim</b> — la copy intorno è solo coordinazione.
+      </div>
+    </div>
+
+    <div class="template-grid">
+      <div class="preview-stage">
+        <div class="frame-meta"><b>FORMATO</b> 1:1 · <span class="dot">·</span> 1080×1080 px</div>
+        <div class="post r-1:1 t02">
+          <div class="corner-tl">
+            <span class="kicker"><span class="pill">PRODOTTO</span>SCREEN · 03</span>
+          </div>
+          <div class="corner-tr brand-mark">PUMP<span class="acc">/</span>LOG</div>
+
+          <div class="product-label">
+            VOLUME<br>IN <span class="acc">MAV</span>.<br>OGGI.
+          </div>
+
+          <div class="phone-mock">
+            <div class="screen">
+              <div class="ph-status">
+                <span>9:41</span>
+                <span class="acc">● OFFLINE</span>
+              </div>
+              <div class="ph-title">SETT 19 · LUN</div>
+              <div class="ph-card">
+                <div class="lbl">VOLUME · PETTO</div>
+                <div class="val">14<span style="font-size:9px; color: var(--ink-2); margin-left: 4px;">SERIE</span></div>
+              </div>
+              <div class="ph-card">
+                <div class="lbl">PANCA · MASSIMALE</div>
+                <div class="ph-row"><span class="l">SETT 17</span><span class="v">80,0 × 7</span></div>
+                <div class="ph-row"><span class="l">SETT 18</span><span class="v">82,5 × 6</span></div>
+                <div class="ph-row"><span class="l">SETT 19</span><span class="v acc">82,5 × 6 ↗</span></div>
+              </div>
+              <div class="ph-cta">CHIUDI SEDUTA</div>
+            </div>
+          </div>
+
+          <div class="product-tag">
+            <div class="l">14 SERIE<br>EFFETTIVE</div>
+            <div class="v">Sei in <b style="color: var(--accent);">MAV</b>. Qui il muscolo cresce.</div>
+          </div>
+
+          <div class="corner-bl">
+            <span class="kicker">PWA · GRATUITA</span>
+          </div>
+          <div class="corner-br swipe-hint">PROVA</div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Scheda template /02</h3>
+
+        <div class="spec-row"><span class="k">Formato</span><span class="v mono">1080×1080 · 1:1 square</span></div>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v mono">#0C0C0D + grid sottile 32 px (Surface 2)</span></div>
+        <div class="spec-row"><span class="k">Phone mockup</span><span class="v">Centrato · width 38% canvas · aspect 9:19.5</span></div>
+        <div class="spec-row"><span class="k">Bezel</span><span class="v">#000 puro · radius 24px · ombra 60px soft</span></div>
+        <div class="spec-row"><span class="k">Screenshot</span><span class="v">UI reale dell'app · solo dark mode · status bar inclusa</span></div>
+        <div class="spec-row"><span class="k">Headline sx</span><span class="v">Bebas 60–72px · max 3 righe · 1 parola lime</span></div>
+        <div class="spec-row"><span class="k">Tag dx</span><span class="v">Label Barlow Cond. + body Barlow 14px allineato a destra</span></div>
+        <div class="spec-row"><span class="k">Grid pattern</span><span class="v mono">linear-gradient 32 px · opacità 1px in #161618</span></div>
+
+        <div class="spec-block" style="margin-top: 8px;">
+          <span class="lab">Quando usarlo</span>
+          <div class="val">
+            <ul>
+              <li>Lancio di una feature (volume scientifico, e1RM, calisthenics)</li>
+              <li>Tutorial veloce di una schermata</li>
+              <li>Update di prodotto / changelog visivo</li>
+              <li>Comparison "prima/dopo" (split del frame in due fasi)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <span class="lab">Vincoli</span>
+          <div class="val">
+            <ul style="opacity: 0.7;">
+              <li>Mai photoshop "creativo" sullo screenshot</li>
+              <li>Mai persona che tiene il telefono — siamo strumento, non lifestyle</li>
+              <li>Mai inclinare il phone &gt;5° dall'asse</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rationale">
+      <h4>Perché funziona</h4>
+      <p>Il target compra strumenti, non promesse. Far vedere il prodotto è la prova più diretta che esiste. La <b>grid sottile dietro al phone</b> è un richiamo tecnico (carta millimetrata, blueprint): l'oggetto è in fase di "studio", non di marketing. Il copy laterale fa solo da didascalia: il vero claim è lo screenshot.</p>
+    </div>
+
+    <div class="copy-examples">
+      <div class="ex">
+        <div class="lab">Esempio · screen MEV</div>
+        <div class="body"><b>VOLUME IN MAV.<br>OGGI.</b><br>14 serie effettive sul petto. Sei nella zona dove il muscolo cresce.</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · screen progressione</div>
+        <div class="body"><b>TRE SETTIMANE<br>DI PROGRESSO.</b><br>Stesso peso, RPE in calo. La definizione di "stai migliorando".</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · screen offline</div>
+        <div class="body"><b>OFFLINE.<br>FUNZIONA UGUALE.</b><br>I tuoi dati sul tuo telefono. Sempre. Anche in seminterrato.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= -->
+<!-- TEMPLATE 03 — NUMERO -->
+<!-- ========================= -->
+<section class="section" id="t03" data-screen-label="04 Numero">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 03 · Statistico / Numeri</span>
+      <span>1:1 square · alta retention</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">TEMPLATE /03</div>
+        <h2>UN <span class="acc">NUMERO</span>.<br>UNA STORIA.</h2>
+      </div>
+      <div class="essence">
+        Il template più asciutto del sistema. Un singolo numero gigante in Bebas Neue, una didascalia che dice cosa significa, una mini bar-chart che lo contestualizza. <b>Niente narrazione</b>: il numero parla, il design ascolta.
+      </div>
+    </div>
+
+    <div class="template-grid">
+      <div class="preview-stage">
+        <div class="frame-meta"><b>FORMATO</b> 1:1 · <span class="dot">·</span> 1080×1080 px</div>
+        <div class="post r-1:1 t03">
+          <div class="corner-tl">
+            <span class="kicker"><span class="pill">DATO</span>SETT 19</span>
+          </div>
+          <div class="corner-tr brand-mark">PUMP<span class="acc">/</span>LOG</div>
+
+          <div class="stat-kicker">PROGRESSIONE · PANCA PIANA</div>
+          <div class="stat-num">+<span class="acc">14,5</span><span class="unit">KG</span></div>
+
+          <div class="stat-label">
+            E1RM in 12 settimane.
+            <span class="meta">Da 72,5 → 87,0 kg · scarico in sett. 7</span>
+          </div>
+
+          <div class="stat-chart">
+            <div class="bar" style="height: 30%;"></div>
+            <div class="bar" style="height: 38%;"></div>
+            <div class="bar" style="height: 42%;"></div>
+            <div class="bar" style="height: 48%;"></div>
+            <div class="bar" style="height: 55%;"></div>
+            <div class="bar" style="height: 62%;"></div>
+            <div class="bar" style="height: 25%;"></div>
+            <div class="bar" style="height: 68%;"></div>
+            <div class="bar" style="height: 75%;"></div>
+            <div class="bar" style="height: 82%;"></div>
+            <div class="bar" style="height: 88%;"></div>
+            <div class="bar cur" style="height: 100%;"></div>
+          </div>
+
+          <div class="corner-bl" style="display:none;"></div>
+          <div class="corner-br swipe-hint">VEDI</div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Scheda template /03</h3>
+
+        <div class="spec-row"><span class="k">Formato</span><span class="v mono">1080×1080 · 1:1 square</span></div>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v mono">#0C0C0D · piatto · zero pattern</span></div>
+        <div class="spec-row"><span class="k">Kicker</span><span class="v">Pill lime + label "DATO · SETT 19" · Barlow Cond. 11/0.25em</span></div>
+        <div class="spec-row"><span class="k">Sotto-kicker</span><span class="v">Categoria del dato · Barlow Cond. 11/0.25em · lime</span></div>
+        <div class="spec-row"><span class="k">Numero hero</span><span class="v"><b>Bebas 200–280px</b> · una sola cifra/valore · cifra in lime</span></div>
+        <div class="spec-row"><span class="k">Unità di misura</span><span class="v">Barlow Cond. 700 · 36px · grigio ink-2 · raised</span></div>
+        <div class="spec-row"><span class="k">Didascalia</span><span class="v">Barlow 500 · 18px · max 2 righe</span></div>
+        <div class="spec-row"><span class="k">Mini-chart</span><span class="v">Bar chart 12 settimane · ultima barra in lime · altezza max 36px</span></div>
+        <div class="spec-row"><span class="k">Decimali</span><span class="v mono">Sempre virgola · 14,5 mai 14.5</span></div>
+        <div class="spec-row"><span class="k">Lime area</span><span class="v"><b>≈ 5%</b> · cifra principale + barra + slash brand · borderline</span></div>
+
+        <div class="spec-block" style="margin-top: 8px;">
+          <span class="lab">Quando usarlo</span>
+          <div class="val">
+            <ul>
+              <li>Numeri di prodotto (utenti registrati, sessioni offline, PR loggati)</li>
+              <li>Statistiche aggregate community (volume medio per gruppo)</li>
+              <li>Confronti su un singolo asse (panca vs trazioni in % BW)</li>
+              <li>Soglie scientifiche di riferimento (MEV petto = 8 serie)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <span class="lab">Variante "no chart"</span>
+          <div class="val">
+            Per numeri assoluti senza contesto temporale (es. "MEV PETTO = <b>8 SERIE</b>"), nascondere il chart e centrare verticalmente il numero. Il post diventa ancora più asciutto.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rationale">
+      <h4>Perché funziona</h4>
+      <p>Su Instagram il numero gigante è una pausa visiva nel feed motivazionale. Mentre tutti urlano "BEAST MODE", noi pubblichiamo <b>+14,5 kg</b> e basta. Il lettore si ferma a capire cosa stiamo dicendo — è curiosità tecnica, non emozione. La bar-chart finale aggiunge contesto senza spiegare: lascia all'occhio il lavoro di leggere i pattern.</p>
+    </div>
+
+    <div class="copy-examples">
+      <div class="ex">
+        <div class="lab">Esempio · numero prodotto</div>
+        <div class="body"><span class="mono"><b>0</b></span> notifiche push.<br>Per scelta. Per sempre.</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · numero scientifico</div>
+        <div class="body"><span class="mono"><b>8–14</b></span> serie effettive.<br>Il range MAV per il petto.</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · numero community</div>
+        <div class="body"><span class="mono"><b>+18%</b></span> e1RM medio<br>tra chi logga ≥3×/settimana.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= -->
+<!-- TEMPLATE 04 — MASSIMA -->
+<!-- ========================= -->
+<section class="section" id="t04" data-screen-label="05 Massima">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 04 · Citazione / Principio</span>
+      <span>4:5 portrait · alta condivisibilità</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">TEMPLATE /04</div>
+        <h2>LA <span class="acc">MASSIMA</span><br>TECNICA.</h2>
+      </div>
+      <div class="essence">
+        L'anti-motivational. Una frase corta, sostantiva, dichiarativa — un principio di allenamento, non un'esortazione. Editorial, calmo, attribuzione asciutta. <b>Niente "you got this", niente "no excuses".</b> Solo regole pratiche di chi sa quello che fa.
+      </div>
+    </div>
+
+    <div class="template-grid">
+      <div class="preview-stage">
+        <div class="frame-meta"><b>FORMATO</b> 4:5 · <span class="dot">·</span> 1080×1350 px</div>
+        <div class="post r-4:5 t04">
+          <div class="corner-tl">
+            <span class="kicker"><span class="pill">PRINCIPIO 07</span>PROGRESSIONE</span>
+          </div>
+          <div class="corner-tr brand-mark">PUMP<span class="acc">/</span>LOG</div>
+
+          <div class="quote-mark">«</div>
+          <div class="quote-body">
+            Stesso peso, stesso volume, un <b>RPE in meno</b>. Hai progredito. Anche se la bilancia non se n'è accorta.
+          </div>
+          <div class="quote-rule"></div>
+          <div class="quote-attr">— PRINCIPIO DI PROGRESSIONE · PUMPLOG</div>
+
+          <div class="corner-bl">
+            <span class="kicker">SERIE PRINCIPI · 07/12</span>
+          </div>
+          <div class="corner-br swipe-hint">SALVA</div>
+        </div>
+      </div>
+
+      <div class="spec-sheet">
+        <h3>Scheda template /04</h3>
+
+        <div class="spec-row"><span class="k">Formato</span><span class="v mono">1080×1350 · 4:5 portrait</span></div>
+        <div class="spec-row"><span class="k">Sfondo</span><span class="v mono">#0C0C0D piatto · zero ornamento</span></div>
+        <div class="spec-row"><span class="k">Quote mark</span><span class="v">«» Bebas Neue 120px lime top-left</span></div>
+        <div class="spec-row"><span class="k">Corpo</span><span class="v"><b>Barlow 500</b> · 44–52px · max 4 righe · 1 parola lime ammessa</span></div>
+        <div class="spec-row"><span class="k">Tracking corpo</span><span class="v mono">-0.015em · text-wrap: balance</span></div>
+        <div class="spec-row"><span class="k">Linea separatrice</span><span class="v">1px Surface 3 + tick 60px lime sul lato sx</span></div>
+        <div class="spec-row"><span class="k">Attribuzione</span><span class="v">Barlow Cond. 700 · 11/0.25em · ink-2 · maiuscolo</span></div>
+        <div class="spec-row"><span class="k">Vincolo critico</span><span class="v"><b>Niente corsivo.</b> Il corpo è in Barlow 500 roman</span></div>
+        <div class="spec-row"><span class="k">Lime area</span><span class="v"><b>≈ 3%</b> · virgolette + tick + parola + slash</span></div>
+
+        <div class="spec-block" style="margin-top: 8px;">
+          <span class="lab">Tipologia di massime ammesse</span>
+          <div class="val">
+            <ul>
+              <li>Principi tecnici verificabili (progressione, recupero, volume)</li>
+              <li>Definizioni operative (cosa significa "progredire", "recuperare")</li>
+              <li>Negazioni utili ("Il PR non è il peso, è l'RPE")</li>
+              <li>Osservazioni asciutte sul training</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <span class="lab">Vietato</span>
+          <div class="val" style="color: var(--ink-2);">
+            <ul style="opacity: 0.7;">
+              <li>Frasi motivazionali ("Non mollare", "Tu puoi")</li>
+              <li>Citazioni di personaggi storici sull'allenamento</li>
+              <li>Versioni edulcorate di principi tecnici</li>
+              <li>Verbi all'imperativo "tu" ("Allenati di più")</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rationale">
+      <h4>Perché funziona</h4>
+      <p>Il target è saturo di citazioni motivazionali su sfondo nero. La differenza che PumpLog fa è <b>dire una cosa vera e tecnica</b> con lo stesso layout editoriale. La massima non urla — descrive. L'attribuzione "PRINCIPIO 07 · PUMPLOG" suggerisce un corpus organico di pensiero, non frasi a caso. Funziona perché <em>somiglia</em> a un poster motivazionale ma <em>è</em> una nota tecnica.</p>
+    </div>
+
+    <div class="copy-examples">
+      <div class="ex">
+        <div class="lab">Esempio · progressione</div>
+        <div class="body">«Stesso peso, stesso volume, un <b>RPE in meno</b>. Hai progredito.»</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · recupero</div>
+        <div class="body">«Il <b>recupero</b> non è il tempo tra le serie. È il tempo tra le sedute.»</div>
+      </div>
+      <div class="ex">
+        <div class="lab">Esempio · volume</div>
+        <div class="body">«Più serie non vuol dire più ipertrofia. <b>Vuol dire più stanchezza</b>.»</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= -->
+<!-- TEMPLATE 05 — CAROSELLO -->
+<!-- ========================= -->
+<section class="section" id="t05" data-screen-label="06 Carosello">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 05 · Carosello / Guida</span>
+      <span>1:1 · 5–8 slide · alto saving</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">TEMPLATE /05</div>
+        <h2>LA <span class="acc">GUIDA</span><br>IN CINQUE<br>SLIDE.</h2>
+      </div>
+      <div class="essence">
+        Cover ipnotica con numero di step grande, 3-5 slide tecniche numerate, slide di chiusura con CTA. Stesso lessico visivo del feed, ma il <b>peso del numero</b> sale: il carosello è la forma del manuale.
+      </div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <div class="frame-meta" style="font-family: var(--f-condensed); font-weight: 700; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-3);">
+        <span>FORMATO</span> <b style="color: var(--accent);">1:1 · 1080×1080</b> · <span style="color: var(--ink-3);">·</span> 5 slide (scorri →)
+      </div>
+    </div>
+
+    <div class="carousel-track">
+      <!-- SLIDE 1 · COVER -->
+      <div class="car-slide">
+        <div class="lab">SLIDE 01 · COVER</div>
+        <div class="post r-carousel car-cover">
+          <div class="corner-tl">
+            <span class="kicker"><span class="pill">GUIDA</span>03</span>
+          </div>
+          <div class="corner-tr brand-mark">PUMP<span class="acc">/</span>LOG</div>
+          <div class="car-num">05<span class="small">/05</span></div>
+          <div class="car-title">IMPOSTA UNA<br>SCHEDA <span class="acc">PUSH/<br>PULL/LEGS</span><br>IN 5 PASSI.</div>
+          <div class="corner-bl"><span class="kicker">SCORRI →</span></div>
+        </div>
+      </div>
+
+      <!-- SLIDE 2 · STEP 1 -->
+      <div class="car-slide">
+        <div class="lab">SLIDE 02 · STEP 01</div>
+        <div class="post r-carousel car-step">
+          <div class="corner-tl brand-mark">PUMP<span class="acc">/</span>LOG</div>
+          <div class="step-num">01</div>
+          <div class="step-title">FREQUENZA</div>
+          <div class="step-h">QUANTE<br>VOLTE A<br>SETTIMANA.</div>
+          <div class="step-body">
+            <b>3, 4 o 6 sedute.</b> Mai 5 dispari — non si chiude il ciclo. Per intermedi: <span class="lime">2 cicli completi/sett</span> (6 sedute) è il punto dolce volume/recupero.
+          </div>
+          <div class="step-page">02 / 05</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 3 · STEP 2 -->
+      <div class="car-slide">
+        <div class="lab">SLIDE 03 · STEP 02</div>
+        <div class="post r-carousel car-step">
+          <div class="corner-tl brand-mark">PUMP<span class="acc">/</span>LOG</div>
+          <div class="step-num">02</div>
+          <div class="step-title">VOLUME / GRUPPO</div>
+          <div class="step-h">SERIE<br>EFFETTIVE,<br>NON TOTALI.</div>
+          <div class="step-body">
+            Petto: <b>14–18 serie/sett</b>. Schiena: <b>16–22</b>. Gambe: <b>14–20</b>. Spalle: <b>10–16</b>. Conta solo le serie a <span class="lime">RPE ≥7</span>.
+          </div>
+          <div class="step-page">03 / 05</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 4 · STEP 3 -->
+      <div class="car-slide">
+        <div class="lab">SLIDE 04 · STEP 03</div>
+        <div class="post r-carousel car-step">
+          <div class="corner-tl brand-mark">PUMP<span class="acc">/</span>LOG</div>
+          <div class="step-num">03</div>
+          <div class="step-title">ESERCIZI PRINCIPALI</div>
+          <div class="step-h">UN COMPOSTO,<br>UN PESANTE,<br>DUE LEGGERI.</div>
+          <div class="step-body">
+            <b>Push:</b> panca + spinte manubri + croci + alzate. <b>Pull:</b> stacchi/rematori + trazioni + rematore manubrio + curl. Sequenza <span class="lime">pesante → leggero</span>, sempre.
+          </div>
+          <div class="step-page">04 / 05</div>
+        </div>
+      </div>
+
+      <!-- SLIDE 5 · CLOSE -->
+      <div class="car-slide">
+        <div class="lab">SLIDE 05 · CHIUSURA</div>
+        <div class="post r-carousel car-close">
+          <div class="corner-tl">
+            <span class="kicker"><span class="pill">FINE</span>05/05</span>
+          </div>
+          <div class="corner-tr brand-mark">PUMP<span class="acc">/</span>LOG</div>
+          <div class="close-h">REGISTRA<br>OGNI <span class="acc">SERIE</span>.<br>IL RESTO<br>VIENE DA SÉ.</div>
+          <div class="close-cta">SCARICA PUMPLOG</div>
+          <div class="corner-bl"><span class="kicker">PWA GRATUITA</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="template-grid" style="margin-top: 56px;">
+      <div></div>
+      <div class="spec-sheet">
+        <h3>Scheda template /05</h3>
+
+        <div class="spec-row"><span class="k">Formato</span><span class="v mono">1080×1080 · 1:1 · 5–8 slide</span></div>
+        <div class="spec-row"><span class="k">Struttura</span><span class="v">Cover · 3–5 step · Chiusura con CTA</span></div>
+        <div class="spec-row"><span class="k">Cover</span><span class="v">Numero "X/X" giant in Bebas + titolo Bebas + 1 parola lime</span></div>
+        <div class="spec-row"><span class="k">Step</span><span class="v">Numero step in lime 56px · titolo categoria · headline Bebas · body Barlow 14px</span></div>
+        <div class="spec-row"><span class="k">Page counter</span><span class="v mono">Roboto Mono 10px · bottom-left</span></div>
+        <div class="spec-row"><span class="k">Chiusura</span><span class="v">Headline + bottone lime CTA · uguale per ogni serie</span></div>
+        <div class="spec-row"><span class="k">Densità body</span><span class="v">Max 40 parole per step · 1–2 numeri evidenziati</span></div>
+        <div class="spec-row"><span class="k">Consistenza</span><span class="v">Brand mark in alto a destra su OGNI slide · slash sempre lime</span></div>
+
+        <div class="spec-block" style="margin-top: 8px;">
+          <span class="lab">Quando usarlo</span>
+          <div class="val">
+            <ul>
+              <li>Guide tecniche multi-step (impostare scheda, deload, periodizzazione)</li>
+              <li>Comparison ampliate (pesi vs calisthenics su 5 parametri)</li>
+              <li>FAQ rispondibili in 3–5 step</li>
+              <li>Onboarding "come iniziare con PumpLog"</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <span class="lab">Vincoli</span>
+          <div class="val">
+            <ul style="opacity: 0.7;">
+              <li>Mai &gt;8 slide · Instagram limita a 10 ma l'attenzione cala dopo la 6ª</li>
+              <li>Mai cover senza numero · è la promessa di completezza</li>
+              <li>Mai slide finale senza CTA · sprecata</li>
+              <li>Mai cambiare layout tra step della stessa guida</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rationale">
+      <h4>Perché funziona</h4>
+      <p>Il carosello è il <b>formato che richiede tempo di lettura</b> — su Instagram, il tempo di permanenza è uno dei segnali di engagement più premiati dall'algoritmo. Una guida con 5 slide tecniche fa scorrere il dito 4 volte, e ogni swipe è un segnale positivo. La promessa "X/X" della cover è critica: fa partire la lettura con un'aspettativa di completezza ("ce la posso fare in 5 swipe"). La chiusura con CTA chiude il loop: chi ha letto 5 slide è già qualificato.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= -->
+<!-- CROSS-TEMPLATE RULES -->
+<!-- ========================= -->
+<section class="section" data-screen-label="07 Regole sistema">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 06 · Regole trasversali</span>
+      <span>Cosa vale su tutti i template</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/06 · SISTEMA</div>
+        <h2>SEI REGOLE<br><span class="acc">TRASVERSALI</span>.</h2>
+      </div>
+      <div class="essence">
+        Indipendentemente dal template, queste sei regole valgono su tutti i post. Sono la "voce di sistema" su Instagram — l'utente li riconosce come PumpLog prima ancora di leggere la copy.
+      </div>
+    </div>
+
+    <div class="rules-grid">
+      <div class="rule-c">
+        <span class="lab">/01</span>
+        <h4>Brand mark<br>top-right.<br>Sempre.</h4>
+        <p>"PUMP/LOG" in Bebas 18–22px, slash sempre lime, sempre nello stesso angolo. È <b>l'unico elemento identico</b> attraverso i 5 template. È il filo conduttore visivo del feed.</p>
+      </div>
+      <div class="rule-c">
+        <span class="lab">/02</span>
+        <h4>Pill kicker<br>top-left.</h4>
+        <p>Etichetta tipo "LEZIONE 03 · VOLUME" — categoria + numerazione progressiva. Suggerisce <b>serialità</b>: chi segue oggi vorrà la 04 domani.</p>
+      </div>
+      <div class="rule-c">
+        <span class="lab">/03</span>
+        <h4>Lime ≤ 5%<br>area.</h4>
+        <p>Vale anche e soprattutto sui social. Il post sovraccarico di lime perde la sua identità — il feed sembra un poster fitness qualsiasi. <b>Conta i pixel lime</b> in revisione: massimo 5% dell'area visibile.</p>
+      </div>
+      <div class="rule-c dont">
+        <span class="lab">× /04</span>
+        <h4>Mai emoji<br>decorative.</h4>
+        <p>Né nel post né nella caption Instagram. Le emoji rompono la voce. <b>Eccezione</b>: nessuna. Solo simboli tipografici (·, →, ↗, %, ×) ammessi.</p>
+      </div>
+      <div class="rule-c dont">
+        <span class="lab">× /05</span>
+        <h4>Mai persone<br>nel frame.</h4>
+        <p>Non siamo influencer. Non facciamo "lifestyle" da palestra. Niente atleti, niente mani, niente busti senza testa. Solo <b>strumento, numeri, oggetti</b>.</p>
+      </div>
+      <div class="rule-c">
+        <span class="lab">/06</span>
+        <h4>Caption<br>di 50 parole<br>max.</h4>
+        <p>La caption Instagram dice <b>una cosa in più</b> rispetto al post, non racconta quello che si vede. 50 parole · 1 hashtag tecnico (#mev, #e1rm, #calisthenics) · niente storytelling.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= -->
+<!-- POSTING CADENCE -->
+<!-- ========================= -->
+<section class="section" data-screen-label="08 Cadenza">
+  <div class="wrap">
+    <div class="section-meta">
+      <span>§ 07 · Cadenza editoriale</span>
+      <span>Proposta · 4 post/settimana</span>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="num">/07 · CALENDARIO</div>
+        <h2>QUATTRO<br>POST,<br><span class="acc">ZERO</span> SLOP.</h2>
+      </div>
+      <div class="essence">
+        Una proposta di cadenza che sfrutta i 5 template senza svilirli. Quattro post a settimana: due "alto valore" (carosello + lezione), due "ad alta riconoscibilità" (numero + massima). Il <b>prodotto</b> si pubblica quando c'è un update reale — non a cadenza fissa.
+      </div>
+    </div>
+
+    <div class="cadence-grid">
+      <div class="h">Giorno</div>
+      <div class="h acc">Lunedì</div>
+      <div class="h">Mercoledì</div>
+      <div class="h">Venerdì</div>
+      <div class="h">Sabato</div>
+      <div class="h">Domenica</div>
+
+      <div>Template</div>
+      <div>/05 Carosello</div>
+      <div>/03 Numero</div>
+      <div>/01 Lezione</div>
+      <div>/04 Massima</div>
+      <div>—</div>
+
+      <div>Formato</div>
+      <div>1:1 · 5 slide</div>
+      <div>1:1</div>
+      <div>4:5</div>
+      <div>4:5</div>
+      <div>—</div>
+
+      <div>Tempo creazione</div>
+      <div>3–4 h</div>
+      <div>45 min</div>
+      <div>1–2 h</div>
+      <div>30 min</div>
+      <div>—</div>
+
+      <div>Funzione</div>
+      <div>Reach + save</div>
+      <div>Engagement</div>
+      <div>Save + auth</div>
+      <div>Share</div>
+      <div>Riposo</div>
+
+      <div>Stories link</div>
+      <div>3 stories</div>
+      <div>2 stories</div>
+      <div>2 stories</div>
+      <div>1 story</div>
+      <div>—</div>
+    </div>
+
+    <p style="margin-top: 32px; font-family: var(--f-body); font-weight: 400; font-size: 15px; color: var(--ink-2); line-height: 1.65; max-width: 64ch;">
+      <span class="mono" style="color: var(--accent);">⌖ Nota:</span> il <b style="color: var(--ink);">template /02 Prodotto</b> non è in calendario fisso: si attiva quando c'è un <b style="color: var(--ink);">update reale</b> dell'app (nuova feature, redesign, milestone). Pubblicarlo a vuoto svaluta il segnale.
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot">
+    <div>Documento<b>Instagram Templates v1</b></div>
+    <div>Stato<b style="color: var(--accent);">Pronto per produzione</b></div>
+    <div>Prossimo<b>Figma master · 5 file</b></div>
+    <div>Owner<b>Social · Brand</b></div>
+  </div>
+</footer>
+
+</body>
+</html>

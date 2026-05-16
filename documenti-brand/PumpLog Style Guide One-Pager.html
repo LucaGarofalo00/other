@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PumpLog — Brand Style Guide · One-Pager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0C0C0D;
+  --bg-2: #161618;
+  --bg-3: #202022;
+  --rule: #2A2A2D;
+  --rule-2: #353539;
+  --ink: #F0EFE8;
+  --ink-2: rgba(240,239,232,0.55);
+  --ink-3: rgba(240,239,232,0.32);
+  --accent: #C8FF00;
+  --accent-ink: #000;
+  --danger: #EF4444;
+  --success: #22C55E;
+  --warning: #F59E0B;
+
+  --f-display: "Bebas Neue", Impact, sans-serif;
+  --f-condensed: "Barlow Condensed", "Bebas Neue", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-mono: "Roboto Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: #050505;
+  color: var(--ink);
+  font-family: var(--f-body); font-weight: 400;
+  font-size: 14px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+.page-wrap {
+  min-height: 100vh;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 24px;
+}
+.page {
+  width: 100%;
+  max-width: 1080px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  padding: 48px 56px 40px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px 40px;
+}
+
+/* HEADER */
+.head {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: end;
+  padding-bottom: 24px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 4px;
+}
+.head .wm {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 84px; line-height: 0.88; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.head .wm .acc { color: var(--accent); }
+.head .doc {
+  text-align: right;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.head .doc .title {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent);
+}
+.head .doc .sub {
+  font-family: var(--f-body); font-weight: 500;
+  font-size: 17px; color: var(--ink); letter-spacing: -0.005em;
+}
+.head .doc .meta {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 4px;
+}
+
+/* SECTION */
+.sec {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.sec.full { grid-column: span 2; }
+.sec h2 {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 28px; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+}
+.sec h2 .num {
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 11px; letter-spacing: 0.16em;
+  color: var(--accent); text-transform: none;
+}
+.sec p {
+  font-size: 13px; line-height: 1.55; color: var(--ink);
+}
+.sec p + p { margin-top: 8px; }
+.sec p b { color: var(--accent); font-weight: 600; }
+.sec p .ink2 { color: var(--ink-2); }
+.sec p .strike { color: var(--ink-2); text-decoration: line-through; text-decoration-color: var(--danger); text-decoration-thickness: 1px; }
+.sec .label {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.sec .label.acc { color: var(--accent); }
+.sec .label.danger { color: var(--danger); }
+.sec .rule-line {
+  font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: 0.04em; color: var(--accent);
+  padding-top: 4px;
+}
+.sec .rule-line::before { content: "▸ "; }
+
+/* COLOR ROW */
+.swatches {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin: 2px 0 6px;
+}
+.swatch {
+  aspect-ratio: 1.1/1; padding: 6px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  font-family: var(--f-mono); font-size: 8px; letter-spacing: 0.04em;
+  border: 1px solid var(--rule);
+}
+.swatch .n {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.swatch.dark { background: var(--bg); color: var(--ink); }
+.swatch.dark.s1 { background: var(--bg-2); }
+.swatch.dark.s2 { background: var(--bg-3); }
+.swatch.dark.s3 { background: #2A2A2D; }
+.swatch.dark .h { color: var(--ink-2); }
+.swatch.lite { background: var(--accent); color: var(--accent-ink); }
+.swatch.lite .n { color: var(--accent-ink); }
+.swatch.lite .h { color: rgba(0,0,0,0.55); }
+.swatch.paper { background: var(--ink); color: var(--bg); }
+.swatch.paper .n { color: var(--bg); }
+.swatch.paper .h { color: rgba(12,12,13,0.55); }
+
+.fn-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.fn-row .sw {
+  padding: 8px 10px;
+  font-family: var(--f-mono); font-weight: 500; font-size: 10px;
+  letter-spacing: 0.06em;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.fn-row .sw .n {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+}
+.fn-row .sw.danger { background: var(--danger); color: #fff; }
+.fn-row .sw.success { background: var(--success); color: #fff; }
+.fn-row .sw.warning { background: var(--warning); color: var(--bg); }
+
+/* TYPOGRAPHY rows */
+.type-row {
+  display: grid; grid-template-columns: 90px 1fr;
+  gap: 14px; padding: 6px 0;
+  border-bottom: 1px dashed var(--rule);
+  align-items: baseline;
+}
+.type-row:last-of-type { border-bottom: none; }
+.type-row .meta-t {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--ink-3); line-height: 1.4;
+}
+.type-row .meta-t b {
+  display: block; color: var(--ink); font-weight: 600;
+  font-family: var(--f-body); font-size: 10px;
+  letter-spacing: 0; text-transform: none; margin-top: 2px;
+}
+.type-row .sample.display { font-family: var(--f-display); font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: 0.005em; text-transform: uppercase; color: var(--ink); }
+.type-row .sample.cond { font-family: var(--f-condensed); font-weight: 700; font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink); }
+.type-row .sample.body { font-family: var(--f-body); font-weight: 500; font-size: 15px; color: var(--ink); letter-spacing: -0.005em; }
+.type-row .sample.mono { font-family: var(--f-mono); font-weight: 500; font-size: 14px; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.type-row .sample.mono .acc { color: var(--accent); }
+
+/* LOGO row */
+.logo-stack {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px; margin: 2px 0;
+}
+.logo-cell {
+  background: var(--bg-2);
+  border: 1px solid var(--rule);
+  padding: 14px 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px;
+  min-height: 70px;
+}
+.logo-cell.lime { background: var(--accent); }
+.logo-cell .wm {
+  font-family: var(--f-display); font-weight: 400;
+  font-size: 22px; line-height: 0.9; letter-spacing: 0.005em;
+  text-transform: uppercase; color: var(--ink);
+}
+.logo-cell .wm .acc { color: var(--accent); }
+.logo-cell.lime .wm { font-size: 28px; color: var(--accent-ink); }
+.logo-cell .label-mini {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 8px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.logo-cell.lime .label-mini { color: rgba(0,0,0,0.55); }
+
+/* VOICE pillars */
+.voice-pair {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin: 2px 0;
+}
+.voice-col {
+  padding: 10px 14px;
+  background: var(--bg-2);
+}
+.voice-col.yes { border-left: 3px solid var(--accent); }
+.voice-col.no { border-left: 3px solid var(--danger); }
+.voice-col .h {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 6px;
+}
+.voice-col.no .h { color: var(--danger); }
+.voice-col ul {
+  list-style: none; display: flex; flex-direction: column; gap: 3px;
+  font-size: 12px; line-height: 1.5; color: var(--ink);
+}
+.voice-col.no ul { color: var(--ink-2); }
+
+.lex-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  font-family: var(--f-mono); font-size: 11px; line-height: 1.6;
+}
+.lex-row .ok b { color: var(--accent); font-weight: 500; }
+.lex-row .ko { color: var(--ink-2); }
+.lex-row .ko s { text-decoration: line-through; text-decoration-color: var(--danger); }
+.lex-row .lbl {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 4px;
+  display: block;
+}
+.lex-row .ko .lbl { color: var(--danger); }
+.lex-row .ok .lbl { color: var(--accent); }
+
+/* RULES grid */
+.rules-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  font-size: 12px; line-height: 1.55;
+}
+.rules-grid .item {
+  display: grid; grid-template-columns: 78px 1fr; gap: 10px;
+  padding-bottom: 6px; border-bottom: 1px dashed var(--rule);
+  align-items: baseline;
+}
+.rules-grid .item:last-child, .rules-grid .item:nth-last-child(2) { border-bottom: none; padding-bottom: 0; }
+.rules-grid .item .k {
+  font-family: var(--f-condensed); font-weight: 700;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent);
+}
+.rules-grid .item .v { color: var(--ink); }
+.rules-grid .item .v .mono { font-family: var(--f-mono); color: var(--ink-2); }
+
+/* FOOTER */
+.foot {
+  grid-column: span 2;
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-top: 18px; margin-top: 12px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--f-mono); font-size: 10px;
+  letter-spacing: 0.1em; color: var(--ink-3);
+}
+.foot b { color: var(--ink); font-weight: 500; }
+.foot .acc { color: var(--accent); }
+
+@media print {
+  body { background: var(--bg); }
+  .page-wrap { padding: 0; }
+  .page { box-shadow: none; border: none; max-width: 100%; padding: 24px 28px; }
+}
+@media (max-width: 800px) {
+  .page { grid-template-columns: 1fr; padding: 28px 20px; }
+  .head { grid-template-columns: 1fr; gap: 16px; }
+  .head .doc { text-align: left; }
+  .head .wm { font-size: 60px; }
+  .sec.full { grid-column: span 1; }
+  .swatches { grid-template-columns: repeat(3, 1fr); }
+  .rules-grid { grid-template-columns: 1fr; }
+  .foot { flex-direction: column; gap: 8px; align-items: flex-start; }
+}
+</style>
+</head>
+<body data-screen-label="00 Style Guide One-Pager">
+
+<div class="page-wrap">
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="head">
+    <div class="wm">PUMP<span class="acc">/</span>LOG</div>
+    <div class="doc">
+      <div class="title">Brand Style Guide · one-pager</div>
+      <div class="sub">L'allenamento, davvero tracciato.</div>
+      <div class="meta">v1.0 · 05.2026 · per collaboratori · freelance · team</div>
+    </div>
+  </div>
+
+  <!-- 01 BRAND -->
+  <div class="sec full">
+    <h2>Brand<span class="num">/01</span></h2>
+    <p><b>PumpLog</b> è l'unica app italiana che unisce <b>sala pesi</b> e <b>calisthenics</b> in un solo log, con analisi del volume scientifico (MEV/MAV/MRV), <b>offline-first</b>, senza social.</p>
+    <p><span class="label">Personalità</span> Compagno di allenamento esperto. <b>Diretto, tecnico, zero bullshit.</b> Presente quando serve, silenzioso quando non serve.</p>
+  </div>
+
+  <!-- 02 COLORI -->
+  <div class="sec full">
+    <h2>Colori<span class="num">/02</span></h2>
+
+    <div class="swatches">
+      <div class="swatch dark">
+        <span class="n">Background</span>
+        <span class="h">#0C0C0D</span>
+      </div>
+      <div class="swatch dark s1">
+        <span class="n">Surface 1</span>
+        <span class="h">#161618</span>
+      </div>
+      <div class="swatch dark s2">
+        <span class="n">Surface 2</span>
+        <span class="h">#202022</span>
+      </div>
+      <div class="swatch dark s3">
+        <span class="n">Surface 3</span>
+        <span class="h">#2A2A2D</span>
+      </div>
+      <div class="swatch paper">
+        <span class="n">Testo</span>
+        <span class="h">#F0EFE8</span>
+      </div>
+      <div class="swatch lite">
+        <span class="n">Lime</span>
+        <span class="h">#C8FF00</span>
+      </div>
+    </div>
+
+    <div class="fn-row">
+      <div class="sw danger">
+        <span class="n">Danger</span>
+        <span>#EF4444</span>
+      </div>
+      <div class="sw success">
+        <span class="n">Success</span>
+        <span>#22C55E</span>
+      </div>
+      <div class="sw warning">
+        <span class="n">Warning</span>
+        <span>#F59E0B</span>
+      </div>
+    </div>
+
+    <p><span class="label">Testo</span> Primario #F0EFE8 · secondario α 0,55 · terziario α 0,32 (solo placeholder).</p>
+    <p class="rule-line">Dark mode only. Lime ≤ 5% area per schermata. Su lime, testo sempre nero #000. Mai lime su chiaro.</p>
+  </div>
+
+  <!-- 03 TIPOGRAFIA -->
+  <div class="sec full">
+    <h2>Tipografia<span class="num">/03</span></h2>
+
+    <div class="type-row">
+      <div class="meta-t">DISPLAY<b>Bebas Neue · 400</b></div>
+      <div class="sample display">PUMP<span style="color: var(--accent);">/</span>LOG</div>
+    </div>
+    <div class="type-row">
+      <div class="meta-t">LABEL<b>Barlow Cond. 700 · 0.25em</b></div>
+      <div class="sample cond">Serie · Recupero · Volume</div>
+    </div>
+    <div class="type-row">
+      <div class="meta-t">CORPO<b>Barlow 400/500/600</b></div>
+      <div class="sample body">Pesi e calisthenics, un solo log.</div>
+    </div>
+    <div class="type-row">
+      <div class="meta-t">DATI<b>Roboto Mono 500 · tabular</b></div>
+      <div class="sample mono">82,5 × 6 · RPE <span class="acc">8</span></div>
+    </div>
+
+    <p class="rule-line">Niente corsivo. Mai. Body min 14px su mobile. Decimali con virgola (82,5 mai 82.5).</p>
+  </div>
+
+  <!-- 04 LOGO -->
+  <div class="sec full">
+    <h2>Logo<span class="num">/04</span></h2>
+
+    <div class="logo-stack">
+      <div class="logo-cell">
+        <span class="wm">PUMP<span class="acc">/</span>LOG</span>
+        <span class="label-mini">WORDMARK · DEFAULT</span>
+      </div>
+      <div class="logo-cell">
+        <span class="wm">PL</span>
+        <span class="label-mini">MONOGRAMMA · FAVICON</span>
+      </div>
+      <div class="logo-cell lime">
+        <span class="wm">PL</span>
+        <span class="label-mini">APP ICON · LIME BG</span>
+      </div>
+    </div>
+
+    <p><span class="label">Wordmark</span> "PUMP" in <b>#F0EFE8</b>, "LOG" in <b>#C8FF00</b>. Slash sempre lime. Bebas Neue, mai sotto i 32pt.</p>
+    <p class="rule-line">Lime su sfondo bianco o chiaro: vietato. Sempre nero su lime / lime su nero.</p>
+  </div>
+
+  <!-- 05 VOCE -->
+  <div class="sec full">
+    <h2>Voce<span class="num">/05</span></h2>
+
+    <div class="voice-pair">
+      <div class="voice-col yes">
+        <div class="h">+ Diciamo</div>
+        <ul>
+          <li>Diretto, tecnico, asciutto</li>
+          <li>"Tu" sempre, mai "voi" o "lei"</li>
+          <li>Frasi corte, dati concreti</li>
+          <li>Numeri in apertura · poi contesto</li>
+        </ul>
+      </div>
+      <div class="voice-col no">
+        <div class="h">× Non diciamo</div>
+        <ul>
+          <li>Motivazionale, urlato, esclamativi</li>
+          <li>Emoji decorative · slang inglese</li>
+          <li>Storytelling forzato · preamboli</li>
+          <li>Promesse emotive senza dato</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="lex-row">
+      <div class="ok">
+        <span class="lbl">+ Lessico</span>
+        <b>serie · ripetizioni · recupero · volume · scheda · sessione · MEV/MAV/MRV · PR · e1RM · massimale · tonnellaggio</b>
+      </div>
+      <div class="ko">
+        <span class="lbl">× Vietato</span>
+        <s>workout · gains · grind · beast mode · crush it · journey · trasforma · sblocca · level up</s>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 REGOLE -->
+  <div class="sec full">
+    <h2>Regole visive<span class="num">/06</span></h2>
+
+    <div class="rules-grid">
+      <div class="item">
+        <span class="k">Icone</span>
+        <span class="v">Line · stroke <span class="mono">1.5–2px</span> · rounded caps · MAI filled/solid · solo lime</span>
+      </div>
+      <div class="item">
+        <span class="k">Animazioni</span>
+        <span class="v"><span class="mono">120–250ms</span> · ease-out · <span class="mono">scale(0.96)</span> su tap</span>
+      </div>
+      <div class="item">
+        <span class="k">Radius</span>
+        <span class="v"><span class="mono">6px</span> badge · <span class="mono">10px</span> card+bottoni · <span class="mono">14px</span> modal · <span class="mono">999px</span> pill</span>
+      </div>
+      <div class="item">
+        <span class="k">Vietati</span>
+        <span class="v">Gradienti · cartoon · illustrazioni decorative · pattern · ombre 3D · glow neon</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <span><b>PumpLog</b> · Brand Style Guide v1.0 · 05.2026</span>
+    <span class="acc">~ 430 parole · stampabile A4 · per riferimento quotidiano</span>
+  </div>
+
+</div>
+</div>
+
+</body>
+</html>
