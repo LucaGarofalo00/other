@@ -644,6 +644,72 @@ function computeTrend(points){
   return {dir: pct > 0 ? 'up' : 'down', pct: pct, delta: delta};
 }
 
+/* === TIME RANGE NAVIGATOR ===
+   Finestre calendar-anchored: la freccia "indietro" scorre del passo della finestra
+   (1 settimana → settimana precedente, 1 anno → anno precedente, ecc.).
+   offset=0 = finestra che contiene oggi. offset>0 = finestre passate. */
+var TIME_RANGES = [
+  {k:'1s', short:'1 sett.', long:'1 settimana'},
+  {k:'1m', short:'1 mese',  long:'1 mese'},
+  {k:'3m', short:'3 mesi',  long:'3 mesi'},
+  {k:'6m', short:'6 mesi',  long:'6 mesi'},
+  {k:'1a', short:'1 anno',  long:'1 anno'}
+];
+var IT_MONTH_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+var IT_MONTH_FULL  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+function getCalendarWindow(rangeKey, offset){
+  var now = new Date();
+  if(rangeKey === '1s'){
+    var ws = getWeekStart(now);
+    ws = new Date(ws.getTime() - offset*7*86400000);
+    var we = new Date(ws); we.setDate(we.getDate()+6); we.setHours(23,59,59,999);
+    return {start:ws, end:we};
+  }
+  if(rangeKey === '1m'){
+    var s = new Date(now.getFullYear(), now.getMonth()-offset, 1, 0,0,0,0);
+    var e = new Date(s.getFullYear(), s.getMonth()+1, 0, 23,59,59,999);
+    return {start:s, end:e};
+  }
+  if(rangeKey === '3m'){
+    var curQ = Math.floor(now.getMonth()/3);
+    var s = new Date(now.getFullYear(), curQ*3 - offset*3, 1, 0,0,0,0);
+    var e = new Date(s.getFullYear(), s.getMonth()+3, 0, 23,59,59,999);
+    return {start:s, end:e};
+  }
+  if(rangeKey === '6m'){
+    var curH = Math.floor(now.getMonth()/6);
+    var s = new Date(now.getFullYear(), curH*6 - offset*6, 1, 0,0,0,0);
+    var e = new Date(s.getFullYear(), s.getMonth()+6, 0, 23,59,59,999);
+    return {start:s, end:e};
+  }
+  /* '1a' */
+  var s = new Date(now.getFullYear()-offset, 0, 1, 0,0,0,0);
+  var e = new Date(s.getFullYear(), 11, 31, 23,59,59,999);
+  return {start:s, end:e};
+}
+function formatCalendarLabel(rangeKey, w){
+  var s = w.start, e = w.end;
+  if(rangeKey === '1s'){
+    var currentMonday = getWeekStart(new Date()).getTime();
+    if(s.getTime() === currentMonday) return 'Questa settimana';
+    if(s.getTime() === currentMonday - 7*86400000) return 'Settimana scorsa';
+    if(s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()){
+      return s.getDate()+'-'+e.getDate()+' '+IT_MONTH_SHORT[e.getMonth()]+' '+e.getFullYear();
+    }
+    return s.getDate()+' '+IT_MONTH_SHORT[s.getMonth()]+' - '+e.getDate()+' '+IT_MONTH_SHORT[e.getMonth()]+' '+e.getFullYear();
+  }
+  if(rangeKey === '1m'){
+    return IT_MONTH_FULL[s.getMonth()]+' '+s.getFullYear();
+  }
+  if(rangeKey === '3m'){
+    return IT_MONTH_SHORT[s.getMonth()]+'-'+IT_MONTH_SHORT[e.getMonth()]+' '+e.getFullYear();
+  }
+  if(rangeKey === '6m'){
+    return IT_MONTH_SHORT[s.getMonth()]+'-'+IT_MONTH_SHORT[e.getMonth()]+' '+e.getFullYear();
+  }
+  return String(s.getFullYear());
+}
+
 /* === BODY MEASUREMENTS STORAGE ===
    Archiviazione locale (per ora) delle misure corporee. Persistono su localStorage e
    compaiono nell'export. Una entry = {id, t (ISO), peso, massaGrassa, massaMagra,
@@ -4653,6 +4719,43 @@ function Det(p){
     /* Sheet di modifica: si aprono su tap delle relative aree. */
     edMeta && h(SessionMetaEdit,{session:s, onClose:function(){setEdMeta(false);}, onSave:handleMetaSave}),
     edEx && h(SessionExerciseEdit,{ex:edEx, sessionTipo:s.tipo, onClose:function(){setEdEx(null);}, onSave:handleExSave, onDelete:handleExDelete})
+  );
+}
+
+/* ── TimeRangeNav: pill periodo (1s/1m/3m/6m/1a) + frecce per scorrere finestra ── */
+function TimeRangeNav(p){
+  var rangeKey = p.rangeKey, offset = p.offset;
+  var setRangeKey = p.setRangeKey, setOffset = p.setOffset;
+  var earliestMs = p.earliestMs || 0;
+  var w = getCalendarWindow(rangeKey, offset);
+  var label = formatCalendarLabel(rangeKey, w);
+  var canPrev = !earliestMs || w.start.getTime() > earliestMs;
+  var canNext = offset > 0;
+  var arrowBtn = function(dir, enabled, onClick){
+    return h('button',{
+      onClick: enabled ? onClick : undefined,
+      disabled: !enabled,
+      'aria-label': dir==='prev' ? 'Periodo precedente' : 'Periodo successivo',
+      style:{background:'transparent',border:'none',color:enabled?ACC:MUTED,cursor:enabled?'pointer':'not-allowed',padding:'4px 12px',fontSize:22,fontWeight:700,opacity:enabled?1:0.3,lineHeight:1,fontFamily:"'Barlow Condensed',sans-serif"}
+    }, dir==='prev' ? '‹' : '›');
+  };
+  return h('div',{style:{marginBottom:14}},
+    h('div',{style:{display:'flex',gap:5,marginBottom:8,overflowX:'auto',WebkitOverflowScrolling:'touch'}},
+      TIME_RANGES.map(function(r){
+        var on = rangeKey === r.k;
+        return h('button',{
+          key:r.k,
+          onClick:function(){hap(6); setRangeKey(r.k); setOffset(0);},
+          'aria-pressed':on,
+          style:{flexShrink:0,padding:'6px 12px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:11,cursor:'pointer',fontWeight:on?700:500,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em',textTransform:'uppercase'}
+        }, r.short);
+      })
+    ),
+    h('div',{style:{display:'flex',alignItems:'center',gap:4,background:SURF2,borderRadius:10,padding:'4px 4px',border:'0.5px solid '+BORD}},
+      arrowBtn('prev', canPrev, function(){hap(6); setOffset(offset+1);}),
+      h('div',{style:{flex:1,textAlign:'center',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:TEXT,fontSize:13,padding:'4px 0',userSelect:'none'}}, label),
+      arrowBtn('next', canNext, function(){hap(6); setOffset(offset-1);})
+    )
   );
 }
 
