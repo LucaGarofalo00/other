@@ -2065,145 +2065,6 @@ function Settings(p){
     document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(url);if(a.parentNode)a.parentNode.removeChild(a);},100);
   }
-  /* Export per nutrizionista: report leggibile (CSV + HTML) con misure corporee
-     e riepilogo settimanale degli allenamenti. Pensato per la condivisione. */
-  function handleExportNutrizionista(format){
-    var bodyLog = loadBodyLog().slice().sort(function(a,b){return new Date(a.t)-new Date(b.t);});
-    var allSessions = (p.sessions||[]).slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);});
-
-    /* Aggrega per settimana (ISO week — usa lunedì come inizio settimana) */
-    function weekKey(d){
-      var dt = new Date(d);
-      var day = dt.getDay(); var diff = day===0?6:day-1;
-      dt.setDate(dt.getDate()-diff); dt.setHours(0,0,0,0);
-      return dt.toISOString().slice(0,10);
-    }
-    var weeks = {};
-    allSessions.forEach(function(s){
-      var k = weekKey(s.t0);
-      if(!weeks[k]) weeks[k] = {sessions:0, totMin:0, totTon:0, totReps:0, gruppi:{}, esercizi:{}};
-      weeks[k].sessions += 1;
-      weeks[k].totMin += s.dur||0;
-      (s.es||[]).forEach(function(e){
-        if(e.tipo==='riscaldamento') return;
-        var t = ton([e]);
-        weeks[k].totTon += t;
-        var reps = (e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+(sr.reps||0);},0);
-        weeks[k].totReps += reps;
-        if(e.gr){
-          var grKey = (e.gr==='Bicipiti'||e.gr==='Tricipiti') ? 'Braccia' : e.gr;
-          var sets = (e.serie||[]).filter(function(sr){return sr.ok;}).length;
-          weeks[k].gruppi[grKey] = (weeks[k].gruppi[grKey]||0) + sets;
-        }
-        weeks[k].esercizi[e.nome] = (weeks[k].esercizi[e.nome]||0) + 1;
-      });
-    });
-    var weekKeys = Object.keys(weeks).sort();
-
-    var altezzaCmExp = profile && profile.altezza ? parseFloat(String(profile.altezza).replace(',','.')) : null;
-
-    if(format === 'csv'){
-      /* CSV con due sezioni: misure + settimane */
-      var sections = [];
-      sections.push('=== MISURE CORPOREE ===');
-      var bodyHeaders = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['BMI (kg/m²)','Note']);
-      var bodyRows = bodyLog.map(function(r){
-        var bmi = calcBmi(r.peso, altezzaCmExp);
-        return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([bmi!=null?bmi:'', r.note||'']);
-      });
-      sections.push(buildCsv(bodyHeaders, bodyRows));
-      sections.push('');
-      sections.push('=== RIEPILOGO SETTIMANALE ALLENAMENTI ===');
-      var wkHeaders = ['Settimana (lun)','Sessioni','Durata totale (min)','Tonnellaggio (kg)','Reps totali','Volume per gruppo (set)'];
-      var wkRows = weekKeys.map(function(k){
-        var w = weeks[k];
-        var grStr = Object.keys(w.gruppi).map(function(g){return g+':'+w.gruppi[g];}).join(' | ');
-        return [k, w.sessions, Math.round(w.totMin), Math.round(w.totTon), w.totReps, grStr];
-      });
-      sections.push(buildCsv(wkHeaders, wkRows));
-      sections.push('');
-      sections.push('=== PROFILO ===');
-      sections.push('Nome,'+csvCell(profile&&profile.nome||''));
-      sections.push('Età,'+(profile&&profile.dataNascita?Math.floor((Date.now()-new Date(profile.dataNascita))/(365.25*86400000)):''));
-      sections.push('Altezza (cm),'+csvCell(profile&&profile.altezza||''));
-      sections.push('Obiettivo,'+csvCell(profile&&profile.obiettivo||''));
-      downloadFile('gymtracker-nutrizionista-'+todayISO()+'.csv', sections.join('\n'), 'text/csv;charset=utf-8');
-      return;
-    }
-
-    /* Formato testo umano leggibile (più facile da inviare alla nutrizionista) */
-    function dateIT(d){ return new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
-    var L = [];
-    L.push('REPORT PROGRESSI — '+(profile&&profile.nome||'')+' — '+dateIT(new Date()));
-    L.push('================================================');
-    L.push('');
-    L.push('PROFILO');
-    if(profile){
-      if(profile.dataNascita) L.push('  Età: '+Math.floor((Date.now()-new Date(profile.dataNascita))/(365.25*86400000))+' anni');
-      if(profile.altezza) L.push('  Altezza: '+profile.altezza+' cm');
-      if(profile.obiettivo) L.push('  Obiettivo: '+profile.obiettivo);
-      if(profile.livello) L.push('  Livello: '+profile.livello);
-    }
-    L.push('');
-    if(bodyLog.length){
-      L.push('MISURE CORPOREE ('+bodyLog.length+' rilevazioni)');
-      L.push('------------------------------------------------');
-      bodyLog.forEach(function(r){
-        L.push(dateIT(r.t)+':');
-        BODY_FIELDS.forEach(function(f){
-          if(r[f.k]!==undefined && r[f.k]!==null && r[f.k]!==''){
-            L.push('    '+f.lbl+': '+r[f.k]+' '+f.unit);
-          }
-        });
-        var bmiR = calcBmi(r.peso, altezzaCmExp);
-        if(bmiR != null){
-          var cat = bmiCategory(bmiR);
-          L.push('    BMI: '+bmiR+' kg/m²' + (cat?' ('+cat.label+')':''));
-        }
-        if(r.note) L.push('    Nota: '+r.note);
-        L.push('');
-      });
-      /* Confronto prima/ultima */
-      if(bodyLog.length>=2){
-        var first = bodyLog[0], last = bodyLog[bodyLog.length-1];
-        L.push('VARIAZIONI (prima → ultima)');
-        L.push('------------------------------------------------');
-        BODY_FIELDS.forEach(function(f){
-          if(first[f.k]!==undefined && last[f.k]!==undefined && first[f.k]!=='' && last[f.k]!==''){
-            var d = parseFloat(last[f.k])-parseFloat(first[f.k]);
-            L.push('  '+f.lbl+': '+first[f.k]+' → '+last[f.k]+' '+f.unit+'  ('+(d>=0?'+':'')+(Math.round(d*10)/10)+' '+f.unit+')');
-          }
-        });
-        var bmiF = calcBmi(first.peso, altezzaCmExp), bmiL = calcBmi(last.peso, altezzaCmExp);
-        if(bmiF != null && bmiL != null){
-          var dBmi = bmiL - bmiF;
-          L.push('  BMI: '+bmiF+' → '+bmiL+' kg/m²  ('+(dBmi>=0?'+':'')+(Math.round(dBmi*10)/10)+' kg/m²)');
-        }
-        L.push('');
-      }
-    } else {
-      L.push('(Nessuna misurazione corporea registrata)');
-      L.push('');
-    }
-    if(weekKeys.length){
-      L.push('ALLENAMENTI PER SETTIMANA');
-      L.push('------------------------------------------------');
-      weekKeys.slice(-12).forEach(function(k){
-        var w = weeks[k];
-        L.push('Sett. '+k+' — '+w.sessions+' sessioni · '+Math.round(w.totMin)+' min · '+Math.round(w.totTon)+' kg tonnellaggio');
-        var grs = Object.keys(w.gruppi).sort();
-        if(grs.length) L.push('    Set per gruppo: '+grs.map(function(g){return g+' '+w.gruppi[g];}).join(', '));
-      });
-      L.push('');
-      var totalSess = weekKeys.reduce(function(a,k){return a+weeks[k].sessions;},0);
-      var totalTon = weekKeys.reduce(function(a,k){return a+weeks[k].totTon;},0);
-      L.push('TOTALI: '+totalSess+' sessioni · '+Math.round(totalTon)+' kg tonnellaggio · su '+weekKeys.length+' settimane attive');
-      L.push('');
-    }
-    L.push('================================================');
-    L.push('Generato da PumpLog — '+new Date().toLocaleString('it-IT'));
-    downloadFile('gymtracker-nutrizionista-'+todayISO()+'.txt', L.join('\n'), 'text/plain;charset=utf-8');
-  }
   function handleImport(ev){
     var f=ev.target.files[0];if(!f)return;
     var rd=new FileReader();
@@ -2290,17 +2151,6 @@ function Settings(p){
       h('label',{style:{display:'block',width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:10,padding:'9px 14px',color:TEXT,fontSize:13,fontWeight:600,cursor:'pointer',textAlign:'center'}},
         h('input',{type:'file',accept:'application/json',onChange:handleImport,style:{display:'none'}}),
         '↑  Scegli file .json'
-      )
-    ),
-    h('div',{style:{height:1,background:BORD,marginBottom:20}}),
-    /* Export per nutrizionista (PT/dietista) */
-    h(Lbl,null,'Condividi con il professionista'),
-    h('div',{style:{background:SURF2,borderRadius:12,padding:14,marginBottom:10}},
-      h('div',{style:{fontSize:13,fontWeight:500,marginBottom:4}},'Report per nutrizionista / coach'),
-      h('div',{style:{fontSize:11,color:MUTED,marginBottom:10,lineHeight:1.5}},'Scarica un report con misure corporee, riepilogo settimanale degli allenamenti, volume per gruppo muscolare e variazioni nel tempo. Pensato per essere condiviso con dietista, nutrizionista o personal trainer.'),
-      h('div',{style:{display:'flex',gap:6}},
-        h(Btn,{sm:true,full:true,onClick:function(){handleExportNutrizionista('txt');}},'📄 Report (.txt)'),
-        h(Btn,{sm:true,full:true,sec:true,onClick:function(){handleExportNutrizionista('csv');}},'📊 CSV')
       )
     ),
     h('div',{style:{height:1,background:BORD,marginBottom:20}}),
@@ -4767,34 +4617,52 @@ function TimeRangeNav(p){
 function Stats(p){
   var sessions=p.sessions,go=p.go;
   var _tab=useState('train');var tab=_tab[0];var setTab=_tab[1];
-  var _1=useState(7);var range=_1[0];var setRange=_1[1];
+  /* Selettore periodo condiviso tra le tre tab — finestre calendar-anchored con frecce ‹ › */
+  var _rk=useState('1m');var rangeKey=_rk[0];var setRangeKey=_rk[1];
+  var _ro=useState(0);var rangeOffset=_ro[0];var setRangeOffset=_ro[1];
   var _2=useState(null);var sel=_2[0];var setSel=_2[1];
-  var ranges=[[7,'7g'],[30,'30g'],[90,'90g'],[365,'1a']];
   /* Misure corporee (per il pannello "Corpo") */
   var _bm=useState(loadBodyLog());var bodyLog=_bm[0];var setBodyLog=_bm[1];
+
+  /* Data più vecchia disponibile — disabilita la freccia "indietro" oltre */
+  var earliestMs = 0;
+  if(sessions.length){
+    earliestMs = Math.min.apply(null, sessions.map(function(s){return new Date(s.t0).getTime();}));
+  }
+  if(bodyLog.length){
+    var bodyEarliest = Math.min.apply(null, bodyLog.map(function(r){return new Date(r.t).getTime();}));
+    earliestMs = earliestMs ? Math.min(earliestMs, bodyEarliest) : bodyEarliest;
+  }
 
   if(tab==='adherence'){
     return h('div',{style:{padding:'24px 16px 100px'}},
       h(PageHeader,{title:'Statistiche'}),
       h(StatsTabs,{tab:tab,setTab:setTab}),
-      h(AdherenceView,{sessions:sessions,profile:p.profile})
+      h(TimeRangeNav,{rangeKey:rangeKey,offset:rangeOffset,setRangeKey:setRangeKey,setOffset:setRangeOffset,earliestMs:earliestMs}),
+      h(AdherenceView,{sessions:sessions,profile:p.profile,rangeKey:rangeKey,rangeOffset:rangeOffset})
     );
   }
   if(tab==='body'){
     return h('div',{style:{padding:'24px 16px 100px'}},
       h(PageHeader,{title:'Statistiche'}),
       h(StatsTabs,{tab:tab,setTab:setTab}),
-      h(BodyView,{log:bodyLog,setLog:setBodyLog,profile:p.profile})
+      h(TimeRangeNav,{rangeKey:rangeKey,offset:rangeOffset,setRangeKey:setRangeKey,setOffset:setRangeOffset,earliestMs:earliestMs}),
+      h(BodyView,{log:bodyLog,setLog:setBodyLog,profile:p.profile,setProfile:p.setProfile,rangeKey:rangeKey,rangeOffset:rangeOffset})
     );
   }
-  var cutoff=new Date(Date.now()-range*86400000);
-  var prevCutoff=new Date(Date.now()-range*2*86400000);
+  /* Finestra corrente + finestra precedente di pari ampiezza per i delta */
+  var winNow  = getCalendarWindow(rangeKey, rangeOffset);
+  var winPrev = getCalendarWindow(rangeKey, rangeOffset+1);
+  var startMs = winNow.start.getTime(), endMs = winNow.end.getTime();
+  var prevStartMs = winPrev.start.getTime(), prevEndMs = winPrev.end.getTime();
+  var rangeDays = Math.max(1, Math.round((endMs - startMs) / 86400000));
+  function inWin(s, sMs, eMs){var t = new Date(s.t0).getTime(); return t>=sMs && t<=eMs;}
   /* Per top esercizi e tonnellaggio escludiamo cardio (semantica diversa: durata/kcal vs peso/reps).
      Ma per KPI di alto livello (sessioni totali, durata, volume per gruppo) consideriamo TUTTO. */
-  var data=sessions.filter(function(s){return new Date(s.t0)>=cutoff && s.tipo!=='cardio';});
-  var allData=sessions.filter(function(s){return new Date(s.t0)>=cutoff;});
-  var prevData=sessions.filter(function(s){var t=new Date(s.t0);return t>=prevCutoff && t<cutoff && s.tipo!=='cardio';});
-  var prevAllData=sessions.filter(function(s){var t=new Date(s.t0);return t>=prevCutoff && t<cutoff;});
+  var data=sessions.filter(function(s){return inWin(s,startMs,endMs) && s.tipo!=='cardio';});
+  var allData=sessions.filter(function(s){return inWin(s,startMs,endMs);});
+  var prevData=sessions.filter(function(s){return inWin(s,prevStartMs,prevEndMs) && s.tipo!=='cardio';});
+  var prevAllData=sessions.filter(function(s){return inWin(s,prevStartMs,prevEndMs);});
   var pesiData=data.filter(function(s){return s.tipo!=='cal';});
   var calData=data.filter(function(s){return s.tipo==='cal';});
   var cardioData=allData.filter(function(s){return s.tipo==='cardio';});
@@ -4825,7 +4693,7 @@ function Stats(p){
   });
   /* Contributi da cardio: filtriamo dal sessions originale per stesso range, NON da `data`
      (che esclude il cardio per design negli altri grafici). */
-  sessions.filter(function(s){return new Date(s.t0)>=cutoff && s.tipo==='cardio';}).forEach(function(s){
+  sessions.filter(function(s){return inWin(s,startMs,endMs) && s.tipo==='cardio';}).forEach(function(s){
     var ch = cardioMuscleHits(s);
     Object.keys(ch).forEach(function(gr){
       volByGr[gr] = (volByGr[gr]||0) + ch[gr];
@@ -4842,7 +4710,7 @@ function Stats(p){
     'Core':    {mev:0,  mav:16, mrv:25}
   };
   /* Normalizziamo i set al periodo selezionato — il range MEV/MAV/MRV è settimanale */
-  var weeks = Math.max(range/7, 1);
+  var weeks = Math.max(rangeDays/7, 1);
   var weeklyVol = {};
   Object.keys(volByGr).forEach(function(gr){ weeklyVol[gr] = Math.round(volByGr[gr]/weeks); });
   var gruppiOrder = ['Petto','Schiena','Gambe','Spalle','Braccia','Core'];
@@ -4864,11 +4732,69 @@ function Stats(p){
   var dTon = deltaTon();
   var dSes = deltaSessions();
 
+  /* Export CSV — tutti i dati del tab Allenamenti nel range selezionato */
+  function exportTrainCsv(){
+    var winLbl = formatCalendarLabel(rangeKey, winNow).replace(/\s+/g,'_');
+    var sections = [];
+    sections.push('=== PERIODO ===');
+    sections.push('Range,'+csvCell(TIME_RANGES.find(function(r){return r.k===rangeKey;}).long));
+    sections.push('Da,'+csvCell(winNow.start.toISOString().slice(0,10)));
+    sections.push('A,'+csvCell(winNow.end.toISOString().slice(0,10)));
+    sections.push('');
+    sections.push('=== KPI ===');
+    var kpiRows = [
+      ['Sessioni totali', allData.length, dSes!=null?(dSes>=0?'+':'')+dSes+' vs prec.':''],
+      ['Tonnellaggio (kg)', Math.round(pesiData.reduce(function(t,s){return t+ton(s.es);},0)), dTon!=null?(dTon>=0?'+':'')+dTon+'%':''],
+      ['Durata totale (min)', Math.round(allData.reduce(function(t,s){return t+s.dur;},0)), ''],
+      ['Sessioni pesi', pesiData.length, ''],
+      ['Sessioni calisthenics', calData.length, ''],
+      ['Sessioni cardio', cardioData.length, '']
+    ];
+    sections.push(buildCsv(['KPI','Valore','Delta vs periodo precedente'], kpiRows));
+    sections.push('');
+    sections.push('=== SESSIONI ===');
+    var sessRows = allData.slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);}).map(function(s){
+      var totTon = ton(s.es||[]);
+      var totReps = (s.es||[]).reduce(function(a,e){return a+(e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(x,sr){return x+(sr.reps||0);},0);},0);
+      var totSets = (s.es||[]).reduce(function(a,e){return a+(e.serie||[]).filter(function(sr){return sr.ok;}).length;},0);
+      return [
+        new Date(s.t0).toISOString().slice(0,10),
+        new Date(s.t0).toTimeString().slice(0,5),
+        s.tipo||'pesi',
+        s.nome||'',
+        Math.round(s.dur||0),
+        (s.es||[]).length,
+        totSets,
+        totReps,
+        Math.round(totTon),
+        sessionCompletionRate(s)+'%',
+        (s.nota||'').replace(/\n/g,' ')
+      ];
+    });
+    sections.push(buildCsv(['Data','Ora','Tipo','Nome','Durata (min)','Esercizi','Set completati','Reps totali','Tonnellaggio (kg)','Completamento','Nota'], sessRows));
+    sections.push('');
+    sections.push('=== VOLUME SETTIMANALE PER GRUPPO ===');
+    var volRows = Object.keys(weeklyVol).map(function(gr){
+      return [gr, weeklyVol[gr], (cardioVolByGr[gr]?Math.round(cardioVolByGr[gr]/weeks):0)];
+    });
+    sections.push(buildCsv(['Gruppo','Set/settimana','di cui da cardio'], volRows));
+    sections.push('');
+    sections.push('=== TOP ESERCIZI PESI (tonnellaggio) ===');
+    var topRows = topExs.map(function(e){return [e[0], Math.round(e[1])];});
+    sections.push(buildCsv(['Esercizio','Tonnellaggio (kg)'], topRows));
+    sections.push('');
+    sections.push('=== TOP ESERCIZI CAL (ripetizioni) ===');
+    var calRows = Object.entries(calByEx).sort(function(a,b){return b[1]-a[1];}).map(function(e){return [e[0], e[1]];});
+    sections.push(buildCsv(['Esercizio','Reps totali'], calRows));
+    downloadFile('pumplog-allenamenti-'+winLbl+'.csv', sections.join('\n'), 'text/csv;charset=utf-8');
+  }
+
   return h('div',{style:{padding:'24px 16px 100px'}},
     h(PageHeader,{title:'Statistiche'}),
     h(StatsTabs,{tab:tab,setTab:setTab}),
-    h('div',{style:{display:'flex',gap:6,marginBottom:16}},
-      ranges.map(function(r){return h('button',{key:r[0],onClick:function(){hap(8);setRange(r[0]);},style:{padding:'8px 14px',borderRadius:20,border:'1px solid '+(range===r[0]?ACC:BORD),background:range===r[0]?ACC2:'transparent',color:range===r[0]?ACC:MUTED,fontSize:13,cursor:'pointer',fontWeight:range===r[0]?700:400}},r[1]);})
+    h(TimeRangeNav,{rangeKey:rangeKey,offset:rangeOffset,setRangeKey:setRangeKey,setOffset:setRangeOffset,earliestMs:earliestMs}),
+    allData.length>0 && h('div',{style:{marginBottom:14}},
+      h(Btn,{sm:true,sec:true,full:true,onClick:exportTrainCsv}, '⬇  Esporta dati periodo (.csv)')
     ),
     /* C7: Empty state caldo */
     allData.length===0&&h('div',{style:{textAlign:'center',padding:'48px 24px',color:MUTED}},
@@ -4919,7 +4845,7 @@ function Stats(p){
         /* Adherence vs target */
         (function(){
           var target=p.profile&&p.profile.giorniTarget?p.profile.giorniTarget:3;
-          var weeks=getAdherenceWeeks(sessions,Math.min(Math.ceil(range/7),8));
+          var weeks=getAdherenceWeeks(sessions,Math.min(Math.ceil(rangeDays/7),8));
           var maxCount=Math.max(target,Math.max.apply(null,weeks.map(function(w){return w.count;}).concat([1])));
           return h('div',{style:{background:SURF2,borderRadius:14,padding:'16px 12px',border:'0.5px solid '+BORD}},
             h('div',{style:{fontSize:10,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:MUTED,marginBottom:10,textAlign:'center'}},'COSTANZA'),
@@ -5204,9 +5130,7 @@ function AdherenceChartScrollable(p){
       });
     }
   }, [numWeeks]);
-  var headerTitle = numWeeks <= 12
-    ? ('Ultime '+numWeeks+' settimane')
-    : ('Ultimi '+(numWeeks===26?'6 mesi':numWeeks===52?'12 mesi':numWeeks+' settimane'));
+  var headerTitle = p.title || (numWeeks === 1 ? '1 settimana' : numWeeks+' settimane');
   /* Barra: ~40px abbondante per label "5-11 mag" + gap 5px */
   var BAR_W = 40;
   var BAR_GAP = 5;
@@ -5261,22 +5185,40 @@ function AdherenceChartScrollable(p){
 /* ── Adherence stats tab: costanza, streak, muscle heatmap ── */
 function AdherenceView(p){
   var sessions=p.sessions,profile=p.profile;
-  /* Selettore periodo: numero di settimane analizzate. Default 8 (compromesso storia/segnale).
-     Per range lunghi (26, 52) il chart delle barre diventa stretto ma resta leggibile. */
-  var _rg = useState(8); var numWeeks = _rg[0]; var setNumWeeks = _rg[1];
-  var RANGES = [[4,'4s'],[8,'8s'],[12,'12s'],[26,'6m'],[52,'1a']];
+  /* Periodo deciso dal TimeRangeNav esterno (rangeKey + rangeOffset) */
+  var rangeKey = p.rangeKey || '1m';
+  var rangeOffset = p.rangeOffset || 0;
+  var win = getCalendarWindow(rangeKey, rangeOffset);
+  var startMs = win.start.getTime(), endMs = win.end.getTime();
   /* Target: se l'utente ha impostato breakdown per disciplina (pesi/cal/cardio), uso la somma.
      Altrimenti uso il totale profile.giorniTarget. */
   var bd = loadTargetBreakdown();
   var target = (bd && (bd.pesi||0)+(bd.cal||0)+(bd.cardio||0) > 0)
     ? (bd.pesi||0)+(bd.cal||0)+(bd.cardio||0)
     : (profile&&profile.giorniTarget?profile.giorniTarget:3);
-  var weeks=getAdherenceWeeks(sessions,numWeeks);
+  /* Costruisco la lista delle settimane (lun-dom) che cadono dentro la finestra selezionata */
+  function buildWeeksInWindow(){
+    var arr = [];
+    var ws = getWeekStart(new Date(startMs));
+    while(ws.getTime() <= endMs){
+      var we = new Date(ws); we.setDate(we.getDate()+6); we.setHours(23,59,59,999);
+      if(we.getTime() >= startMs){
+        var weekSess = sessions.filter(function(s){
+          var t = new Date(s.t0).getTime();
+          return t >= ws.getTime() && t <= we.getTime();
+        });
+        arr.push({start: new Date(ws), sessions: weekSess, count: weekSess.length});
+      }
+      ws = new Date(ws.getTime() + 7*86400000);
+    }
+    return arr;
+  }
+  var weeks = buildWeeksInWindow();
+  var numWeeks = weeks.length;
   var maxBarCount=Math.max(target,Math.max.apply(null,weeks.map(function(w){return w.count;}).concat([1])));
 
-  /* Streak calculation (consecutive weeks hitting target, FROM PAST WEEKS — settimana corrente
-     non chiude il conto. Se anche la settimana corrente raggiunge target, la sommiamo.
-     NOTA: lo streak guarda sempre tutta la storia disponibile, ma è limitato dal range scelto. */
+  /* Streak: settimane consecutive in cui si è raggiunto il target, calcolato sulla finestra
+     selezionata. La settimana corrente conta come "bonus" se è già a target. */
   var weekStreak=0;
   for(var wi=weeks.length-2;wi>=0;wi--){
     if(weeks[wi].count>=target) weekStreak++;
@@ -5314,8 +5256,7 @@ function AdherenceView(p){
   var maxMuscle=Math.max.apply(null,allMuscles.map(function(m){return muscleHits[m]||0;}).concat([1]));
 
   /* Completamento: media % serie spuntate per sessione nel range selezionato. */
-  var rangeCutoff = Date.now() - numWeeks*7*86400000;
-  var sessionsInRange = sessions.filter(function(s){return new Date(s.t0).getTime() >= rangeCutoff;});
+  var sessionsInRange = sessions.filter(function(s){var t=new Date(s.t0).getTime();return t>=startMs && t<=endMs;});
   var avgCompletion = sessionsInRange.length
     ? Math.round(sessionsInRange.reduce(function(t,s){return t+sessionCompletionRate(s);},0)/sessionsInRange.length)
     : 0;
@@ -5368,18 +5309,49 @@ function AdherenceView(p){
   thisWeekSess.forEach(function(s){ byDisc[sessionDiscipline(s)]++; });
   var hasBreakdown = !!(bd && ((bd.pesi||0)+(bd.cal||0)+(bd.cardio||0) > 0));
 
+  /* Export CSV — dati Costanza nel periodo selezionato */
+  function exportAdherenceCsv(){
+    var winLbl = formatCalendarLabel(rangeKey, win).replace(/\s+/g,'_');
+    var sections = [];
+    sections.push('=== PERIODO ===');
+    sections.push('Range,'+csvCell(TIME_RANGES.find(function(r){return r.k===rangeKey;}).long));
+    sections.push('Da,'+csvCell(win.start.toISOString().slice(0,10)));
+    sections.push('A,'+csvCell(win.end.toISOString().slice(0,10)));
+    sections.push('Target settimanale,'+target);
+    sections.push('');
+    sections.push('=== KPI COSTANZA ===');
+    sections.push(buildCsv(['Metrica','Valore'],[
+      ['Streak settimane',weekStreak],
+      ['Completamento medio',avgCompletion+'%'],
+      ['Settimane saltate',validWeeksCount===0?'—':skippedWeeks],
+      ['Settimane valide',validWeeksCount],
+      ['Sessioni nel periodo',sessionsInRange.length]
+    ]));
+    sections.push('');
+    sections.push('=== SETTIMANE ===');
+    var weekRows = weeks.map(function(w){
+      var we = new Date(w.start); we.setDate(we.getDate()+6);
+      var avg = w.sessions.length ? Math.round(w.sessions.reduce(function(t,s){return t+sessionCompletionRate(s);},0)/w.sessions.length) : 0;
+      return [
+        w.start.toISOString().slice(0,10),
+        we.toISOString().slice(0,10),
+        w.count,
+        w.count>=target?'sì':'no',
+        avg+'%'
+      ];
+    });
+    sections.push(buildCsv(['Inizio (lun)','Fine (dom)','Sessioni','Target raggiunto','Completamento medio'], weekRows));
+    sections.push('');
+    sections.push('=== COPERTURA MUSCOLARE (ultimi 7 giorni) ===');
+    var mRows = allMuscles.map(function(m){return [m, muscleHits[m]||0, muscleCardioHits[m]||0];});
+    sections.push(buildCsv(['Gruppo','Set totali','di cui da cardio'], mRows));
+    downloadFile('pumplog-costanza-'+winLbl+'.csv', sections.join('\n'), 'text/csv;charset=utf-8');
+  }
+
   return h('div',null,
-    /* Range selector — settimane analizzate */
-    h('div',{style:{display:'flex',gap:5,marginBottom:12,overflowX:'auto',WebkitOverflowScrolling:'touch'}},
-      RANGES.map(function(r){
-        var on = numWeeks === r[0];
-        return h('button',{
-          key:r[0],
-          onClick:function(){hap(6);setNumWeeks(r[0]);},
-          'aria-pressed':on,
-          style:{flexShrink:0,padding:'6px 13px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer',fontWeight:on?700:500,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em',textTransform:'uppercase'}
-        }, r[1]);
-      })
+    /* Export del periodo corrente */
+    sessions.length > 0 && h('div',{style:{marginBottom:12}},
+      h(Btn,{sm:true,sec:true,full:true,onClick:exportAdherenceCsv}, '⬇  Esporta dati periodo (.csv)')
     ),
     /* Top KPI row */
     h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:hasBreakdown?12:16}},
@@ -5393,13 +5365,13 @@ function AdherenceView(p){
         avgCompletion+'%',
         'COMPLETAMENTO',
         avgCompletion>=80?'var(--success)':avgCompletion>=50?'var(--warning)':'var(--danger)',
-        'Media di serie spuntate ✓ per sessione nelle ultime '+numWeeks+' settimane ('+sessionsInRange.length+' sessioni).\n\nLe sessioni cardio contano 100% per definizione (non hanno serie da spuntare). Se questa media è bassa significa che inizi le sessioni ma le abbandoni a metà.'
+        'Media di serie spuntate ✓ per sessione nel periodo selezionato ('+sessionsInRange.length+' sessioni).\n\nLe sessioni cardio contano 100% per definizione (non hanno serie da spuntare). Se questa media è bassa significa che inizi le sessioni ma le abbandoni a metà.'
       ),
       kpiTile(
         validWeeksCount===0 ? '—' : String(skippedWeeks),
         'SETT. SALTATE',
         validWeeksCount===0 ? MUTED : (skippedWeeks===0?'var(--success)':skippedWeeks<=2?'var(--warning)':'var(--danger)'),
-        'Numero di settimane in cui non ti sei allenato nessun giorno, nel periodo selezionato ('+numWeeks+' settimane).\n\nVengono conteggiate solo le settimane dopo la tua prima sessione (altrimenti per chi inizia oggi apparirebbero 8 settimane saltate, cosa che non vuol dire nulla).\n\nEsempio: "0" con sotto "su 1 sett." = hai iniziato questa settimana e non hai saltato nulla finora.',
+        'Numero di settimane in cui non ti sei allenato nessun giorno, nel periodo selezionato ('+numWeeks+' settiman'+(numWeeks===1?'a':'e')+').\n\nVengono conteggiate solo le settimane dopo la tua prima sessione (altrimenti per chi inizia oggi apparirebbero settimane saltate, cosa che non vuol dire nulla).',
         validWeeksCount===0 ? null : ('su '+validWeeksCount+' sett.')
       )
     ),
@@ -5437,7 +5409,8 @@ function AdherenceView(p){
       target: target,
       maxBarCount: maxBarCount,
       numWeeks: numWeeks,
-      weekRangeLabel: weekRangeLabel
+      weekRangeLabel: weekRangeLabel,
+      title: formatCalendarLabel(rangeKey, win)
     }),
 
     /* Muscle coverage heatmap */
@@ -5476,12 +5449,12 @@ function AdherenceView(p){
       Object.keys(muscleHits).length===0&&h('div',{style:{textAlign:'center',padding:'12px 0',color:MUTED,fontSize:12}},'Nessun dato — allenati per vedere la copertura')
     ),
 
-    /* Completion trend (last 10 sessions) */
-    sessions.length>=3&&h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',border:'0.5px solid '+BORD}},
+    /* Completion trend nel periodo selezionato (ultime fino a 20 sessioni del range) */
+    sessionsInRange.length>=3&&h('div',{style:{background:SURF2,borderRadius:14,padding:'16px',border:'0.5px solid '+BORD}},
       h('div',{style:{fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',color:TEXT,marginBottom:4}},'Trend completamento'),
-      h('div',{style:{fontSize:10,color:MUTED,marginBottom:12}},'Percentuale di serie completate per sessione'),
+      h('div',{style:{fontSize:10,color:MUTED,marginBottom:12}},'Percentuale di serie completate per sessione nel periodo selezionato'),
       h('div',{style:{display:'flex',alignItems:'flex-end',gap:4,height:50}},
-        sessions.slice(-10).map(function(s,i){
+        sessionsInRange.slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);}).slice(-20).map(function(s,i){
           var rate=sessionCompletionRate(s);
           var ci=completionLabel(rate);
           return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}},
@@ -5681,6 +5654,7 @@ function BodyView(p){
   var log = p.log || [];
   var setLog = p.setLog;
   var profile = p.profile;
+  var setProfile = p.setProfile;
   var altezzaCm = profile && profile.altezza ? parseFloat(String(profile.altezza).replace(',','.')) : null;
   var obiettivo = profile && profile.obiettivo || '';
   var _f = useState(false); var formOpen = _f[0]; var setFormOpen = _f[1];
@@ -5688,9 +5662,10 @@ function BodyView(p){
   var _sel = useState('peso'); var selMetric = _sel[0]; var setSelMetric = _sel[1];
   var _vw = useState('overview'); var chartView = _vw[0]; var setChartView = _vw[1];
   var _hd = useState([]); var hiddenMetrics = _hd[0]; var setHiddenMetrics = _hd[1];
-  /* Range periodo: giorni indietro da oggi. 0 = "tutto" (no filtro). Default = tutto. */
-  var _rg = useState(0); var rangeDays = _rg[0]; var setRangeDays = _rg[1];
-  var BODY_RANGES = [[30,'1m'],[90,'3m'],[180,'6m'],[365,'1a'],[0,'Tutto']];
+  /* Periodo deciso dal TimeRangeNav esterno (1s/1m/3m/6m/1a + offset) */
+  var rangeKey = p.rangeKey || '1m';
+  var rangeOffset = p.rangeOffset || 0;
+  var bodyWin = getCalendarWindow(rangeKey, rangeOffset);
   function toggleHidden(k){
     setHiddenMetrics(function(prev){
       return prev.indexOf(k) >= 0 ? prev.filter(function(x){return x!==k;}) : prev.concat([k]);
@@ -5698,12 +5673,12 @@ function BodyView(p){
   }
 
   /* Sorted: tutte le misurazioni in ordine cronologico.
-     Sorted filtered: solo quelle nel range — usato per chart, trend e KPI delta.
-     "Ultima misurazione" usa SEMPRE sorted (la più recente è sempre rilevante). */
+     SortedInRange: solo quelle dentro la finestra calendar-anchored corrente — usato per
+     chart, trend e KPI delta. "Ultima misurazione" usa SEMPRE sorted (la più recente in assoluto). */
   var sorted = log.slice().sort(function(a,b){return new Date(a.t) - new Date(b.t);});
   var hasData = sorted.length > 0;
-  var cutoffMs = rangeDays > 0 ? Date.now() - rangeDays*86400000 : 0;
-  var sortedInRange = rangeDays > 0 ? sorted.filter(function(r){return new Date(r.t).getTime() >= cutoffMs;}) : sorted;
+  var winStartMs = bodyWin.start.getTime(), winEndMs = bodyWin.end.getTime();
+  var sortedInRange = sorted.filter(function(r){var t = new Date(r.t).getTime(); return t >= winStartMs && t <= winEndMs;});
   var last = sorted.length ? sorted[sorted.length-1] : null;
   /* Per i delta KPI: confronto con prima misurazione NEL RANGE selezionato. */
   var first = sortedInRange.length ? sortedInRange[0] : null;
@@ -5729,6 +5704,24 @@ function BodyView(p){
     return (rec[key]!==undefined && rec[key]!==null && rec[key]!=='') ? rec[key] : null;
   }
 
+  /* Allinea il peso del profilo alla misurazione più recente del bodyLog (la "verità"
+     anagrafica deve sempre corrispondere all'ultima misurazione reale del corpo). */
+  function syncProfilePesoFromLog(arr){
+    if(!setProfile || !profile) return;
+    var sortedDesc = arr.slice().sort(function(a,b){return new Date(b.t) - new Date(a.t);});
+    var latest = null;
+    for(var i=0;i<sortedDesc.length;i++){
+      var r = sortedDesc[i];
+      if(r.deleted) continue;
+      if(r.peso != null && r.peso !== ''){ latest = r; break; }
+    }
+    if(!latest) return;
+    var newPeso = String(latest.peso);
+    if(String(profile.peso||'') !== newPeso){
+      setProfile(Object.assign({}, profile, {peso: newPeso, lastModified: Date.now()}));
+    }
+  }
+
   function saveEntry(entry){
     var arr;
     if(editing && editing.id){
@@ -5738,22 +5731,35 @@ function BodyView(p){
       arr = addBodyEntry(entry);
     }
     setLog(arr);
+    syncProfilePesoFromLog(arr);
     setFormOpen(false);
     setEditing(null);
   }
   function deleteEntry(id){
     if(!confirm('Eliminare questa misurazione?')) return;
-    setLog(delBodyEntry(id));
+    var arr = delBodyEntry(id);
+    setLog(arr);
+    syncProfilePesoFromLog(arr);
   }
 
+  /* Esporta tutte le misurazioni del periodo selezionato (CSV) */
   function exportCsv(){
-    var rows = sorted.map(function(r){
+    var winLbl = formatCalendarLabel(rangeKey, bodyWin).replace(/\s+/g,'_');
+    var headers = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['BMI (kg/m²)','Note']);
+    var rows = sortedInRange.map(function(r){
       var bmi = calcBmi(r.peso, altezzaCm);
       return [r.t.slice(0,10)].concat(BODY_FIELDS.map(function(f){return r[f.k]||'';})).concat([bmi!=null?bmi:'', r.note||'']);
     });
-    var headers = ['Data'].concat(BODY_FIELDS.map(function(f){return f.lbl+' ('+f.unit+')';})).concat(['BMI (kg/m²)','Note']);
-    var csv = buildCsv(headers, rows);
-    downloadFile('gymtracker-misure-'+todayISO()+'.csv', csv, 'text/csv;charset=utf-8');
+    var sections = [];
+    sections.push('=== PERIODO ===');
+    sections.push('Range,'+csvCell(TIME_RANGES.find(function(r){return r.k===rangeKey;}).long));
+    sections.push('Da,'+csvCell(bodyWin.start.toISOString().slice(0,10)));
+    sections.push('A,'+csvCell(bodyWin.end.toISOString().slice(0,10)));
+    sections.push('Misurazioni nel periodo,'+rows.length);
+    sections.push('');
+    sections.push('=== MISURAZIONI ===');
+    sections.push(buildCsv(headers, rows));
+    downloadFile('pumplog-corpo-'+winLbl+'.csv', sections.join('\n'), 'text/csv;charset=utf-8');
   }
 
   /* Metriche disponibili per il grafico: include BMI come pseudo-field calcolato */
@@ -5769,22 +5775,10 @@ function BodyView(p){
   var lastBmiCat = bmiCategory(lastBmi);
 
   return h('div',null,
-    /* Range periodo: filtra misurazioni considerate per chart e delta KPI.
-       L'ultima misurazione resta sempre quella reale (più recente in assoluto). */
-    hasData && h('div',{style:{display:'flex',gap:5,marginBottom:12,overflowX:'auto',WebkitOverflowScrolling:'touch'}},
-      BODY_RANGES.map(function(r){
-        var on = rangeDays === r[0];
-        return h('button',{
-          key:r[0],
-          onClick:function(){hap(6);setRangeDays(r[0]);},
-          'aria-pressed':on,
-          style:{flexShrink:0,padding:'6px 13px',borderRadius:18,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer',fontWeight:on?700:500,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'0.04em',textTransform:'uppercase'}
-        }, r[1]);
-      })
-    ),
-    /* Avviso se il range scelto non contiene misurazioni */
+    /* Avviso se il range scelto non contiene misurazioni — il selettore periodo è ora
+       il TimeRangeNav esterno (sopra StatsTabs), basta scorrere con le frecce. */
     hasData && sortedInRange.length === 0 && h('div',{style:{background:SURF2,border:'0.5px solid '+BORD,borderRadius:10,padding:'10px 12px',marginBottom:12,fontSize:12,color:MUTED,lineHeight:1.5,textAlign:'center'}},
-      'Nessuna misurazione negli ultimi '+(rangeDays===30?'30 giorni':rangeDays===90?'3 mesi':rangeDays===180?'6 mesi':'12 mesi')+'. Tocca "Tutto" per vedere lo storico completo.'
+      'Nessuna misurazione in questo periodo. Scorri con le frecce ‹ › per vedere periodi diversi.'
     ),
     /* Riga info altezza/profilo se manca per BMI */
     hasData && !altezzaCm && h('div',{style:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:10,padding:'10px 12px',marginBottom:12,fontSize:11,color:TEXT,lineHeight:1.5}},
@@ -5887,14 +5881,13 @@ function BodyView(p){
     /* CTA */
     h('div',{style:{display:'flex',gap:8,marginBottom:18}},
       h(Btn,{full:true,onClick:function(){setFormOpen(true);setEditing(null);}},'+ Nuova misurazione'),
-      hasData && h(Btn,{sec:true,onClick:exportCsv},'⬇  CSV')
+      hasData && h(Btn,{sec:true,onClick:exportCsv,disabled:sortedInRange.length===0},'⬇  CSV periodo')
     ),
-    /* Storico cronologico: rispetta il range selezionato. Se sortedInRange è vuoto
-       ma sorted no, indichiamo che il range è troppo stretto. */
+    /* Storico cronologico: rispetta la finestra del TimeRangeNav. */
     hasData && h('div',null,
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},
         h(Lbl,null,'Storico'),
-        rangeDays > 0 && sortedInRange.length > 0 && h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}}, sortedInRange.length + ' di ' + sorted.length)
+        sortedInRange.length > 0 && h('div',{style:{fontSize:10,color:MUTED,fontFamily:"'Roboto Mono',monospace"}}, sortedInRange.length + ' di ' + sorted.length)
       ),
       sortedInRange.slice().reverse().map(function(r){
         var bmiR = calcBmi(r.peso, altezzaCm);
@@ -7223,7 +7216,7 @@ function App(){
     view==='det'&&h(Det,{s:args.s,schede:liveSchede,go:go,onDelete:function(id){deleteSessionWithUndo(id);go('log');},onUpdate:function(updated){
       setSessions(function(prev){return prev.map(function(x){return x.id===updated.id ? Object.assign({},updated,{lastModified:Date.now()}) : x;});});
     }}),
-    view==='stats'&&h(Stats,{sessions:liveSessions,go:go,profile:profile}),
+    view==='stats'&&h(Stats,{sessions:liveSessions,go:go,profile:profile,setProfile:setProfile}),
     view==='scheda'&&h(SchedaV,{schede:liveSchede,setSchede:function(updater){
       setSchede(function(prev){
         var next = typeof updater === 'function' ? updater(prev) : updater;
