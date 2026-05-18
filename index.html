@@ -1409,7 +1409,9 @@ var IC={
   edit:[['path',{d:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7'}],['path',{d:'M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'}]],
   person:[['path',{d:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2'}],['circle',{cx:'12',cy:'7',r:'4'}]],
   palette:[['circle',{cx:'13.5',cy:'6.5',r:'.5'}],['circle',{cx:'17.5',cy:'10.5',r:'.5'}],['circle',{cx:'8.5',cy:'7.5',r:'.5'}],['circle',{cx:'6.5',cy:'12.5',r:'.5'}],['path',{d:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z'}]],
-  trash:[['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2'}],['line',{x1:'10',y1:'11',x2:'10',y2:'17'}],['line',{x1:'14',y1:'11',x2:'14',y2:'17'}]]
+  trash:[['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2'}],['line',{x1:'10',y1:'11',x2:'10',y2:'17'}],['line',{x1:'14',y1:'11',x2:'14',y2:'17'}]],
+  chevUp:[['polyline',{points:'18 15 12 9 6 15'}]],
+  chevDown:[['polyline',{points:'6 9 12 15 18 9'}]]
 };
 function Icon(p){return h(Ico,{paths:IC[p.n]||[],sz:p.sz||20,c:p.c,style:p.style});}
 
@@ -1644,7 +1646,7 @@ function ExerciseConfigSheet(p){
      e nascondiamo i tipi 'progressivo' / 'superset' che non si applicano. */
   var schedaTipo = p.schedaTipo || 'pesi';
   var isCal = schedaTipo === 'cal';
-  var esNome=ex?ex.nome:nome;
+  var _esN=useState(ex?ex.nome:nome);var esNome=_esN[0];var setEsNome=_esN[1];
   var _t=useState(ex&&ex.tipo||'standard');var tipo=_t[0];var setTipo=_t[1];
   var _m=useState(ex&&ex.modalita || (function(){
     if(!isCal) return 'reps';
@@ -1698,6 +1700,8 @@ function ExerciseConfigSheet(p){
         h('button',{onClick:onClose,'aria-label':'Chiudi configurazione esercizio',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10,minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center'}},h(Icon,{n:'close',sz:20,c:MUTED}))
       ),
       h('div',{style:{overflowY:'auto',flex:1,padding:'16px 16px 0'}},
+        h(Lbl,null,'Nome esercizio'),
+        h('input',{value:esNome,onChange:function(e){setEsNome(e.target.value);},placeholder:'Nome esercizio',style:{width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,marginBottom:14}}),
         h(Lbl,null,'Tipo esercizio'),
         h('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:18}},
           TIPI.map(function(t){var on=tipo===t.id;return h('button',{key:t.id,onClick:function(){setTipo(t.id);},'aria-pressed':on,style:{padding:'7px 12px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,cursor:'pointer',fontWeight:on?700:400}},t.label);})
@@ -6283,6 +6287,7 @@ function NuovaScheda(p){
   function setBlNome(i,v){setSc(function(p){var bl=p.blocchi.map(function(b,j){return j===i?Object.assign({},b,{nome:v}):b;});return Object.assign({},p,{blocchi:bl});});}
   function delBl(i){if(!confirm('Eliminare il blocco "'+(sc.blocchi[i]&&sc.blocchi[i].nome||'')+'" e tutti i suoi esercizi?'))return;setSc(function(p){return Object.assign({},p,{blocchi:p.blocchi.filter(function(_,j){return j!==i;})});});}
   function delEx(bi,ei){setSc(function(p){var bl=p.blocchi.map(function(b,i){return i===bi?Object.assign({},b,{es:b.es.filter(function(_,j){return j!==ei;})}):b;});return Object.assign({},p,{blocchi:bl});});}
+  function moveEx(bi,ei,dir){setSc(function(p){var bl=p.blocchi.map(function(b,i){if(i!==bi)return b;var arr=b.es.slice();var ni=ei+dir;if(ni<0||ni>=arr.length)return b;var tmp=arr[ei];arr[ei]=arr[ni];arr[ni]=tmp;return Object.assign({},b,{es:arr});});return Object.assign({},p,{blocchi:bl});});}
   function openPicker(bi){setPickerCtx({bi:bi});setPicker(true);}
   function onPickerAdd(nome){setEditCtx({bi:pickerCtx.bi,ei:null,nuovo:nome});setEditEx(null);setPicker(false);setTimeout(function(){setEditEx({nome:nome});},50);}
   function onSaveEx(updated){
@@ -6336,8 +6341,12 @@ function NuovaScheda(p){
         ),
         b.es.map(function(e,ei){
           return h('div',{key:e.id,onClick:function(){setEditCtx({bi:bi,ei:ei,nuovo:null});setEditEx(e);},style:{background:SURF2,borderRadius:8,padding:'9px 11px',marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}},
-            h('div',null,h('div',{style:{fontSize:13,fontWeight:500,marginBottom:1}},e.nome),h('div',{style:{fontSize:11,color:MUTED}},fmtEsCard(e))),
-            h('div',{style:{display:'flex',gap:4}},h('button',{onClick:function(ev){ev.stopPropagation();delEx(bi,ei);},'aria-label':'Rimuovi esercizio',style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:14,c:MUTED})))
+            h('div',{style:{flex:1,minWidth:0}},h('div',{style:{fontSize:13,fontWeight:500,marginBottom:1}},e.nome),h('div',{style:{fontSize:11,color:MUTED}},fmtEsCard(e))),
+            h('div',{style:{display:'flex',alignItems:'center',gap:2}},
+              h('button',{onClick:function(ev){ev.stopPropagation();hap(6);moveEx(bi,ei,-1);},'aria-label':'Sposta su',disabled:ei===0,style:{background:'none',border:'none',cursor:ei===0?'default':'pointer',padding:4,opacity:ei===0?0.25:1}},h(Icon,{n:'chevUp',sz:16,c:MUTED})),
+              h('button',{onClick:function(ev){ev.stopPropagation();hap(6);moveEx(bi,ei,1);},'aria-label':'Sposta giù',disabled:ei===b.es.length-1,style:{background:'none',border:'none',cursor:ei===b.es.length-1?'default':'pointer',padding:4,opacity:ei===b.es.length-1?0.25:1}},h(Icon,{n:'chevDown',sz:16,c:MUTED})),
+              h('button',{onClick:function(ev){ev.stopPropagation();delEx(bi,ei);},'aria-label':'Rimuovi esercizio',style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'close',sz:14,c:MUTED}))
+            )
           );
         }),
         h('button',{onClick:function(){openPicker(bi);},style:{width:'100%',padding:8,borderRadius:8,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:12,cursor:'pointer',marginTop:6}},'+ Aggiungi esercizio')
