@@ -7012,7 +7012,8 @@ function App(){
            cross-user contamination: chi si registrava su un device "sporco"
            ereditava le schede di un altro utente). */
         var remote = await sbLoadAll();
-        if(cancelled || !remote) return;
+        if(cancelled) return;
+        if(!remote){ setCloudLoaded(true); setSyncStatus('idle'); return; }
 
         /* Il trigger DB crea una riga `profiles` vuota al signup (solo id, niente nome).
            Quella riga NON va trattata come profilo valido: altrimenti l'app salterebbe il
@@ -7049,6 +7050,7 @@ function App(){
       }catch(e){
         gtLogError('Cloud load FAIL', e&&e.message||e);
         console.warn('cloud load failed', e);
+        if(!cancelled) setCloudLoaded(true);
         setSyncStatus('error');setTimeout(function(){if(!cancelled)setSyncStatus('idle');},3000);
       }
     })();
