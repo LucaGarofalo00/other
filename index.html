@@ -4164,27 +4164,29 @@ function AddPastSession(p){
               ),
               h('button',{onClick:function(){removeExercise(ei);},'aria-label':'Rimuovi esercizio',style:{background:'transparent',border:'none',padding:4,cursor:'pointer',flexShrink:0}},h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.6)'}))
             ),
-            /* Selettore tipo esercizio (Normale / Superset / Riscaldamento) */
-            h('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}},
+            /* Selettore tipo esercizio (Normale / Superset / Riscaldamento) — più visibile */
+            h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:4}},'TIPO ESERCIZIO'),
+            h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}},
               TIPI_PAST.map(function(t){
                 var on = esTipo === t.id;
                 return h('button',{
                   key:t.id,
                   onClick:function(){hap(6);updateExercise(ei,'esTipo',t.id);},
                   'aria-pressed':on,
-                  style:{padding:'4px 10px',borderRadius:14,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:10,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',cursor:'pointer'}
+                  style:{padding:'7px 14px',borderRadius:16,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:TEXT,fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',cursor:'pointer'}
                 }, t.label);
               })
             ),
             /* Toggle modalità reps/hold per standard e superset (cal o pesi). Non si applica a riscaldamento. */
-            (esTipo === 'standard' || esTipo === 'superset') && h('div',{style:{display:'flex',gap:6,marginBottom:8}},
-              [{id:'reps',l:'Reps'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
+            (esTipo === 'standard' || esTipo === 'superset') && h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:4}}, esTipo==='superset' ? 'MODALITÀ A' : 'MODALITÀ'),
+            (esTipo === 'standard' || esTipo === 'superset') && h('div',{style:{display:'flex',gap:6,marginBottom:10}},
+              [{id:'reps',l:'Ripetizioni'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
                 var on = (ex.modalita||'reps') === m.id;
                 return h('button',{
                   key:m.id,
                   onClick:function(){hap(6);updateExercise(ei,'modalita',m.id);},
                   'aria-pressed':on,
-                  style:{flex:1,padding:'6px 8px',borderRadius:7,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:11,fontWeight:on?700:500,cursor:'pointer'}
+                  style:{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}
                 }, m.l);
               })
             ),
