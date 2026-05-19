@@ -4,7 +4,8 @@
       "Bash(git -C \"C:/Users/lucvg/OneDrive/Desktop/other\" log origin/main --oneline -5)",
       "Bash(git -C \"C:/Users/lucvg/OneDrive/Desktop/other\" log origin/database --oneline -5)",
       "Bash(git -C \"C:/Users/lucvg/OneDrive/Desktop/other\" diff --stat origin/main..origin/database -- documenti-brand)",
-      "Bash(ls -la '/c/Users/lucvg/.claude/projects/C--Users-lucvg-OneDrive-Desktop-other/memory/' 2>&1)"
+      "Bash(ls -la '/c/Users/lucvg/.claude/projects/C--Users-lucvg-OneDrive-Desktop-other/memory/' 2>&1)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

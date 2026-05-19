@@ -1459,7 +1459,7 @@ function uid(){return Math.random().toString(36).slice(2,8);}
 function fmtD(d){return new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'short'});}
 function fmtHM(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function fmtRec(s){if(!s||s===0)return '–';var m=Math.floor(s/60);var sc=s%60;if(m===0)return sc+'s';if(sc===0)return m+'min';return m+'\''+String(sc).padStart(2,'0')+'"';}
-function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (ex.durata||10)+'min · '+(ex.intensita||'Media');if(t==='progressivo')return 'Progressivo · '+(ex.progressione?ex.progressione.length:0)+' sett. · '+(ex.peso||0)+'kg';if(t==='superset')return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+'+'+((ex.partner&&ex.partner.reps)||'?')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+' · '+(ex.peso||0)+'kg · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}
+function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (ex.durata||10)+'min · '+(ex.intensita||'Media');if(t==='progressivo')return 'Progressivo · '+(ex.progressione?ex.progressione.length:0)+' sett. · '+(ex.peso||0)+'kg';if(t==='superset')return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+'+'+((ex.partner&&ex.partner.reps)||'?')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';if(ex.modalita==='hold')return (ex.sets||ex.serie||3)+'×'+(ex.durata||'?')+'s'+((ex.peso||0)>0?' · '+ex.peso+'kg':'')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+' · '+(ex.peso||0)+'kg · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}
 function ton(es){return es.reduce(function(t,e){return t+(e.serie||[]).filter(function(s){return s.ok;}).reduce(function(a,s){return a+s.peso*s.reps;},0);},0);}
 function rm1(p,r){return r<=1?p:Math.round(p*(1+r/30));}
 function parseReps(r){var s=String(r);return s.indexOf('-')>=0?parseInt(s,10):(parseInt(s,10)||10);}
@@ -1763,19 +1763,19 @@ function ExerciseConfigSheet(p){
     if(tipo==='riscaldamento'){onSave(Object.assign(base,{durata:parseInt(durata)||10,intensita:intensita}));}
     else if(tipo==='progressivo'){onSave(Object.assign(base,{peso:parseFloat(peso)||0,progressione:prog,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,serie:prog.length>0?prog[0].sets:3,reps:prog.length>0?prog[0].reps:'6',rec:parseInt(recSet)||90}));}
     else if(tipo==='superset'){onSave(Object.assign(base,{sets:parseInt(sets)||3,serie:parseInt(sets)||3,reps:reps,peso:parseFloat(peso)||0,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,rec:parseInt(recSet)||90,partner:partner}));}
-    else if(isCal){
-      /* Cal "standard": include modalita e durata (per hold) o reps. Peso opzionale (cal zavorrato). */
+    else {
+      /* "standard" — sia cal che pesi supportano modalità reps/hold. */
+      var defRec = isCal ? 60 : 90;
       var payload = {
         sets:parseInt(sets)||3, serie:parseInt(sets)||3,
         peso:parseFloat(peso)||0,
-        recSet:parseInt(recSet)||60, recEs:parseInt(recEs)||60, rec:parseInt(recSet)||60,
+        recSet:parseInt(recSet)||defRec, recEs:parseInt(recEs)||60, rec:parseInt(recSet)||defRec,
         modalita: modalita
       };
       if(modalita==='hold') payload.durata = parseInt(holdDur)||20;
       else payload.reps = reps;
       onSave(Object.assign(base,payload));
     }
-    else{onSave(Object.assign(base,{sets:parseInt(sets)||3,serie:parseInt(sets)||3,reps:reps,peso:parseFloat(peso)||0,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,rec:parseInt(recSet)||90}));}
   }
   return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)onClose();}},
     pickerPartner&&h(ExercisePicker,{visible:true,onClose:function(){setPickerPartner(false);},onAdd:function(n){setPartner(function(pt){return Object.assign({},pt,{nome:n});});setPickerPartner(false);},baseList:PESI_ES,label:'Scegli esercizio B'}),
@@ -1798,11 +1798,11 @@ function ExerciseConfigSheet(p){
               ['Bassa','Media','Alta','Massimale'].map(function(v){return h('option',{key:v,value:v},v);})))
           )
         ),
-        /* CAL standard: modalità reps vs tenuta. Per le tenute usiamo durata in secondi. */
-        isCal && tipo==='standard' && h('div',null,
+        /* Standard (cal o pesi): scelta modalità reps vs tenuta in secondi. */
+        tipo==='standard' && h('div',null,
           h(Lbl,null,'Modalità'),
           h('div',{style:{display:'flex',gap:6,marginBottom:14}},
-            [{id:'reps',l:'Reps'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
+            [{id:'reps',l:'Ripetizioni'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
               var on = modalita === m.id;
               return h('button',{key:m.id,onClick:function(){hap(6);setModalita(m.id);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, m.l);
             })
@@ -1811,18 +1811,18 @@ function ExerciseConfigSheet(p){
             h('div',null,h(Lbl,null,'Serie'),h('input',{type:'number',value:sets,min:1,onChange:function(e){setSets(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})})),
             modalita==='hold'
               ? h('div',null,h(Lbl,null,'Tenuta (s)'),h('input',{type:'number',value:holdDur,min:1,onChange:function(e){setHoldDur(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
-              : h('div',null,h(Lbl,null,'Reps'),h('input',{type:'text',value:reps,onChange:function(e){setReps(e.target.value);},placeholder:'8',style:Object.assign({},iB,{textAlign:'center'})})),
-            h('div',null,h(Lbl,null,'+ Peso (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,placeholder:'0',onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
+              : h('div',null,h(Lbl,null,'Reps'),h('input',{type:'text',value:reps,onChange:function(e){setReps(e.target.value);},placeholder:isCal?'8':'10',style:Object.assign({},iB,{textAlign:'center'})})),
+            h('div',null,h(Lbl,null,isCal?'+ Peso (kg)':'Peso (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,placeholder:'0',onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
           )
         ),
-        /* PESI standard / superset: layout originale */
-        !isCal && (tipo==='standard'||tipo==='superset')&&h('div',null,
+        /* Superset: solo pesi, sempre a reps (no tenuta), con esercizio B accoppiato. */
+        !isCal && tipo==='superset' && h('div',null,
           h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}},
             h('div',null,h(Lbl,null,'Serie'),h('input',{type:'number',value:sets,min:1,onChange:function(e){setSets(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})})),
             h('div',null,h(Lbl,null,'Reps'),h('input',{type:'text',value:reps,onChange:function(e){setReps(e.target.value);},placeholder:'10',style:Object.assign({},iB,{textAlign:'center'})})),
             h('div',null,h(Lbl,null,'Peso (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
           ),
-          tipo==='superset'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:14,marginBottom:14}},
+          h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:14,marginBottom:14}},
             h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:8}},'ESERCIZIO B (accoppiato)'),
             h('button',{onClick:function(){setPickerPartner(true);},style:{width:'100%',padding:'9px 12px',background:SURF2,border:'1px solid '+(partner.nome?ACC3:BORD),borderRadius:8,color:partner.nome?ACC:MUTED,fontSize:13,cursor:'pointer',textAlign:'left',marginBottom:partner.nome?8:0}},partner.nome||'Scegli esercizio B…'),
             partner.nome&&h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
@@ -2958,16 +2958,30 @@ function PesiLive(p){
     var nSets = typeof ex.serie==='number' ? ex.serie : (ex.sets||3);
     var last = findLastExerciseSession(ex.nome, (p.allSessions||[]));
     var defPeso = ex.peso || 0;
-    var defReps = parseReps(ex.reps || 10);
+    var isHold = ex.modalita === 'hold';
+    var defReps = isHold ? 0 : parseReps(ex.reps || 10);
+    var defDur = isHold ? (parseInt(ex.durata)||20) : 0;
     var serie;
     if(last && last.serie && last.serie.length){
       serie = Array.from({length:nSets}, function(_, i){
         var ref = last.serie[i] || last.serie[last.serie.length-1];
-        return {n:i+1, peso:(ref.peso||defPeso), reps:(ref.reps||defReps), ok:false, t:null};
+        return {
+          n:i+1,
+          peso:(ref.peso||defPeso),
+          reps: isHold ? 0 : (ref.reps||defReps),
+          durata: isHold ? (ref.durata||defDur) : (ref.durata||0),
+          ok:false, t:null
+        };
       });
     } else {
       serie = Array.from({length:nSets}, function(_, i){
-        return {n:i+1, peso:defPeso, reps:defReps, ok:false, t:null};
+        return {
+          n:i+1,
+          peso:defPeso,
+          reps: isHold ? 0 : defReps,
+          durata: isHold ? defDur : 0,
+          ok:false, t:null
+        };
       });
     }
     return Object.assign({},ex,{serie:serie});
@@ -3168,6 +3182,7 @@ function PesiLive(p){
         lastForCurr && h(LastSessionHint,{info:lastForCurr}),
         curr.serie.map(function(s,si){
           var canRemove = curr.serie.length > 1;
+          var currIsHold = curr.modalita === 'hold';
           return h('div',{key:si,style:{background:s.ok?ACC5:SURF,border:'1px solid '+(s.ok?ACC3:BORD),borderRadius:10,padding:10,marginBottom:6,display:'flex',alignItems:'center',gap:6,transition:'all 0.2s'}},
             h('div',{style:{minWidth:26,fontFamily:"'Bebas Neue',cursive",fontSize:18,color:s.ok?ACC:TEXT}},'#'+s.n),
             h('div',{style:{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
@@ -3186,18 +3201,31 @@ function PesiLive(p){
                   style:{width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'7px 8px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:15,textAlign:'center',fontVariantNumeric:'tabular-nums'}
                 })
               ),
-              h('div',null,
-                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em',marginBottom:1}},'REPS'),
-                h('input',{
-                  type:'text', inputMode:'numeric', pattern:'[0-9]*',
-                  'aria-label':'Ripetizioni serie '+(si+1),
-                  value: (s.reps===0||s.reps==null)?'':String(s.reps),
-                  placeholder:'0',
-                  onFocus:function(e){ e.target.select(); },
-                  onChange:function(e){ setSerie(ex,si,'reps',e.target.value); },
-                  style:{width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'7px 8px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:15,textAlign:'center',fontVariantNumeric:'tabular-nums'}
-                })
-              )
+              currIsHold
+              ? h('div',null,
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em',marginBottom:1}},'SEC'),
+                  h('input',{
+                    type:'text', inputMode:'numeric', pattern:'[0-9]*',
+                    'aria-label':'Tenuta serie '+(si+1)+' in secondi',
+                    value: (s.durata===0||s.durata==null)?'':String(s.durata),
+                    placeholder:'0',
+                    onFocus:function(e){ e.target.select(); },
+                    onChange:function(e){ setSerie(ex,si,'durata',e.target.value); },
+                    style:{width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'7px 8px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:15,textAlign:'center',fontVariantNumeric:'tabular-nums'}
+                  })
+                )
+              : h('div',null,
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.05em',marginBottom:1}},'REPS'),
+                  h('input',{
+                    type:'text', inputMode:'numeric', pattern:'[0-9]*',
+                    'aria-label':'Ripetizioni serie '+(si+1),
+                    value: (s.reps===0||s.reps==null)?'':String(s.reps),
+                    placeholder:'0',
+                    onFocus:function(e){ e.target.select(); },
+                    onChange:function(e){ setSerie(ex,si,'reps',e.target.value); },
+                    style:{width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'7px 8px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:15,textAlign:'center',fontVariantNumeric:'tabular-nums'}
+                  })
+                )
             ),
             h('button',{onClick:function(){setOk(ex,si);},'aria-label':s.ok?'Annulla serie':'Completa serie',style:{width:44,height:44,borderRadius:'50%',background:s.ok?ACC:'transparent',border:'2px solid '+(s.ok?ACC:BORD),color:s.ok?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},s.ok?h(Icon,{n:'check',sz:18,c:'var(--act)'}):''),
             canRemove && h('button',{
@@ -3713,6 +3741,8 @@ function AddPastSession(p){
   /* Esercizi pesi/cal */
   var _es=useState([]); var exercises=_es[0]; var setExercises=_es[1];
   var _pk=useState(false); var pickerOpen=_pk[0]; var setPickerOpen=_pk[1];
+  /* Picker partner per superset: idx esercizio da modificare */
+  var _pp2=useState(null); var partnerPickerFor=_pp2[0]; var setPartnerPickerFor=_pp2[1];
   /* Cardio */
   var _ct=useState('corsa'); var cardioTipo=_ct[0]; var setCardioTipo=_ct[1];
   var _cv=useState({}); var cardioVals=_cv[0]; var setCardioVals=_cv[1];
@@ -3734,14 +3764,38 @@ function AddPastSession(p){
         id: uid(),
         nome: nome,
         gr: (grp && grp.label) || '',
+        esTipo: 'standard',
         sets: 3,
         reps: isHold ? 0 : 8,
         durata: isHold ? 20 : 0,
         peso: 0,
-        modalita: tipo==='cal' ? (isHold?'hold':'reps') : null
+        modalita: isHold ? 'hold' : 'reps',
+        /* riscaldamento defaults */
+        durataMin: 10,
+        intensita: 'Media',
+        /* superset defaults */
+        partner: { nome:'', reps:10, peso:0 }
       }]);
     });
     setPickerOpen(false);
+  }
+  function setPartnerName(idx, name){
+    setExercises(function(prev){
+      return prev.map(function(e,i){
+        if(i!==idx) return e;
+        return Object.assign({},e,{partner: Object.assign({}, e.partner||{nome:'',reps:10,peso:0}, {nome:name})});
+      });
+    });
+  }
+  function setPartnerField(idx, field, val){
+    setExercises(function(prev){
+      return prev.map(function(e,i){
+        if(i!==idx) return e;
+        var pt = Object.assign({}, e.partner||{nome:'',reps:10,peso:0});
+        pt[field] = val;
+        return Object.assign({},e,{partner:pt});
+      });
+    });
   }
   function updateExercise(idx, key, val){
     setExercises(function(prev){
@@ -3793,8 +3847,25 @@ function AddPastSession(p){
       };
     } else {
       var esBuilt = exercises.map(function(ex){
+        var esTipo = ex.esTipo || 'standard';
+        /* Riscaldamento: nessuna serie, solo durata + intensità, già marcato come fatto. */
+        if(esTipo === 'riscaldamento'){
+          return {
+            id: ex.id || uid(),
+            nome: ex.nome,
+            tipo: 'riscaldamento',
+            gr: ex.gr || '',
+            durata: parseInt(ex.durataMin)||10,
+            intensita: ex.intensita || 'Media',
+            fatto: true,
+            serie: [],
+            note: ''
+          };
+        }
         var nSets = Math.max(1, parseInt(ex.sets)||1);
         var isHold = ex.modalita==='hold';
+        /* Superset non supporta hold: si lavora a reps. */
+        if(esTipo === 'superset') isHold = false;
         var serie = [];
         for(var i=0;i<nSets;i++){
           serie.push({
@@ -3809,16 +3880,26 @@ function AddPastSession(p){
         var base = {
           id: ex.id || uid(),
           nome: ex.nome,
-          tipo: 'standard',
+          tipo: esTipo,
           gr: ex.gr || '',
           serie: serie,
           sets: nSets,
-          reps: String(ex.reps||''),
+          reps: isHold ? '' : String(ex.reps||''),
           peso: parseFloat(ex.peso)||0,
           recSet: 0, recEs: 0, rec: 0,
           note: ''
         };
-        if(tipo==='cal') base.modalita = isHold ? 'hold' : 'reps';
+        if(isHold) base.durata = parseInt(ex.durata)||0;
+        /* Modalita: sempre presente, sia cal che pesi. */
+        base.modalita = isHold ? 'hold' : 'reps';
+        /* Per superset, salviamo i dati dell'esercizio B come metadata. */
+        if(esTipo === 'superset' && ex.partner && ex.partner.nome){
+          base.partner = {
+            nome: ex.partner.nome,
+            reps: String(ex.partner.reps||''),
+            peso: parseFloat(ex.partner.peso)||0
+          };
+        }
         return base;
       });
       s = {
@@ -3922,25 +4003,65 @@ function AddPastSession(p){
         h(Lbl,null,'Esercizi · '+(tipo==='cal'?'calisthenics':'sala pesi')),
         exercises.length === 0 && h('div',{style:{textAlign:'center',padding:'24px 12px',color:MUTED,fontSize:12,background:SURF,border:'1px dashed '+BORD,borderRadius:10,marginBottom:10,lineHeight:1.5}},'Nessun esercizio aggiunto.',h('br'),'Tocca "+ Aggiungi" qui sotto.'),
         exercises.map(function(ex,ei){
+          var esTipo = ex.esTipo || 'standard';
           var isHold = ex.modalita === 'hold';
+          /* Tipi disponibili: per pesi vediamo standard/superset/riscaldamento.
+             Per cal solo standard e riscaldamento (i superset non si applicano al cal). */
+          var TIPI_PAST = tipo==='cal'
+            ? [{id:'standard',label:'Normale'},{id:'riscaldamento',label:'🔥 Risc.'}]
+            : [{id:'standard',label:'Normale'},{id:'superset',label:'Superset'},{id:'riscaldamento',label:'🔥 Risc.'}];
           return h('div',{key:ex.id,style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'11px 12px',marginBottom:8}},
             h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:8}},
               h('div',{style:{flex:1,minWidth:0}},
                 h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, ex.nome),
                 ex.gr && h('div',{style:{fontSize:10,color:MUTED,marginTop:2}}, ex.gr)
               ),
-              tipo==='cal' && h('button',{
-                onClick:function(){updateExercise(ei,'modalita', isHold?'reps':'hold');},
-                style:{padding:'4px 9px',borderRadius:14,border:'1px solid '+(isHold?ACC:BORD),background:isHold?ACC2:'transparent',color:isHold?ACC:MUTED,fontSize:10,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',cursor:'pointer',flexShrink:0}
-              }, isHold?'TENUTA':'REPS'),
               h('button',{onClick:function(){removeExercise(ei);},'aria-label':'Rimuovi esercizio',style:{background:'transparent',border:'none',padding:4,cursor:'pointer',flexShrink:0}},h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.6)'}))
             ),
-            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}},
+            /* Selettore tipo esercizio (Normale / Superset / Riscaldamento) */
+            h('div',{style:{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}},
+              TIPI_PAST.map(function(t){
+                var on = esTipo === t.id;
+                return h('button',{
+                  key:t.id,
+                  onClick:function(){hap(6);updateExercise(ei,'esTipo',t.id);},
+                  'aria-pressed':on,
+                  style:{padding:'4px 10px',borderRadius:14,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:10,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',cursor:'pointer'}
+                }, t.label);
+              })
+            ),
+            /* Toggle modalità reps/hold per standard (cal o pesi). Non si applica a superset/riscaldamento. */
+            esTipo === 'standard' && h('div',{style:{display:'flex',gap:6,marginBottom:8}},
+              [{id:'reps',l:'Reps'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
+                var on = (ex.modalita||'reps') === m.id;
+                return h('button',{
+                  key:m.id,
+                  onClick:function(){hap(6);updateExercise(ei,'modalita',m.id);},
+                  'aria-pressed':on,
+                  style:{flex:1,padding:'6px 8px',borderRadius:7,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:11,fontWeight:on?700:500,cursor:'pointer'}
+                }, m.l);
+              })
+            ),
+            /* RISCALDAMENTO: durata (min) + intensità */
+            esTipo === 'riscaldamento' && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
+              h('div',null,
+                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'MIN'),
+                h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.durataMin||''),placeholder:'10',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'durataMin',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
+              ),
+              h('div',null,
+                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'INTENSITÀ'),
+                h('select',{value:ex.intensita||'Media',onChange:function(e){updateExercise(ei,'intensita',e.target.value);},style:Object.assign({},inpCenter,{cursor:'pointer'})},
+                  ['Bassa','Media','Alta','Massimale'].map(function(v){return h('option',{key:v,value:v},v);})
+                )
+              )
+            ),
+            /* STANDARD / SUPERSET: griglia SET / REPS-SEC / KG */
+            (esTipo === 'standard' || esTipo === 'superset') && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}},
               h('div',null,
                 h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'SET'),
                 h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.sets||''),placeholder:'3',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'sets',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
               ),
-              isHold ? h('div',null,
+              (esTipo === 'standard' && isHold) ? h('div',null,
                 h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'SEC'),
                 h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.durata||''),placeholder:'20',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'durata',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
               ) : h('div',null,
@@ -3950,6 +4071,24 @@ function AddPastSession(p){
               h('div',null,
                 h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}}, tipo==='cal' ? '+ KG' : 'KG'),
                 h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(ex.peso===0||ex.peso==null)?'':String(ex.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'peso',e.target.value.replace(',','.'));},style:inpCenter})
+              )
+            ),
+            /* SUPERSET: pannello esercizio B (partner) */
+            esTipo === 'superset' && h('div',{style:{marginTop:8,background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10}},
+              h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:6}},'ESERCIZIO B (accoppiato)'),
+              h('button',{
+                onClick:function(){setPartnerPickerFor(ei);},
+                style:{width:'100%',padding:'8px 10px',background:SURF2,border:'1px solid '+((ex.partner&&ex.partner.nome)?ACC3:BORD),borderRadius:8,color:(ex.partner&&ex.partner.nome)?ACC:MUTED,fontSize:12,cursor:'pointer',textAlign:'left',marginBottom:(ex.partner&&ex.partner.nome)?6:0}
+              }, (ex.partner&&ex.partner.nome) || 'Scegli esercizio B…'),
+              ex.partner && ex.partner.nome && h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
+                h('div',null,
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'REPS B'),
+                  h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.partner.reps||''),placeholder:'10',onFocus:function(e){e.target.select();},onChange:function(e){setPartnerField(ei,'reps',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
+                ),
+                h('div',null,
+                  h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'KG B'),
+                  h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(ex.partner.peso===0||ex.partner.peso==null)?'':String(ex.partner.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){setPartnerField(ei,'peso',parseFloat(e.target.value.replace(',','.'))||0);},style:inpCenter})
+                )
               )
             )
           );
@@ -3979,6 +4118,14 @@ function AddPastSession(p){
       baseList: tipo==='cal' ? CAL_ES : PESI_ES,
       mode: tipo==='cal' ? 'cal' : 'pesi',
       label: tipo==='cal' ? 'Esercizio calisthenics' : 'Esercizio sala pesi'
+    }),
+    partnerPickerFor !== null && h(ExercisePicker,{
+      visible:true,
+      onClose:function(){setPartnerPickerFor(null);},
+      onAdd:function(name){setPartnerName(partnerPickerFor, name); setPartnerPickerFor(null);},
+      baseList: PESI_ES,
+      mode: 'pesi',
+      label: 'Scegli esercizio B'
     })
   );
 }
