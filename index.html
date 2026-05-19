@@ -3043,6 +3043,9 @@ function PesiLive(p){
   var _9=useState(null);var tipFor=_9[0];var setTipFor=_9[1];
   var _10=useState(null);var editingEx=_10[0];var setEditingEx=_10[1];
   var _11=useState(false);var picker=_11[0];var setPicker=_11[1];
+  /* Stato per nuovo esercizio in fase di configurazione tramite ExerciseConfigSheet.
+     Forma: { nome:string, where:'next'|'end'|null } oppure null. */
+  var _12=useState(null);var newExCfg=_12[0];var setNewExCfg=_12[1];
 
   /* feedback during rest */
   var totalSess=(p.allSessions||[]).length;
@@ -3124,21 +3127,40 @@ function PesiLive(p){
     gtLogInfo('Sessione pesi salvata', {dur:dur,esercizi:es.length,umore:umore});
     onSave(s);go('home');
   }
+  /* Apre l'ExerciseConfigSheet per configurare il nuovo esercizio.
+     Permette di scegliere tipo (standard/superset/progressivo/riscaldamento) e modalità (reps/hold). */
   function addExercise(nome,where){
-    /* Pre-popola dall'ultima sessione (anche da schede inattive) se disponibile */
-    var last = findLastExerciseSession(nome, (p.allSessions||[]));
-    var grp = muscleGroupOf(nome);
-    var defaultSerie;
+    setPicker(false);
+    setNewExCfg({nome:nome, where:where||'end'});
+  }
+  /* Costruisce le serie iniziali dell'esercizio nuovo, riusando i valori
+     dell'ultima sessione quando disponibili. Per warmup → nessuna serie. */
+  function buildNewExerciseSerie(cfg){
+    if(cfg.tipo==='riscaldamento') return [];
+    var isHold = cfg.modalita==='hold';
+    var nSets = parseInt(cfg.sets)||3;
+    var defPeso = parseFloat(cfg.peso)||0;
+    var defReps = isHold ? 0 : (parseReps(cfg.reps||10));
+    var defDur = isHold ? (parseInt(cfg.durata)||20) : 0;
+    var last = findLastExerciseSession(cfg.nome, (p.allSessions||[]));
     if(last && last.serie && last.serie.length){
-      var n = Math.min(Math.max(last.serie.length, 3), 5);
-      defaultSerie = Array.from({length:n}, function(_, i){
+      return Array.from({length:nSets}, function(_, i){
         var ref = last.serie[i] || last.serie[last.serie.length-1];
-        return {n:i+1, peso:ref.peso||0, reps:ref.reps||10, ok:false, t:null};
+        return {
+          n:i+1,
+          peso:(ref.peso||defPeso),
+          reps: isHold ? 0 : (ref.reps||defReps),
+          durata: isHold ? (ref.durata||defDur) : (ref.durata||0),
+          ok:false, t:null
+        };
       });
-    } else {
-      defaultSerie = [{n:1,peso:0,reps:10,ok:false,t:null},{n:2,peso:0,reps:10,ok:false,t:null},{n:3,peso:0,reps:10,ok:false,t:null}];
     }
-    var newEx={id:uid(),nome:nome,tipo:'standard',sets:defaultSerie.length,serie:defaultSerie,reps:'10',peso:(defaultSerie[0]&&defaultSerie[0].peso)||0,recSet:90,recEs:60,rec:90,gr:(grp&&grp.label)||'',note:''};
+    return Array.from({length:nSets}, function(_, i){
+      return {n:i+1, peso:defPeso, reps:isHold?0:defReps, durata:isHold?defDur:0, ok:false, t:null};
+    });
+  }
+  /* Inserisce un nuovo esercizio nella posizione richiesta. */
+  function insertNewExercise(newEx, where){
     if(where==='next' && ex < es.length){
       setEs(function(prev){var arr=prev.slice();arr.splice(ex+1,0,newEx);return arr;});
       setEx(ex+1);
@@ -3149,7 +3171,20 @@ function PesiLive(p){
         return arr;
       });
     }
-    setPicker(false);
+  }
+  /* Callback alla chiusura della config sheet del nuovo esercizio. */
+  function onSaveNewExercise(cfg){
+    if(!cfg) return;
+    var grp = muscleGroupOf(cfg.nome);
+    var withGr = Object.assign({}, cfg, {gr: cfg.gr || (grp && grp.label) || ''});
+    var newEx;
+    if(cfg.tipo==='riscaldamento'){
+      newEx = Object.assign({}, withGr, {serie:[], fatto:false});
+    } else {
+      newEx = Object.assign({}, withGr, {serie: buildNewExerciseSerie(withGr)});
+    }
+    insertNewExercise(newEx, newExCfg && newExCfg.where);
+    setNewExCfg(null);
   }
 
   /* Empty state: la sessione parte senza esercizi (sala pesi libera).
@@ -3171,7 +3206,14 @@ function PesiLive(p){
       h('div',{style:{padding:'12px 16px 32px',background:SURF,borderTop:'1px solid '+BORD}},
         h(Btn,{full:true,onClick:function(){setPicker(true);}},'+ Aggiungi primo esercizio')
       ),
-      picker && h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:PESI_ES,label:'Aggiungi esercizio'})
+      picker && h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:PESI_ES,label:'Aggiungi esercizio'}),
+      newExCfg && h(ExerciseConfigSheet,{
+        ex:null,
+        nome:newExCfg.nome,
+        schedaTipo:'pesi',
+        onClose:function(){setNewExCfg(null);},
+        onSave:onSaveNewExercise
+      })
     );
   }
   if(done){
@@ -3302,6 +3344,13 @@ function PesiLive(p){
       setEs(function(prev){return prev.map(function(e,i){if(i!==ex)return e;var serie=e.serie.map(function(s){return Object.assign({},s,{peso:s.ok?s.peso:(updated.peso||s.peso)});});return Object.assign({},updated,{serie:serie});});});
       setEditingEx(null);
     }}),
+    newExCfg&&h(ExerciseConfigSheet,{
+      ex:null,
+      nome:newExCfg.nome,
+      schedaTipo:'pesi',
+      onClose:function(){setNewExCfg(null);},
+      onSave:onSaveNewExercise
+    }),
     abortSheet&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.88)',zIndex:200,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)setAbortSheet(false);}},
       h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',padding:'24px 16px 36px'}},
         h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:26,letterSpacing:'0.02em',marginBottom:6}},'Vuoi terminare?'),
@@ -3373,6 +3422,9 @@ function CalLive(p){
   var _6=useState(3);var umore=_6[0];var setUmore=_6[1];
   var _7=useState('');var nota=_7[0];var setNota=_7[1];
   var _sav2=useState(false);var saving=_sav2[0];var setSaving=_sav2[1];
+  /* Stato per nuovo esercizio cal in fase di configurazione tramite ExerciseConfigSheet. */
+  var _ncfg=useState(null);var newExCfg=_ncfg[0];var setNewExCfg=_ncfg[1];
+  var _edit=useState(null);var editingExCal=_edit[0];var setEditingExCal=_edit[1];
 
   /* feedback during rest */
   var calTotalSess=(p.allSessions||[]).length;
@@ -3389,40 +3441,50 @@ function CalLive(p){
   var setSerie=makeSetSerie(setEs);
   var addSerie=makeAddSerie(setEs);
   var removeSerie=makeRemoveSerie(setEs);
+  /* Apre l'ExerciseConfigSheet per il nuovo esercizio cal: l'utente sceglie
+     tipo (standard/riscaldamento) e modalità (reps/hold). */
   function addExercise(nome){
-    var skill = findCalSkill(nome);
-    var isHold = !!(skill && skill.type === 'hold');
-    /* Pre-popola dall'ultima sessione (reps, peso e durata) per ogni serie */
-    var last = findLastExerciseSession(nome, (p.allSessions||[]));
-    var baseSerie;
+    setPicker(false);
+    setNewExCfg({nome:nome});
+  }
+  /* Costruisce serie per nuovo esercizio cal a partire dalla config + last session. */
+  function buildNewCalSerie(cfg){
+    if(cfg.tipo==='riscaldamento') return [];
+    var isHold = cfg.modalita==='hold';
+    var nSets = parseInt(cfg.sets)||3;
+    var defPeso = parseFloat(cfg.peso)||0;
+    var defReps = isHold ? 0 : (parseInt(cfg.reps)||5);
+    var defDur = isHold ? (parseInt(cfg.durata)||20) : 0;
+    var last = findLastExerciseSession(cfg.nome, (p.allSessions||[]));
     if(last && last.serie && last.serie.length){
-      var n = Math.min(Math.max(last.serie.length, 3), 5);
-      baseSerie = Array.from({length:n}, function(_, i){
+      return Array.from({length:nSets}, function(_, i){
         var ref = last.serie[i] || last.serie[last.serie.length-1];
         return {
-          n: i+1,
-          peso: ref.peso || 0,
-          reps: isHold ? 0 : (ref.reps || 5),
-          durata: isHold ? (ref.durata || 20) : (ref.durata || 0),
-          ok: false, t: null
+          n:i+1,
+          peso:(ref.peso||defPeso),
+          reps: isHold ? 0 : (ref.reps||defReps),
+          durata: isHold ? (ref.durata||defDur) : (ref.durata||0),
+          ok:false, t:null
         };
       });
-    } else {
-      baseSerie = isHold
-        ? [{n:1,peso:0,reps:0,durata:20,ok:false,t:null},{n:2,peso:0,reps:0,durata:20,ok:false,t:null},{n:3,peso:0,reps:0,durata:20,ok:false,t:null}]
-        : [{n:1,peso:0,reps:5,ok:false,t:null},{n:2,peso:0,reps:5,ok:false,t:null},{n:3,peso:0,reps:5,ok:false,t:null}];
     }
-    var newEx={
-      id:uid(), nome:nome, tipo:'standard',
-      modalita: isHold ? 'hold' : 'reps',
+    return Array.from({length:nSets}, function(_, i){
+      return {n:i+1, peso:defPeso, reps:isHold?0:defReps, durata:isHold?defDur:0, ok:false, t:null};
+    });
+  }
+  function onSaveNewCalExercise(cfg){
+    if(!cfg) return;
+    var skill = findCalSkill(cfg.nome);
+    var newEx = Object.assign({}, cfg, {
       livello: skill ? skill.lvl : null,
       categoria: skill ? skill.categoryId : null,
       muscoli: skill ? skill.muscoli : null,
       progressioneA: skill ? skill.prog : null,
-      serie: baseSerie
-    };
+      serie: buildNewCalSerie(cfg)
+    });
+    if(cfg.tipo==='riscaldamento') newEx.fatto = false;
     setEs(function(prev){return prev.concat([newEx]);});
-    setPicker(false);
+    setNewExCfg(null);
   }
   function setOk(idx,si){
     var willCheck=!es[idx].serie[si].ok;
@@ -3537,7 +3599,14 @@ function CalLive(p){
     h('div',{style:{padding:'12px 16px 32px',background:SURF,borderTop:'1px solid '+BORD}},
       h(Btn,{full:true,onClick:function(){setPicker(true);}},'+ Aggiungi esercizio')
     ),
-    picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:CAL_ES,label:'Aggiungi esercizio calisthenics',mode:'cal'})
+    picker&&h(ExercisePicker,{visible:true,onClose:function(){setPicker(false);},onAdd:addExercise,baseList:CAL_ES,label:'Aggiungi esercizio calisthenics',mode:'cal'}),
+    newExCfg && h(ExerciseConfigSheet,{
+      ex:null,
+      nome:newExCfg.nome,
+      schedaTipo:'cal',
+      onClose:function(){setNewExCfg(null);},
+      onSave:onSaveNewCalExercise
+    })
   );
 }
 
