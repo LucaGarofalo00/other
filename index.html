@@ -1761,8 +1761,32 @@ function ExerciseConfigSheet(p){
   function doSave(){
     var base={id:ex?ex.id:uid(),nome:esNome,tipo:tipo,gr:gr,note:note};
     if(tipo==='riscaldamento'){onSave(Object.assign(base,{durata:parseInt(durata)||10,intensita:intensita}));}
-    else if(tipo==='progressivo'){onSave(Object.assign(base,{peso:parseFloat(peso)||0,progressione:prog,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,serie:prog.length>0?prog[0].sets:3,reps:prog.length>0?prog[0].reps:'6',rec:parseInt(recSet)||90}));}
-    else if(tipo==='superset'){onSave(Object.assign(base,{sets:parseInt(sets)||3,serie:parseInt(sets)||3,reps:reps,peso:parseFloat(peso)||0,recSet:parseInt(recSet)||90,recEs:parseInt(recEs)||60,rec:parseInt(recSet)||90,partner:partner}));}
+    else if(tipo==='progressivo'){
+      /* Progressivo: progressione settimanale con reps o tenuta (durata in sec) per ogni settimana. */
+      var payloadP = {
+        peso:parseFloat(peso)||0,
+        progressione:prog,
+        recSet:parseInt(recSet)||90, recEs:parseInt(recEs)||60, rec:parseInt(recSet)||90,
+        serie:prog.length>0?prog[0].sets:3,
+        modalita: modalita
+      };
+      if(modalita==='hold') payloadP.durata = prog.length>0?(parseInt(prog[0].durata)||20):20;
+      else payloadP.reps = prog.length>0?prog[0].reps:'6';
+      onSave(Object.assign(base, payloadP));
+    }
+    else if(tipo==='superset'){
+      /* Superset: A e B condividono la modalità (reps o tenuta). */
+      var payloadS = {
+        sets:parseInt(sets)||3, serie:parseInt(sets)||3,
+        peso:parseFloat(peso)||0,
+        recSet:parseInt(recSet)||90, recEs:parseInt(recEs)||60, rec:parseInt(recSet)||90,
+        partner:partner,
+        modalita: modalita
+      };
+      if(modalita==='hold') payloadS.durata = parseInt(holdDur)||20;
+      else payloadS.reps = reps;
+      onSave(Object.assign(base, payloadS));
+    }
     else {
       /* "standard" — sia cal che pesi supportano modalità reps/hold. */
       var defRec = isCal ? 60 : 90;
