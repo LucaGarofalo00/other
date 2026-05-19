@@ -1150,6 +1150,22 @@ var sb = (window.supabase && window.supabase.createClient)
 
 function sbAvailable(){ return !!sb; }
 
+/* Ref globale al profilo corrente, aggiornato da App via useEffect.
+   Serve agli helper non-React (saveReminders, saveTargetBreakdown, ecc.) per
+   triggerare un push del profilo dopo aver scritto in localStorage.
+   Last-write-wins: il profilo porta con sé reminders/target_breakdown/skip_reasons
+   come colonne JSONB. */
+var _currentProfile = null;
+function setCurrentProfileRef(p){ _currentProfile = p; }
+function pushProfileNow(){
+  try{
+    if(!sb || !_currentProfile) return;
+    sbPushProfile(_currentProfile).catch(function(e){
+      console.warn('pushProfileNow failed', e && e.message || e);
+    });
+  }catch(e){ console.warn('pushProfileNow outer', e); }
+}
+
 async function sbGetUser(){
   if(!sb) return null;
   try{ var res = await sb.auth.getUser(); return res.data && res.data.user ? res.data.user : null; }
@@ -1192,6 +1208,8 @@ function profileLocalToRow(p, userId){
     theme: (function(){ try{ return loadTheme().id; }catch(e){ return 'lime'; } })(),
     freq: (function(){ try{ return getFreq(); }catch(e){ return {}; } })(),
     skip_reasons: (function(){ try{ return loadSkipReasons(); }catch(e){ return {}; } })(),
+    reminders: (function(){ try{ return loadReminders(); }catch(e){ return []; } })(),
+    target_breakdown: (function(){ try{ return loadTargetBreakdown(); }catch(e){ return null; } })(),
     last_modified: p.lastModified || Date.now(),
     updated_at: new Date().toISOString()
   };
@@ -2591,12 +2609,10 @@ function Home(p){
       );
     }),
     /* Modale per impostare/modificare il motivo per cui un giorno di allenamento è stato saltato.
-       Passa il profilo per consentire alla modale di triggerare il push su Supabase
-       (skip_reasons è una colonna JSONB di profiles, sincronizzata col profilo stesso). */
+       Il save passa per saveSkipReasons → pushProfileNow → Supabase (colonna JSONB su profiles). */
     skipDate && h(SkipReasonForm,{
       isoDate: skipDate,
       existing: getSkipReason(skipDate),
-      profile: profile,
       onChange: function(){ setSkipTick(skipTick+1); },
       onClose: function(){ setSkipDate(null); }
     })
@@ -6164,6 +6180,8 @@ function saveTargetBreakdown(obj){
     if(obj === null) localStorage.removeItem(TARGET_BD_KEY);
     else localStorage.setItem(TARGET_BD_KEY, JSON.stringify(obj));
   }catch(e){}
+  /* Cloud-sync via colonna JSONB sul profilo. Vedi [[feedback-cloud-first]]. */
+  pushProfileNow();
 }
 /* Etichetta disciplina di una sessione, robusta a sessioni vecchie senza tipo */
 function sessionDiscipline(s){
@@ -6185,6 +6203,8 @@ function loadReminders(){
 }
 function saveReminders(arr){
   try { localStorage.setItem(REM_KEY, JSON.stringify(arr)); } catch(e) {}
+  /* Cloud-sync via colonna JSONB sul profilo. Vedi [[feedback-cloud-first]]. */
+  pushProfileNow();
 }
 function addReminder(r){
   var arr = loadReminders();
@@ -6228,6 +6248,8 @@ function loadSkipReasons(){
 }
 function saveSkipReasons(obj){
   try { localStorage.setItem(SKIP_REASON_KEY, JSON.stringify(obj||{})); } catch(e) {}
+  /* Cloud-sync via colonna JSONB sul profilo. Vedi [[feedback-cloud-first]]. */
+  pushProfileNow();
 }
 function getSkipReason(isoDate){
   var all = loadSkipReasons();
@@ -6277,19 +6299,10 @@ function SkipReasonForm(p){
       return d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
     }catch(e){ return p.isoDate; }
   })();
-  /* Trigger push del profilo (che porta con sé skip_reasons come colonna JSONB).
-     Non blocchiamo l'UI: la chiusura della modale avviene comunque, gli errori finiscono in console. */
-  function pushProfileSilent(){
-    try{
-      if(typeof sb !== 'undefined' && sb && p.profile){
-        sbPushProfile(p.profile).catch(function(e){ console.warn('skip-reason push',e&&e.message||e); });
-      }
-    }catch(e){ console.warn('skip-reason push outer',e); }
-  }
+  /* save/delete passano da saveSkipReasons → pushProfileNow → Supabase. Vedi [[feedback-cloud-first]]. */
   function doSave(){
     setSkipReason(p.isoDate, tipo, note);
     hap(8);
-    pushProfileSilent();
     if(p.onChange) p.onChange();
     p.onClose();
   }
@@ -6297,7 +6310,6 @@ function SkipReasonForm(p){
     if(!confirm('Rimuovere il motivo per '+dateLabel+'?')) return;
     delSkipReason(p.isoDate);
     hap([10,40,10]);
-    pushProfileSilent();
     if(p.onChange) p.onChange();
     p.onClose();
   }
@@ -7176,6 +7188,11 @@ function App(){
 
   useEffect(function(){applyTheme(loadTheme());},[]);
 
+  /* Tieni allineato il ref globale al profilo corrente.
+     Gli helper non-React (saveReminders, saveTargetBreakdown, saveSkipReasons)
+     leggono da qui per triggerare un push dopo aver scritto in localStorage. */
+  useEffect(function(){ setCurrentProfileRef(profile); }, [profile]);
+
   /* Auth: carica sessione + ascolta cambi (login/logout/refresh/recovery) */
   useEffect(function(){
     if(!sb){ setAuthReady(true); return; }
@@ -7319,6 +7336,13 @@ function App(){
           }
           if(remote.profileRow.skip_reasons && typeof remote.profileRow.skip_reasons === 'object'){
             try{ saveSkipReasons(remote.profileRow.skip_reasons); }catch(e){}
+          }
+          if(Array.isArray(remote.profileRow.reminders)){
+            try{ saveReminders(remote.profileRow.reminders); }catch(e){}
+          }
+          if(remote.profileRow.target_breakdown !== undefined){
+            /* null è valido (utente che ha rimosso il breakdown); l'oggetto va salvato com'è */
+            try{ saveTargetBreakdown(remote.profileRow.target_breakdown); }catch(e){}
           }
         }
 
