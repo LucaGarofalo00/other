@@ -1191,6 +1191,7 @@ function profileLocalToRow(p, userId){
     giorni_target: (p.giorniTarget === '' || p.giorniTarget == null) ? null : Number(p.giorniTarget),
     theme: (function(){ try{ return loadTheme().id; }catch(e){ return 'lime'; } })(),
     freq: (function(){ try{ return getFreq(); }catch(e){ return {}; } })(),
+    skip_reasons: (function(){ try{ return loadSkipReasons(); }catch(e){ return {}; } })(),
     last_modified: p.lastModified || Date.now(),
     updated_at: new Date().toISOString()
   };
@@ -2280,6 +2281,12 @@ function Home(p){
   var schede=p.schede,sessions=p.sessions,profile=p.profile,go=p.go;
   /* Promemoria settimanali: letti da localStorage. Refresh via prop key per forzare re-render dopo edit. */
   var remindersList = loadReminders();
+  /* Modale "motivo allenamento saltato": isoDate del giorno selezionato, null se chiuso. */
+  var _skip = useState(null); var skipDate = _skip[0]; var setSkipDate = _skip[1];
+  /* Tick di refresh per forzare il re-render dopo save/delete del motivo (localStorage non triggera React). */
+  var _skTick = useState(0); var skipTick = _skTick[0]; var setSkipTick = _skTick[1];
+  var skipReasonsAll = loadSkipReasons();
+  void skipTick; /* dipendenza implicita per forzare il re-render */
   var sorted=sessions.slice().sort(function(a,b){return new Date(b.t0)-new Date(a.t0);});
   var nome=profile&&profile.nome?profile.nome.split(' ')[0]:'';
   if(sessions.length===0)return h('div',{style:{padding:'40px 20px',textAlign:'center',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'center'}},
@@ -2353,13 +2360,53 @@ function Home(p){
             var trained=dayMap[i];
             var isPast=i<todayIdx;
             var isToday=i===todayIdx;
+            var isFuture=i>todayIdx;
             var missed=isPast&&!trained;
-            var dotBg=trained?'var(--success)':isToday?ACC2:missed?'rgba(239,68,68,0.15)':'rgba(255,255,255,0.04)';
-            var dotBorder=trained?'var(--success)':isToday?ACC:missed?'rgba(239,68,68,0.4)':'rgba(255,255,255,0.08)';
+            /* Data ISO del giorno (lun=0..dom=6) per indicizzare i motivi */
+            var dayDate=new Date(thisWeekStart); dayDate.setDate(dayDate.getDate()+i);
+            var dayIso=dateToISO(dayDate);
+            var reason = (!trained && skipReasonsAll[dayIso]) ? skipReasonsAll[dayIso] : null;
+            var reasonMeta = reason ? getSkipReasonType(reason.type) : null;
+            /* Un giorno è cliccabile se non c'è un allenamento e non è nel futuro (oggi e passato).
+               Cliccando apre la modale per inserire/modificare il motivo. */
+            var clickable = !trained && !isFuture;
+            var dotBg = trained ? 'var(--success)'
+                      : reason ? reasonMeta.bg
+                      : isToday ? ACC2
+                      : missed ? 'rgba(239,68,68,0.15)'
+                      : 'rgba(255,255,255,0.04)';
+            var dotBorder = trained ? 'var(--success)'
+                          : reason ? reasonMeta.bord
+                          : isToday ? ACC
+                          : missed ? 'rgba(239,68,68,0.4)'
+                          : 'rgba(255,255,255,0.08)';
+            var inner;
+            if(trained) inner = h(Icon,{n:'check',sz:12,c:'var(--act)'});
+            else if(reason) inner = h('span',{style:{fontSize:14,lineHeight:1}}, reasonMeta.emoji);
+            else if(missed) inner = h('span',{style:{fontSize:10,color:'var(--danger)',fontWeight:700}},'✕');
+            else if(isToday) inner = h('span',{style:{width:6,height:6,borderRadius:'50%',background:ACC}});
+            else inner = null;
+            function onCellClick(){ if(!clickable) return; hap(8); setSkipDate(dayIso); }
             return h('div',{key:i,style:{flex:1,textAlign:'center'}},
               h('div',{style:{fontSize:9,color:isToday?ACC:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:4}},name),
-              h('div',{style:{width:32,height:32,borderRadius:'50%',background:dotBg,border:'2px solid '+dotBorder,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto',transition:'all .2s'}},
-                trained?h(Icon,{n:'check',sz:12,c:'var(--act)'}):missed?h('span',{style:{fontSize:10,color:'var(--danger)',fontWeight:700}},'✕'):isToday?h('span',{style:{width:6,height:6,borderRadius:'50%',background:ACC}}):null
+              h('button',{
+                onClick: clickable ? onCellClick : undefined,
+                disabled: !clickable,
+                'aria-label': clickable ? (reason?('Modifica motivo: '+reasonMeta.label):'Aggiungi motivo per giorno non allenato') : undefined,
+                title: reason ? (reasonMeta.label + (reason.notes ? ' — '+reason.notes : '')) : (clickable ? 'Tocca per indicare il motivo' : undefined),
+                style:{
+                  width:32,height:32,borderRadius:'50%',
+                  background:dotBg,border:'2px solid '+dotBorder,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  margin:'0 auto',padding:0,
+                  cursor: clickable?'pointer':'default',
+                  transition:'all .2s',
+                  position:'relative'
+                }
+              },
+                inner,
+                /* Pallino indicatore quando c'è un motivo salvato */
+                reason && h('span',{style:{position:'absolute',bottom:-2,right:-2,width:9,height:9,borderRadius:'50%',background:reasonMeta.color,border:'1.5px solid '+SURF2}})
               )
             );
           })
@@ -2368,6 +2415,17 @@ function Home(p){
           h('div',{style:{width:adherencePct+'%',height:'100%',borderRadius:2,background:statusColor,transition:'width .4s ease'}})
         ),
         h('div',{style:{fontSize:11,color:statusColor,fontWeight:600,textAlign:'center',marginBottom: (weekSess.length>0 || hasBd)?10:0}},statusText),
+        /* Hint cliccabilità: appare se c'è almeno un giorno saltato senza motivo già registrato */
+        (function(){
+          var hasUntaggedMiss = false;
+          for(var k=0;k<=todayIdx;k++){
+            var dD = new Date(thisWeekStart); dD.setDate(dD.getDate()+k);
+            var iso = dateToISO(dD);
+            if(!dayMap[k] && !skipReasonsAll[iso]){ hasUntaggedMiss = true; break; }
+          }
+          if(!hasUntaggedMiss) return null;
+          return h('div',{style:{fontSize:10,color:MUTED,textAlign:'center',marginTop:-2,marginBottom:(weekSess.length>0 || hasBd)?10:0,fontStyle:'italic',opacity:0.85}},'Tocca un giorno saltato per dire perché');
+        })(),
         /* Riga breakdown disciplina — chip orizzontali */
         (weekSess.length>0 || hasBd) && h('div',{style:{display:'flex',gap:6,paddingTop:8,borderTop:'0.5px solid '+BORD,flexWrap:'wrap'}},
           ['pesi','cal','cardio'].map(function(d){
@@ -2531,6 +2589,16 @@ function Home(p){
           )
         )
       );
+    }),
+    /* Modale per impostare/modificare il motivo per cui un giorno di allenamento è stato saltato.
+       Passa il profilo per consentire alla modale di triggerare il push su Supabase
+       (skip_reasons è una colonna JSONB di profiles, sincronizzata col profilo stesso). */
+    skipDate && h(SkipReasonForm,{
+      isoDate: skipDate,
+      existing: getSkipReason(skipDate),
+      profile: profile,
+      onChange: function(){ setSkipTick(skipTick+1); },
+      onClose: function(){ setSkipDate(null); }
     })
   );
 }
@@ -6146,6 +6214,126 @@ var REMINDER_TYPES = [
 ];
 function getReminderType(id){ return REMINDER_TYPES.find(function(t){return t.id===id;}) || REMINDER_TYPES[REMINDER_TYPES.length-1]; }
 
+/* ── MOTIVI ALLENAMENTO SALTATO ──
+   Tracciamento del perché un giorno di allenamento è stato saltato (influenza, lavoro, ecc.).
+   Indicizzati per data ISO (YYYY-MM-DD).
+   Cache locale in localStorage per lettura sincrona, ma persistiti su Supabase
+   come colonna JSONB `skip_reasons` della tabella `profiles` (vedi profileLocalToRow).
+   Last-write-wins col cloud — al login su un nuovo device, vengono ripristinati
+   da remote.profileRow.skip_reasons in localStorage. */
+var SKIP_REASON_KEY = 'pumplog_skip_reasons';
+function loadSkipReasons(){
+  try { return JSON.parse(localStorage.getItem(SKIP_REASON_KEY)||'{}') || {}; }
+  catch(e) { return {}; }
+}
+function saveSkipReasons(obj){
+  try { localStorage.setItem(SKIP_REASON_KEY, JSON.stringify(obj||{})); } catch(e) {}
+}
+function getSkipReason(isoDate){
+  var all = loadSkipReasons();
+  return all[isoDate] || null;
+}
+function setSkipReason(isoDate, type, notes){
+  var all = loadSkipReasons();
+  all[isoDate] = {type: type||'altro', notes: (notes||'').trim(), lastModified: Date.now()};
+  saveSkipReasons(all);
+  return all;
+}
+function delSkipReason(isoDate){
+  var all = loadSkipReasons();
+  delete all[isoDate];
+  saveSkipReasons(all);
+  return all;
+}
+function dateToISO(d){
+  var yy = d.getFullYear();
+  var mm = String(d.getMonth()+1).padStart(2,'0');
+  var dd = String(d.getDate()).padStart(2,'0');
+  return yy+'-'+mm+'-'+dd;
+}
+var SKIP_REASON_TYPES = [
+  {id:'influenza',  label:'Influenza',       emoji:'🤒', color:'#EF4444', bg:'rgba(239,68,68,0.10)', bord:'rgba(239,68,68,0.35)'},
+  {id:'infortunio', label:'Infortunio',      emoji:'🩹', color:'#F97316', bg:'rgba(249,115,22,0.10)', bord:'rgba(249,115,22,0.35)'},
+  {id:'stanchezza', label:'Stanchezza',      emoji:'😴', color:'#A855F7', bg:'rgba(168,85,247,0.10)', bord:'rgba(168,85,247,0.35)'},
+  {id:'lavoro',     label:'Lavoro / studio', emoji:'💼', color:'#3B82F6', bg:'rgba(59,130,246,0.10)', bord:'rgba(59,130,246,0.35)'},
+  {id:'famiglia',   label:'Famiglia',        emoji:'👨‍👩‍👧', color:'#EC4899', bg:'rgba(236,72,153,0.10)', bord:'rgba(236,72,153,0.35)'},
+  {id:'viaggio',    label:'Viaggio',         emoji:'✈️', color:'#06B6D4', bg:'rgba(6,182,212,0.10)', bord:'rgba(6,182,212,0.35)'},
+  {id:'riposo',     label:'Riposo scelto',   emoji:'🛌', color:'#22C55E', bg:'rgba(34,197,94,0.10)', bord:'rgba(34,197,94,0.35)'},
+  {id:'palestra',   label:'Palestra chiusa', emoji:'🚫', color:'#F59E0B', bg:'rgba(245,158,11,0.10)', bord:'rgba(245,158,11,0.35)'},
+  {id:'altro',      label:'Altro',           emoji:'📌', color:'#94A3B8', bg:'rgba(148,163,184,0.10)', bord:'rgba(148,163,184,0.35)'}
+];
+function getSkipReasonType(id){ return SKIP_REASON_TYPES.find(function(t){return t.id===id;}) || SKIP_REASON_TYPES[SKIP_REASON_TYPES.length-1]; }
+
+/* Modale per inserire/modificare il motivo per cui un giorno di allenamento è saltato. */
+function SkipReasonForm(p){
+  useEffect(function(){lockScroll();return unlockScroll;},[]);
+  var existing = p.existing || null;
+  var _t = useState(existing ? existing.type : 'influenza'); var tipo = _t[0]; var setTipo = _t[1];
+  var _n = useState(existing ? (existing.notes||'') : ''); var note = _n[0]; var setNote = _n[1];
+  var dateLabel = (function(){
+    try{
+      var parts = p.isoDate.split('-');
+      var d = new Date(+parts[0], +parts[1]-1, +parts[2]);
+      return d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+    }catch(e){ return p.isoDate; }
+  })();
+  /* Trigger push del profilo (che porta con sé skip_reasons come colonna JSONB).
+     Non blocchiamo l'UI: la chiusura della modale avviene comunque, gli errori finiscono in console. */
+  function pushProfileSilent(){
+    try{
+      if(typeof sb !== 'undefined' && sb && p.profile){
+        sbPushProfile(p.profile).catch(function(e){ console.warn('skip-reason push',e&&e.message||e); });
+      }
+    }catch(e){ console.warn('skip-reason push outer',e); }
+  }
+  function doSave(){
+    setSkipReason(p.isoDate, tipo, note);
+    hap(8);
+    pushProfileSilent();
+    if(p.onChange) p.onChange();
+    p.onClose();
+  }
+  function doDelete(){
+    if(!confirm('Rimuovere il motivo per '+dateLabel+'?')) return;
+    delSkipReason(p.isoDate);
+    hap([10,40,10]);
+    pushProfileSilent();
+    if(p.onChange) p.onChange();
+    p.onClose();
+  }
+  var inp = {width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
+  return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)p.onClose();}},
+    h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0}},
+        h('div',null,
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC,lineHeight:1.1}}, existing?'Modifica motivo':'Perché niente palestra?'),
+          h('div',{style:{fontSize:11,color:MUTED,marginTop:3,textTransform:'capitalize'}}, dateLabel)
+        ),
+        h('button',{onClick:p.onClose,'aria-label':'Chiudi',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10}},h(Icon,{n:'close',sz:20,c:MUTED}))
+      ),
+      h('div',{style:{overflowY:'auto',flex:1,padding:'16px 16px 0'}},
+        h('div',{style:{fontSize:12,color:MUTED,lineHeight:1.5,marginBottom:14}},'Tieni traccia di perché hai saltato. Aiuta a riconoscere pattern (troppa stanchezza? infortuni ricorrenti?) e a non sentirsi in colpa per assenze giustificate.'),
+        h(Lbl,null,'Motivo'),
+        h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}},
+          SKIP_REASON_TYPES.map(function(t){
+            var on = tipo === t.id;
+            return h('button',{key:t.id,onClick:function(){hap(8);setTipo(t.id);},'aria-pressed':on,style:{padding:'7px 11px',borderRadius:18,border:'1px solid '+(on?t.color:BORD),background:on?t.bg:'transparent',color:on?t.color:TEXT,fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,fontWeight:on?700:400}},
+              h('span',{style:{fontSize:14}},t.emoji),
+              t.label
+            );
+          })
+        ),
+        h(Lbl,null,'Note (opzionale)'),
+        h('textarea',{value:note,onChange:function(e){setNote(e.target.value);},placeholder:'Dettagli: febbre, dolore al ginocchio, riunione last-minute…',rows:3,style:Object.assign({},inp,{resize:'none',marginBottom:20})})
+      ),
+      h('div',{style:{padding:'12px 16px 32px',borderTop:'0.5px solid '+BORD,flexShrink:0,display:'flex',gap:8}},
+        existing && h('button',{onClick:doDelete,style:{padding:'12px 14px',background:'transparent',border:'1px solid rgba(239,68,68,0.4)',borderRadius:10,color:'var(--danger)',fontWeight:600,fontSize:13,cursor:'pointer'}}, 'Rimuovi'),
+        h(Btn,{full:true,onClick:doSave}, existing?'Salva modifiche':'Salva motivo')
+      )
+    )
+  );
+}
+
 /* Calcola la data della prossima occorrenza per un promemoria ricorrente settimanale.
    Per i one-shot ritorna la data originale. */
 function nextOccurrence(r, fromDate){
@@ -7128,6 +7316,9 @@ function App(){
           }
           if(remote.profileRow.freq && typeof remote.profileRow.freq === 'object'){
             try{ localStorage.setItem(FK, JSON.stringify(remote.profileRow.freq)); }catch(e){}
+          }
+          if(remote.profileRow.skip_reasons && typeof remote.profileRow.skip_reasons === 'object'){
+            try{ saveSkipReasons(remote.profileRow.skip_reasons); }catch(e){}
           }
         }
 
