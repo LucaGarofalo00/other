@@ -618,9 +618,9 @@ function findLastExerciseSession(esNome, allSessions, excludeSessionId){
   for(var i=0;i<sorted.length;i++){
     var s = sorted[i];
     if(excludeSessionId && s.id === excludeSessionId) continue;
-    var es = s.es || [];
-    for(var j=0;j<es.length;j++){
-      var e = es[j];
+    var expanded = expandSupersetEs(s.es || []);
+    for(var j=0;j<expanded.length;j++){
+      var e = expanded[j];
       if(e.nome !== esNome) continue;
       var done = (e.serie||[]).filter(function(sr){return sr.ok;});
       if(done.length > 0){
@@ -1509,6 +1509,33 @@ function fmtRec(s){if(!s||s===0)return '–';var m=Math.floor(s/60);var sc=s%60;
 function fmtSupersetName(ex){return ex.nome+' + '+(ex.partner&&ex.partner.nome||'?');}
 function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (ex.durata||10)+'min · '+(ex.intensita||'Media');if(t==='progressivo'){var holdP=ex.modalita==='hold';return 'Progressivo · '+(ex.progressione?ex.progressione.length:0)+' sett.'+(holdP?' (tenuta)':'')+' · '+(ex.peso||0)+'kg';}if(t==='superset'){var aHold=ex.modalita==='hold';var bHold=(ex.partner&&ex.partner.modalita)==='hold';var aLabel=aHold?((ex.durata||'?')+'s'):(ex.reps||'?')+((ex.peso||0)>0?' · '+ex.peso+'kg':'');var bLabel=bHold?(((ex.partner&&ex.partner.durata)||'?')+'s'):((ex.partner&&ex.partner.reps)||'?')+((ex.partner&&ex.partner.peso||0)>0?' · '+ex.partner.peso+'kg':'');return 'Superset '+( ex.sets||ex.serie||3)+' set · A: '+aLabel+' · B: '+bLabel+' · '+fmtRec(ex.recSet||ex.rec||90)+' rec';}if(ex.modalita==='hold')return (ex.sets||ex.serie||3)+'×'+(ex.durata||'?')+'s'+((ex.peso||0)>0?' · '+ex.peso+'kg':'')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+' · '+(ex.peso||0)+'kg · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}
 function ton(es){return es.reduce(function(t,e){return t+(e.serie||[]).filter(function(s){return s.ok;}).reduce(function(a,s){return a+s.peso*s.reps;},0);},0);}
+function expandSupersetEs(esList){
+  var out=[];
+  (esList||[]).forEach(function(e){
+    out.push(e);
+    if(e.tipo==='superset'&&e.partner&&e.partner.nome){
+      var pt=e.partner;
+      var ptIsHold=(pt.modalita||'reps')==='hold';
+      var ptReps=ptIsHold?0:(parseInt(pt.reps)||0);
+      var ptDur=ptIsHold?(parseInt(pt.durata)||0):0;
+      var ptPeso=parseFloat(pt.peso)||0;
+      var synSerie=(e.serie||[]).filter(function(s){return s.ok;}).map(function(s,i){
+        return {n:i+1,peso:ptPeso,reps:ptReps,durata:ptDur,ok:true,t:s.t};
+      });
+      out.push({
+        id:(e.id||'')+'_B',
+        nome:pt.nome,
+        tipo:'standard',
+        gr:pt.gr||resolveGroup(pt.nome),
+        modalita:pt.modalita||'reps',
+        serie:synSerie,
+        _supersetB:true,
+        _supersetParent:e.nome
+      });
+    }
+  });
+  return out;
+}
 function rm1(p,r){return r<=1?p:Math.round(p*(1+r/30));}
 function parseReps(r){var s=String(r);return s.indexOf('-')>=0?parseInt(s,10):(parseInt(s,10)||10);}
 function estimateTime(bl){var m=10;bl.es.forEach(function(ex){if(ex.tipo==='riscaldamento'){m+=(ex.durata||10)+1;}else{var s=typeof ex.serie==='number'?ex.serie:(ex.sets||3);var r=ex.rec||ex.recSet||90;m+=s*(0.75+r/60)+1;}});return Math.ceil(m/5)*5;}
@@ -2718,7 +2745,7 @@ function Home(p){
       var sc=schede.find(function(x){return x.id===s.sId;});
       var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
       var isCal=s.tipo==='cal';
-      var totalReps=s.es.reduce(function(t,e){return t+e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);},0);
+      var totalReps=expandSupersetEs(s.es).reduce(function(t,e){return t+(e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+(sr.reps||0);},0);},0);
       var cRate=sessionCompletionRate(s);
       var cInfo=completionLabel(cRate);
       return h(Card,{key:s.id,onClick:function(){go('det',{s:s});},style:{cursor:'pointer',borderLeft:'3px solid '+cInfo.color}},
@@ -2733,7 +2760,7 @@ function Home(p){
           ),
           h('div',{style:{display:'flex',alignItems:'center',gap:8}},
             cRate>=100&&h('div',{style:{width:18,height:18,borderRadius:'50%',background:'rgba(34,197,94,0.15)',display:'flex',alignItems:'center',justifyContent:'center'}},h(Icon,{n:'check',sz:10,c:'var(--success)'})),
-            h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:15}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg'))
+            h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:15}},isCal?(totalReps+' reps'):(Math.round(ton(expandSupersetEs(s.es)))+'kg'))
           )
         )
       );
@@ -3301,10 +3328,11 @@ function PesiLive(p){
     );
   }
   if(done){
-    var fatte=es.filter(function(e){return e.tipo!=='riscaldamento';}).reduce(function(a,e){return a+e.serie.filter(function(s){return s.ok;}).length;},0);
+    var expEsS=expandSupersetEs(es);
+    var fatte=expEsS.filter(function(e){return e.tipo!=='riscaldamento';}).reduce(function(a,e){return a+(e.serie||[]).filter(function(s){return s.ok;}).length;},0);
     return h(Summary,{
       subtitle:bl.nome,
-      rows:[[Math.round((Date.now()-t0)/60000)+' min','Durata'],[Math.round(ton(es))+'kg','Tonnellaggio'],[fatte,'Serie completate'],[es.length,'Esercizi']],
+      rows:[[Math.round((Date.now()-t0)/60000)+' min','Durata'],[Math.round(ton(expEsS))+'kg','Tonnellaggio'],[fatte,'Serie completate'],[es.length,'Esercizi']],
       umore:umore,setUmore:setUmore,nota:nota,setNota:setNota,onSave:saveSession,saving:saving
     });
   }
@@ -3624,8 +3652,9 @@ function CalLive(p){
     onSave(s);go('home');
   }
   if(done){
-    var totalReps=es.reduce(function(t,e){return t+e.serie.filter(function(s){return s.ok;}).reduce(function(a,s){return a+s.reps;},0);},0);
-    var fatte=es.reduce(function(a,e){return a+e.serie.filter(function(s){return s.ok;}).length;},0);
+    var expEs=expandSupersetEs(es);
+    var totalReps=expEs.reduce(function(t,e){return t+(e.serie||[]).filter(function(s){return s.ok;}).reduce(function(a,s){return a+(s.reps||0);},0);},0);
+    var fatte=expEs.reduce(function(a,e){return a+(e.serie||[]).filter(function(s){return s.ok;}).length;},0);
     return h(Summary,{
       subtitle:'Calisthenics',
       rows:[[Math.round((Date.now()-t0)/60000)+' min','Durata'],[totalReps,'Ripetizioni totali'],[fatte,'Serie completate'],[es.length,'Esercizi']],
@@ -4598,7 +4627,7 @@ function Log(p){
           var sc=schede.find(function(x){return x.id===s.sId;});
           var bl=sc&&sc.blocchi.find(function(b){return b.id===s.bId;});
           var isCal=s.tipo==='cal';
-          var totalReps=s.es.reduce(function(t,e){return t+e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);},0);
+          var totalReps=expandSupersetEs(s.es).reduce(function(t,e){return t+(e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+(sr.reps||0);},0);},0);
           var cRate=sessionCompletionRate(s);
           var cInfo=completionLabel(cRate);
           return h(Card,{key:s.id,onClick:function(){go('det',{s:s});},style:{borderLeft:'3px solid '+cInfo.color}},
@@ -4612,7 +4641,7 @@ function Log(p){
                 h('div',{style:{fontSize:11,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})+' · '+s.dur+'min')
               ),
               h('div',{style:{textAlign:'right'}},
-                h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:14,fontVariantNumeric:'tabular-nums'}},isCal?(totalReps+' reps'):(Math.round(ton(s.es))+'kg')),
+                h('div',{style:{fontFamily:"'Roboto Mono',monospace",color:ACC,fontWeight:700,fontSize:14,fontVariantNumeric:'tabular-nums'}},isCal?(totalReps+' reps'):(Math.round(ton(expandSupersetEs(s.es)))+'kg')),
                 cRate>=100&&h('div',{style:{fontSize:9,color:'var(--success)',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginTop:2}},'COMPLETATO')
               )
             ),
@@ -4996,7 +5025,7 @@ function Det(p){
     h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,margin:'14px 0 18px'}},
       h('div',{style:{flex:1,minWidth:0}},
         h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:32,letterSpacing:'0.03em',lineHeight:1.1,marginBottom:4}},s.tipo==='cal'?(bl?bl.nome:sc?sc.nome:'Calisthenics'):(bl?bl.nome:'Sessione')),
-        h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+'min · '+Math.round(ton(s.es))+'kg')
+        h('div',{style:{fontSize:13,color:MUTED}},new Date(s.t0).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+s.dur+'min · '+Math.round(ton(expandSupersetEs(s.es)))+'kg')
       ),
       h('button',{onClick:function(){hap(8);setEdMeta(true);},'aria-label':'Modifica sessione',style:{flexShrink:0,background:SURF2,border:'1px solid '+BORD,borderRadius:10,padding:'9px 11px',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,color:ACC,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}, h(Icon,{n:'edit',sz:12,c:ACC}), 'Modifica')
     ),
@@ -5202,12 +5231,12 @@ function Stats(p){
   var cardioData=allData.filter(function(s){return s.tipo==='cardio';});
 
   var byEx={};
-  pesiData.forEach(function(s){s.es.forEach(function(e){if(e.tipo==='riscaldamento')return;var t=ton([e]);if(t>0){byEx[e.nome]=(byEx[e.nome]||0)+t;}});});
+  pesiData.forEach(function(s){expandSupersetEs(s.es).forEach(function(e){if(e.tipo==='riscaldamento')return;var t=ton([e]);if(t>0){byEx[e.nome]=(byEx[e.nome]||0)+t;}});});
   var topExs=Object.entries(byEx).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
   var maxT=topExs.length?topExs[0][1]:1;
 
   var calByEx={};
-  calData.forEach(function(s){s.es.forEach(function(e){var reps=e.serie.filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);if(reps>0)calByEx[e.nome]=(calByEx[e.nome]||0)+reps;});});
+  calData.forEach(function(s){expandSupersetEs(s.es).forEach(function(e){if(e.tipo==='riscaldamento')return;var reps=(e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(a,sr){return a+sr.reps;},0);if(reps>0)calByEx[e.nome]=(calByEx[e.nome]||0)+reps;});});
 
   /* B2: Volume per gruppo muscolare (set completati per gruppo) */
   /* Bicipiti/Tricipiti vengono uniti sotto Braccia per il grafico MEV/MAV/MRV.
@@ -5217,7 +5246,7 @@ function Stats(p){
   var volByGr={};
   var cardioVolByGr={};
   data.forEach(function(s){
-    s.es.forEach(function(e){
+    expandSupersetEs(s.es).forEach(function(e){
       if(e.tipo==='riscaldamento' || !e.gr) return;
       var sets = (e.serie||[]).filter(function(sr){return sr.ok;}).length;
       if(sets<=0) return;
@@ -5252,8 +5281,8 @@ function Stats(p){
 
   /* Delta vs periodo precedente */
   function deltaTon(){
-    var cur = pesiData.reduce(function(t,s){return t+ton(s.es);},0);
-    var prv = prevData.filter(function(s){return s.tipo!=='cal';}).reduce(function(t,s){return t+ton(s.es);},0);
+    var cur = pesiData.reduce(function(t,s){return t+ton(expandSupersetEs(s.es));},0);
+    var prv = prevData.filter(function(s){return s.tipo!=='cal';}).reduce(function(t,s){return t+ton(expandSupersetEs(s.es));},0);
     if(prv === 0) return null;
     var pct = Math.round((cur-prv)/prv*100);
     return pct;
@@ -5278,7 +5307,7 @@ function Stats(p){
     sections.push('=== KPI ===');
     var kpiRows = [
       ['Sessioni totali', allData.length, dSes!=null?(dSes>=0?'+':'')+dSes+' vs prec.':''],
-      ['Tonnellaggio (kg)', Math.round(pesiData.reduce(function(t,s){return t+ton(s.es);},0)), dTon!=null?(dTon>=0?'+':'')+dTon+'%':''],
+      ['Tonnellaggio (kg)', Math.round(pesiData.reduce(function(t,s){return t+ton(expandSupersetEs(s.es));},0)), dTon!=null?(dTon>=0?'+':'')+dTon+'%':''],
       ['Durata totale (min)', Math.round(allData.reduce(function(t,s){return t+s.dur;},0)), ''],
       ['Sessioni pesi', pesiData.length, ''],
       ['Sessioni calisthenics', calData.length, ''],
@@ -5288,9 +5317,10 @@ function Stats(p){
     sections.push('');
     sections.push('=== SESSIONI ===');
     var sessRows = allData.slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);}).map(function(s){
-      var totTon = ton(s.es||[]);
-      var totReps = (s.es||[]).reduce(function(a,e){return a+(e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(x,sr){return x+(sr.reps||0);},0);},0);
-      var totSets = (s.es||[]).reduce(function(a,e){return a+(e.serie||[]).filter(function(sr){return sr.ok;}).length;},0);
+      var expEs = expandSupersetEs(s.es||[]);
+      var totTon = ton(expEs);
+      var totReps = expEs.reduce(function(a,e){return a+(e.serie||[]).filter(function(sr){return sr.ok;}).reduce(function(x,sr){return x+(sr.reps||0);},0);},0);
+      var totSets = expEs.reduce(function(a,e){return a+(e.serie||[]).filter(function(sr){return sr.ok;}).length;},0);
       return [
         new Date(s.t0).toISOString().slice(0,10),
         new Date(s.t0).toTimeString().slice(0,5),
@@ -5342,7 +5372,7 @@ function Stats(p){
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:6}},
         [
           {n:allData.length, lbl:'Sessioni', d:dSes, tip:'Numero di allenamenti registrati nel periodo (include pesi, cal e cardio).'},
-          {n:Math.round(pesiData.reduce(function(t,s){return t+ton(s.es);},0)/100)/10+'t', lbl:'Volume', d:(dTon ? (dTon>0?'+':'')+dTon+'%' : null), tip:'Peso totale sollevato (kg × ripetizioni di tutte le serie). 1t = 1000kg. Solo sessioni pesi — cardio e cal non hanno tonnellaggio significativo.'},
+          {n:Math.round(pesiData.reduce(function(t,s){return t+ton(expandSupersetEs(s.es));},0)/100)/10+'t', lbl:'Volume', d:(dTon ? (dTon>0?'+':'')+dTon+'%' : null), tip:'Peso totale sollevato (kg × ripetizioni di tutte le serie, incluso esercizio B dei superset). 1t = 1000kg. Solo sessioni pesi — cardio e cal non hanno tonnellaggio significativo.'},
           {n:Math.round(allData.reduce(function(t,s){return t+s.dur;},0)/60)+'h', lbl:'Durata', d:null, tip:'Tempo totale passato ad allenarsi nel periodo (include pesi, cal e cardio).'}
         ].map(function(v){
           return h('div',{key:v.lbl,onClick:function(){alert(v.lbl.toUpperCase()+'\n\n'+v.tip);},style:{background:SURF2,borderRadius:12,padding:'13px 6px 11px',textAlign:'center',cursor:'pointer',border:'0.5px solid '+BORD}},
@@ -5570,7 +5600,7 @@ function EsDetail(p){
   var hist=[];
   var isCalEx = false;
   sessions.slice().sort(function(a,b){return new Date(a.t0)-new Date(b.t0);}).forEach(function(s){
-    s.es.forEach(function(e){
+    expandSupersetEs(s.es).forEach(function(e){
       if(e.nome!==nome) return;
       if(s.tipo==='cal' || e.modalita==='hold') isCalEx = true;
       var f=e.serie.filter(function(sr){return sr.ok;});
