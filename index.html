@@ -1506,7 +1506,8 @@ function uid(){return Math.random().toString(36).slice(2,8);}
 function fmtD(d){return new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'short'});}
 function fmtHM(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function fmtRec(s){if(!s||s===0)return '–';var m=Math.floor(s/60);var sc=s%60;if(m===0)return sc+'s';if(sc===0)return m+'min';return m+'\''+String(sc).padStart(2,'0')+'"';}
-function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (ex.durata||10)+'min · '+(ex.intensita||'Media');if(t==='progressivo'){var holdP=ex.modalita==='hold';return 'Progressivo · '+(ex.progressione?ex.progressione.length:0)+' sett.'+(holdP?' (tenuta)':'')+' · '+(ex.peso||0)+'kg';}if(t==='superset'){var aHold=ex.modalita==='hold';var bHold=(ex.partner&&ex.partner.modalita)==='hold';var aPart=aHold?((ex.durata||'?')+'s'):(ex.reps||'?');var bPart=bHold?(((ex.partner&&ex.partner.durata)||'?')+'s'):((ex.partner&&ex.partner.reps)||'?');return (ex.sets||ex.serie||3)+'×'+aPart+'+'+bPart+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}if(ex.modalita==='hold')return (ex.sets||ex.serie||3)+'×'+(ex.durata||'?')+'s'+((ex.peso||0)>0?' · '+ex.peso+'kg':'')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+' · '+(ex.peso||0)+'kg · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}
+function fmtSupersetName(ex){return ex.nome+' + '+(ex.partner&&ex.partner.nome||'?');}
+function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (ex.durata||10)+'min · '+(ex.intensita||'Media');if(t==='progressivo'){var holdP=ex.modalita==='hold';return 'Progressivo · '+(ex.progressione?ex.progressione.length:0)+' sett.'+(holdP?' (tenuta)':'')+' · '+(ex.peso||0)+'kg';}if(t==='superset'){var aHold=ex.modalita==='hold';var bHold=(ex.partner&&ex.partner.modalita)==='hold';var aLabel=aHold?((ex.durata||'?')+'s'):(ex.reps||'?')+((ex.peso||0)>0?' · '+ex.peso+'kg':'');var bLabel=bHold?(((ex.partner&&ex.partner.durata)||'?')+'s'):((ex.partner&&ex.partner.reps)||'?')+((ex.partner&&ex.partner.peso||0)>0?' · '+ex.partner.peso+'kg':'');return 'Superset '+( ex.sets||ex.serie||3)+' set · A: '+aLabel+' · B: '+bLabel+' · '+fmtRec(ex.recSet||ex.rec||90)+' rec';}if(ex.modalita==='hold')return (ex.sets||ex.serie||3)+'×'+(ex.durata||'?')+'s'+((ex.peso||0)>0?' · '+ex.peso+'kg':'')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+' · '+(ex.peso||0)+'kg · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}
 function ton(es){return es.reduce(function(t,e){return t+(e.serie||[]).filter(function(s){return s.ok;}).reduce(function(a,s){return a+s.peso*s.reps;},0);},0);}
 function rm1(p,r){return r<=1?p:Math.round(p*(1+r/30));}
 function parseReps(r){var s=String(r);return s.indexOf('-')>=0?parseInt(s,10):(parseInt(s,10)||10);}
@@ -1863,7 +1864,12 @@ function ExerciseConfigSheet(p){
     pickerPartner&&h(ExercisePicker,{visible:true,onClose:function(){setPickerPartner(false);},onAdd:function(n){setPartner(function(pt){return Object.assign({},pt,{nome:n});});setPickerPartner(false);},baseList:isCal?CAL_ES:PESI_ES,mode:isCal?'cal':'pesi',label:'Scegli esercizio B'}),
     h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0}},
-        h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},esNome),
+        h('div',{style:{flex:1,minWidth:0}},
+          tipo==='superset'&&h('div',{style:{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 7px',borderRadius:5,background:ACC2,border:'1px solid '+ACC3,marginBottom:4}},
+            h('span',{style:{fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:ACC,letterSpacing:'0.1em'}},'SUPERSET')
+          ),
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},tipo==='superset'&&partner.nome?(esNome+' + '+partner.nome):esNome)
+        ),
         h('button',{onClick:onClose,'aria-label':'Chiudi configurazione esercizio',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10,minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center'}},h(Icon,{n:'close',sz:20,c:MUTED}))
       ),
       h('div',{style:{overflowY:'auto',flex:1,padding:'16px 16px 0'}},
@@ -1901,6 +1907,10 @@ function ExerciseConfigSheet(p){
         tipo==='superset' && (function(){
           var ptMod = partner.modalita || 'reps';
           return h('div',null,
+            h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
+              h('div',{style:{width:22,height:22,borderRadius:6,background:ACC,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#000'}},'A'),
+              h('div',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em'}},'ESERCIZIO A — '+esNome.toUpperCase())
+            ),
             h(Lbl,null,'Modalità A'),
             h('div',{style:{display:'flex',gap:6,marginBottom:14}},
               [{id:'reps',l:'Ripetizioni'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
@@ -1916,7 +1926,10 @@ function ExerciseConfigSheet(p){
               h('div',null,h(Lbl,null,isCal?'+ Peso A (kg)':'Peso A (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
             ),
             h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:14,marginBottom:14}},
-              h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:8}},'ESERCIZIO B (accoppiato)'),
+              h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
+                h('div',{style:{width:22,height:22,borderRadius:6,background:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#000'}},'B'),
+                h('div',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em'}},'ESERCIZIO B — ACCOPPIATO SENZA PAUSA')
+              ),
               h('button',{onClick:function(){setPickerPartner(true);},style:{width:'100%',padding:'9px 12px',background:SURF2,border:'1px solid '+(partner.nome?ACC3:BORD),borderRadius:8,color:partner.nome?ACC:MUTED,fontSize:13,cursor:'pointer',textAlign:'left',marginBottom:partner.nome?8:0}},partner.nome||'Scegli esercizio B…'),
               partner.nome&&h('div',null,
                 h(Lbl,null,'Modalità B'),
@@ -3305,7 +3318,21 @@ function PesiLive(p){
       ),
       h('div',{style:{display:'flex',alignItems:'flex-start',gap:8,marginBottom:8}},
         h('div',{style:{flex:1}},
-          h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+          curr.tipo==='superset'
+          ? h('div',{style:{marginBottom:2}},
+              h('div',{style:{display:'inline-flex',alignItems:'center',gap:5,padding:'2px 8px',borderRadius:6,background:ACC2,border:'1px solid '+ACC3,marginBottom:4}},
+                h('div',{style:{fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:ACC,letterSpacing:'0.1em'}},'SUPERSET')
+              ),
+              h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+                h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em'}},curr.nome),
+                TIPS[curr.nome]&&h('button',{onClick:function(){setTipFor(curr.nome);},'aria-label':'Suggerimenti per '+curr.nome,style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:'50%',width:20,height:20,padding:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},h(Icon,{n:'bulb',sz:11,c:ACC}))
+              ),
+              h('div',{style:{display:'flex',alignItems:'center',gap:4,marginTop:1}},
+                h('span',{style:{fontSize:11,color:ACC,fontWeight:700}},'+'),
+                h('span',{style:{fontSize:14,fontFamily:"'Bebas Neue',cursive",color:MUTED,letterSpacing:'0.02em'}},(curr.partner&&curr.partner.nome)||'—')
+              )
+            )
+          : h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
             h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:24,letterSpacing:'0.02em'}},curr.nome),
             TIPS[curr.nome]&&h('button',{onClick:function(){setTipFor(curr.nome);},'aria-label':'Suggerimenti per '+curr.nome,style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:'50%',width:20,height:20,padding:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},h(Icon,{n:'bulb',sz:11,c:ACC}))
           ),
@@ -3328,18 +3355,26 @@ function PesiLive(p){
         ),
         h('button',{onClick:function(){setWarmFatto(ex);},style:{width:'100%',padding:18,borderRadius:12,border:'none',background:curr.fatto?ACC:ACC2,color:curr.fatto?ACT:ACC,fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.05em',cursor:'pointer'}},curr.fatto?'✓ FATTO':'COMPLETATO')
       ):h('div',null,
-        curr.tipo==='superset'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10,marginBottom:14}},
-          h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:3}},'SUPERSET'),
-          h('div',{style:{fontSize:13,color:TEXT}},curr.nome+' + '+(curr.partner&&curr.partner.nome||'—')),
-          curr.partner && curr.partner.nome && (function(){
-            var bHold = (curr.partner.modalita||'reps') === 'hold';
-            var bWhat = bHold
-              ? (curr.partner.durata||'?')+'s'
-              : (curr.partner.reps||'?')+' reps';
-            return h('div',{style:{fontSize:11,color:MUTED,marginTop:4}},
-              'B: '+bWhat+((curr.partner.peso||0)>0?' · '+curr.partner.peso+'kg':'')
-            );
-          })()
+        curr.tipo==='superset'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:12,marginBottom:14}},
+          h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.12em',marginBottom:8}},'ESEGUI IN SUPERSET — SENZA PAUSA TRA A E B'),
+          h('div',{style:{display:'flex',gap:8}},
+            h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'8px 10px',borderLeft:'3px solid '+ACC}},
+              h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:3}},'A'),
+              h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,marginBottom:2}},curr.nome),
+              h('div',{style:{fontSize:11,color:MUTED}},
+                (curr.modalita==='hold'?((curr.durata||'?')+'s tenuta'):((curr.reps||'?')+' reps'))+
+                ((curr.peso||0)>0?' · '+curr.peso+'kg':'')
+              )
+            ),
+            h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'8px 10px',borderLeft:'3px solid '+MUTED}},
+              h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:3}},'B'),
+              h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,marginBottom:2}},(curr.partner&&curr.partner.nome)||'—'),
+              curr.partner&&curr.partner.nome&&h('div',{style:{fontSize:11,color:MUTED}},
+                ((curr.partner.modalita||'reps')==='hold'?((curr.partner.durata||'?')+'s tenuta'):((curr.partner.reps||'?')+' reps'))+
+                ((curr.partner.peso||0)>0?' · '+curr.partner.peso+'kg':'')
+              )
+            )
+          )
         ),
         curr.tipo==='progressivo'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10,marginBottom:14}},
           h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:3}},'ESERCIZIO PROGRESSIVO'),
@@ -3612,11 +3647,14 @@ function CalLive(p){
         var isHold = e.modalita === 'hold';
         var last = findLastExerciseSession(e.nome, (p.allSessions||[]));
         var lvlColors = ['#94A3B8','#22C55E','#22C55E','#3B82F6','#A855F7','#F59E0B','#EF4444','#EF4444'];
-        return h('div',{key:e.id,style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:12,padding:12,marginBottom:8}},
+        return h('div',{key:e.id,style:{background:SURF,border:e.tipo==='superset'?('1px solid '+ACC3):('0.5px solid '+BORD),borderRadius:12,padding:12,marginBottom:8}},
           h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:e.muscoli?2:8}},
             h('div',{style:{flex:1,minWidth:0}},
+              e.tipo==='superset'&&h('div',{style:{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 7px',borderRadius:5,background:ACC2,border:'1px solid '+ACC3,marginBottom:4}},
+                h('span',{style:{fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:ACC,letterSpacing:'0.1em'}},'SUPERSET')
+              ),
               h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}},
-                h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:'0.02em'}},e.nome),
+                h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:18,letterSpacing:'0.02em'}},e.tipo==='superset'?fmtSupersetName(e):e.nome),
                 e.livello && h('span',{title:'Livello '+e.livello+'/7',style:{fontSize:9,padding:'2px 7px',borderRadius:20,background:'rgba(255,255,255,0.05)',border:'1px solid '+(lvlColors[e.livello]||BORD),color:(lvlColors[e.livello]||MUTED),fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},'LVL '+e.livello),
                 isHold && h('span',{style:{fontSize:9,padding:'2px 7px',borderRadius:20,background:ACC5,border:'1px solid '+ACC3,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em'}},'HOLD')
               ),
@@ -3625,15 +3663,21 @@ function CalLive(p){
             )
           ),
           e.tipo==='superset'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10,marginBottom:8}},
-            h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:3}},'SUPERSET'),
-            h('div',{style:{fontSize:13,color:TEXT}},e.nome+' + '+(e.partner&&e.partner.nome||'—')),
-            e.partner && e.partner.nome && (function(){
-              var bHold = (e.partner.modalita||'reps') === 'hold';
-              var bWhat = bHold ? (e.partner.durata||'?')+'s' : (e.partner.reps||'?')+' reps';
-              return h('div',{style:{fontSize:11,color:MUTED,marginTop:4}},
-                'B: '+bWhat+((e.partner.peso||0)>0?' · '+e.partner.peso+'kg':'')
-              );
-            })()
+            h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:6}},'SENZA PAUSA TRA A E B'),
+            h('div',{style:{display:'flex',gap:6}},
+              h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'6px 8px',borderLeft:'3px solid '+ACC}},
+                h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'A — '+e.nome),
+                h('div',{style:{fontSize:11,color:MUTED}},
+                  (isHold?((e.durata||'?')+'s'):((e.reps||'?')+' reps'))+((e.peso||0)>0?' · '+e.peso+'kg':'')
+                )
+              ),
+              h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'6px 8px',borderLeft:'3px solid '+MUTED}},
+                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'B — '+((e.partner&&e.partner.nome)||'—')),
+                e.partner&&e.partner.nome&&h('div',{style:{fontSize:11,color:MUTED}},
+                  ((e.partner.modalita||'reps')==='hold'?((e.partner.durata||'?')+'s'):((e.partner.reps||'?')+' reps'))+((e.partner.peso||0)>0?' · '+e.partner.peso+'kg':'')
+                )
+              )
+            )
           ),
           last && h(LastSessionHint,{info:last}),
           e.serie.map(function(s,si){
@@ -4225,10 +4269,11 @@ function AddPastSession(p){
           var TIPI_PAST = tipo==='cal'
             ? [{id:'standard',label:'Normale'},{id:'superset',label:'Superset'},{id:'riscaldamento',label:'🔥 Risc.'}]
             : [{id:'standard',label:'Normale'},{id:'superset',label:'Superset'},{id:'riscaldamento',label:'🔥 Risc.'}];
-          return h('div',{key:ex.id,style:{background:SURF,border:'0.5px solid '+BORD,borderRadius:10,padding:'11px 12px',marginBottom:8}},
+          return h('div',{key:ex.id,style:{background:SURF,border:esTipo==='superset'?('1px solid '+ACC3):('0.5px solid '+BORD),borderRadius:10,padding:'11px 12px',marginBottom:8}},
             h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:8}},
               h('div',{style:{flex:1,minWidth:0}},
-                h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, ex.nome),
+                esTipo==='superset'&&h('span',{style:{display:'inline-block',fontSize:8,padding:'1px 6px',borderRadius:4,background:ACC2,border:'1px solid '+ACC3,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:3}},'SUPERSET'),
+                h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, esTipo==='superset'&&ex.partner&&ex.partner.nome ? fmtSupersetName(ex) : ex.nome),
                 ex.gr && h('div',{style:{fontSize:10,color:MUTED,marginTop:2}}, ex.gr)
               ),
               h('button',{onClick:function(){removeExercise(ei);},'aria-label':'Rimuovi esercizio',style:{background:'transparent',border:'none',padding:4,cursor:'pointer',flexShrink:0}},h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.6)'}))
@@ -4306,7 +4351,10 @@ function AddPastSession(p){
               var ptMod = (ex.partner && ex.partner.modalita) || 'reps';
               var ptIsHold = ptMod === 'hold';
               return h('div',{style:{marginTop:8,background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10}},
-                h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:6}},'ESERCIZIO B (accoppiato)'),
+                h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
+                  h('div',{style:{width:20,height:20,borderRadius:5,background:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#000'}},'B'),
+                  h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em'}},'ESERCIZIO B — SENZA PAUSA')
+                ),
                 h('button',{
                   onClick:function(){setPartnerPickerFor(ei);},
                   style:{width:'100%',padding:'8px 10px',background:SURF2,border:'1px solid '+((ex.partner&&ex.partner.nome)?ACC3:BORD),borderRadius:8,color:(ex.partner&&ex.partner.nome)?ACC:MUTED,fontSize:12,cursor:'pointer',textAlign:'left',marginBottom:(ex.partner&&ex.partner.nome)?6:0}
@@ -5012,11 +5060,17 @@ function Det(p){
       return h(Card,{
         key:ex.id,
         onClick:function(){setEdEx(ex);},
-        style:{cursor:'pointer'}
+        style:ex.tipo==='superset'?{cursor:'pointer',border:'1px solid '+ACC3}:{cursor:'pointer'}
       },
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: serieList.length>0?7:0,gap:8}},
           h('div',{style:{flex:1,minWidth:0}},
-            h('div',{style:{fontWeight:500,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},ex.nome),
+            ex.tipo==='superset'&&h('div',{style:{display:'inline-flex',alignItems:'center',gap:4,padding:'1px 6px',borderRadius:4,background:ACC2,border:'1px solid '+ACC3,marginBottom:3}},
+              h('span',{style:{fontSize:8,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:ACC,letterSpacing:'0.08em'}},'SUPERSET')
+            ),
+            h('div',{style:{fontWeight:500,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},ex.tipo==='superset'?fmtSupersetName(ex):ex.nome),
+            ex.tipo==='superset'&&ex.partner&&ex.partner.nome&&h('div',{style:{fontSize:10,color:MUTED,marginTop:1}},
+              'A: '+((ex.modalita||'reps')==='hold'?((ex.durata||'?')+'s'):((ex.reps||'?')+' reps'))+' · B: '+(((ex.partner.modalita||'reps')==='hold')?((ex.partner.durata||'?')+'s'):((ex.partner.reps||'?')+' reps'))
+            ),
             h('div',{style:{fontSize:11,color:MUTED,marginTop:2}}, fatte.length+'/'+serieList.length+' serie')
           ),
           h('div',{style:{display:'flex',alignItems:'center',gap:6,flexShrink:0}},
@@ -7033,7 +7087,11 @@ function NuovaScheda(p){
         ),
         b.es.map(function(e,ei){
           return h('div',{key:e.id,onClick:function(){setEditCtx({bi:bi,ei:ei,nuovo:null});setEditEx(e);},style:{background:SURF2,borderRadius:8,padding:'9px 11px',marginBottom:5,display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}},
-            h('div',{style:{flex:1,minWidth:0}},h('div',{style:{fontSize:13,fontWeight:500,marginBottom:1}},e.nome),h('div',{style:{fontSize:11,color:MUTED}},fmtEsCard(e))),
+            h('div',{style:{flex:1,minWidth:0}},
+              e.tipo==='superset'&&h('span',{style:{display:'inline-block',fontSize:8,padding:'1px 6px',borderRadius:4,background:ACC2,border:'1px solid '+ACC3,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:2}},'SUPERSET'),
+              h('div',{style:{fontSize:13,fontWeight:500,marginBottom:1}},e.tipo==='superset'?fmtSupersetName(e):e.nome),
+              h('div',{style:{fontSize:11,color:MUTED}},fmtEsCard(e))
+            ),
             h('div',{style:{display:'flex',alignItems:'center',gap:2}},
               h('button',{onClick:function(ev){ev.stopPropagation();hap(6);moveEx(bi,ei,-1);},'aria-label':'Sposta su',disabled:ei===0,style:{background:'none',border:'none',cursor:ei===0?'default':'pointer',padding:4,opacity:ei===0?0.25:1}},h(Icon,{n:'chevUp',sz:16,c:MUTED})),
               h('button',{onClick:function(ev){ev.stopPropagation();hap(6);moveEx(bi,ei,1);},'aria-label':'Sposta giù',disabled:ei===b.es.length-1,style:{background:'none',border:'none',cursor:ei===b.es.length-1?'default':'pointer',padding:4,opacity:ei===b.es.length-1?0.25:1}},h(Icon,{n:'chevDown',sz:16,c:MUTED})),
