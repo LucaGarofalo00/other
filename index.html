@@ -1112,6 +1112,29 @@ var TIPS={'Panca Piana':{exec:'Scapole retratte e bloccate, schiena arcuata, bar
 
 function getFreq(){try{return JSON.parse(localStorage.getItem(FK))||{};}catch(e){return {};}}
 function addFreq(n){var f=getFreq();f[n]=(f[n]||0)+1;try{localStorage.setItem(FK,JSON.stringify(f));}catch(e){}}
+/* ── memoria gruppo muscolare per esercizi personalizzati ──
+   muscleGroupOf copre solo il catalogo; per gli esercizi custom memorizziamo qui (per nome,
+   case-insensitive) il gruppo scelto dall'utente, così viene ripristinato la volta successiva
+   e le statistiche di copertura restano corrette. Solo localStorage (per-dispositivo). */
+var CGK='gymtracker_custom_gr';
+function getCustomGroups(){try{return JSON.parse(localStorage.getItem(CGK))||{};}catch(e){return {};}}
+function saveCustomGroups(obj){try{localStorage.setItem(CGK,JSON.stringify(obj||{}));}catch(e){}}
+function rememberCustomGroup(name,gr){
+  if(!name||!gr) return;
+  if(muscleGroupOf(name)) return; /* in catalogo: già categorizzato, non serve memorizzare */
+  var m=getCustomGroups();var k=String(name).trim().toLowerCase();
+  if(m[k]===gr) return;
+  m[k]=gr;saveCustomGroups(m);
+  /* Sync cloud: la mappa viaggia come colonna JSONB custom_gr del profilo (best-effort,
+     come skip_reasons/target_breakdown). pushProfileNow è hoisted, definito più sotto. */
+  try{ pushProfileNow(); }catch(e){}
+}
+/* Risolve il gruppo muscolare: prima il catalogo, poi la memoria custom, altrimenti ''. */
+function resolveGroup(name){
+  if(!name) return '';
+  var g=muscleGroupOf(name);if(g&&g.label) return g.label;
+  return getCustomGroups()[String(name).trim().toLowerCase()]||'';
+}
 function getSugg(base,search,max){var freq=getFreq();var combined=base.slice();Object.keys(freq).forEach(function(n){if(combined.indexOf(n)<0)combined.push(n);});var filtered=search?combined.filter(function(n){return n.toLowerCase().indexOf(search.toLowerCase())>=0;}):combined;filtered.sort(function(a,b){return (freq[b]||0)-(freq[a]||0);});return filtered.slice(0,max||10);}
 /* ── pulizia chiavi localStorage legacy (pre-cloud, v1.8.6) ──
    Eseguita una sola volta per device. Rimuove dati utente che potrebbero
@@ -1210,6 +1233,7 @@ function profileLocalToRow(p, userId){
     skip_reasons: (function(){ try{ return loadSkipReasons(); }catch(e){ return {}; } })(),
     reminders: (function(){ try{ return loadReminders(); }catch(e){ return []; } })(),
     target_breakdown: (function(){ try{ return loadTargetBreakdown(); }catch(e){ return null; } })(),
+    custom_gr: (function(){ try{ return getCustomGroups(); }catch(e){ return {}; } })(),
     last_modified: p.lastModified || Date.now(),
     updated_at: new Date().toISOString()
   };
@@ -1278,13 +1302,36 @@ async function sbLoadAll(){
   };
 }
 
+/* Riconosce l'errore PostgREST/Postgres "colonna inesistente" per una colonna specifica,
+   così possiamo degradare con grazia se una migrazione opzionale non è stata ancora eseguita. */
+function isMissingColumnError(err, col){
+  if(!err) return false;
+  var msg=((err.message||'')+' '+(err.details||'')+' '+(err.hint||'')).toLowerCase();
+  var c=String(col).toLowerCase();
+  if(msg.indexOf(c)<0) return false;
+  return msg.indexOf('column')>=0 || msg.indexOf('schema cache')>=0 || err.code==='PGRST204' || err.code==='42703';
+}
+/* Una volta rilevata l'assenza della colonna custom_gr, evitiamo di reinviarla per la sessione. */
+var _customGrColMissing = false;
 async function sbPushProfile(profile){
   if(!sb || !profile) return;
   var user = await sbGetUser();
   if(!user) return;
   var row = profileLocalToRow(profile, user.id);
+  if(_customGrColMissing) delete row.custom_gr;
   var r = await sb.from('profiles').upsert(row, { onConflict: 'id' });
-  if(r.error) throw r.error;
+  if(r.error){
+    /* DB senza colonna custom_gr (migrazione opzionale non eseguita): riprova senza quel
+       campo così la sync del resto del profilo continua a funzionare. */
+    if(row.custom_gr !== undefined && isMissingColumnError(r.error, 'custom_gr')){
+      _customGrColMissing = true;
+      var row2 = Object.assign({}, row); delete row2.custom_gr;
+      var r2 = await sb.from('profiles').upsert(row2, { onConflict: 'id' });
+      if(r2.error) throw r2.error;
+      return;
+    }
+    throw r.error;
+  }
 }
 async function sbPushSchede(schede){
   if(!sb || !schede || !schede.length) return;
@@ -1745,7 +1792,9 @@ function ExerciseConfigSheet(p){
   var _rs=useState(ex&&(ex.recSet||ex.rec)||(isCal?60:90));var recSet=_rs[0];var setRecSet=_rs[1];
   var _re=useState(ex&&ex.recEs||60);var recEs=_re[0];var setRecEs=_re[1];
   var _n=useState(ex&&ex.note||'');var note=_n[0];var setNote=_n[1];
-  var _g=useState(ex&&ex.gr||'');var gr=_g[0];var setGr=_g[1];
+  /* Pre-popola il gruppo muscolare: da ex (in modifica), altrimenti dal catalogo o dalla
+     memoria degli esercizi personalizzati (resolveGroup). Vuoto solo se mai categorizzato. */
+  var _g=useState((ex&&ex.gr) || resolveGroup(nome));var gr=_g[0];var setGr=_g[1];
   var _prog=useState(ex&&ex.progressione||[{sets:3,reps:'6'},{sets:4,reps:'6'},{sets:4,reps:'8'}]);var prog=_prog[0];var setProg=_prog[1];
   var _pt=useState(ex&&ex.partner||{nome:'',modalita:'reps',reps:'10',durata:20,peso:0});var partner=_pt[0];var setPartner=_pt[1];
   var _pp=useState(false);var pickerPartner=_pp[0];var setPickerPartner=_pp[1];
@@ -1759,6 +1808,7 @@ function ExerciseConfigSheet(p){
     : [{id:'standard',label:'Normale'},{id:'progressivo',label:'Progressivo'},{id:'superset',label:'Superset'},{id:'riscaldamento',label:'🔥 Riscaldamento'}];
   var GRP=['Petto','Schiena','Spalle','Braccia','Bicipiti','Tricipiti','Gambe','Core','Cardio','Full Body'];
   function doSave(){
+    rememberCustomGroup(esNome, gr);
     var base={id:ex?ex.id:uid(),nome:esNome,tipo:tipo,gr:gr,note:note};
     if(tipo==='riscaldamento'){onSave(Object.assign(base,{durata:parseInt(durata)||10,intensita:intensita}));}
     else if(tipo==='progressivo'){
@@ -2139,6 +2189,7 @@ function Settings(p){
       profile:profile||null,
       theme:loadTheme().id,
       freq:getFreq(),
+      customGr:getCustomGroups(),
       bodyLog: loadBodyLog()
     };
     var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -2164,6 +2215,7 @@ function Settings(p){
         if(d.sessions&&p.setSessions)p.setSessions(d.sessions);
         if(d.profile)onProfile(d.profile);
         if(d.freq){try{localStorage.setItem(FK,JSON.stringify(d.freq));}catch(e){}}
+        if(d.customGr){try{saveCustomGroups(d.customGr);}catch(e){}}
         if(d.theme){var t=THEMES.find(function(x){return x.id===d.theme;});if(t){applyTheme(t);setThemeId(t.id);}}
         alert('Backup ripristinato con successo!');
       }catch(e){alert('File non valido: '+e.message);}
@@ -3195,8 +3247,7 @@ function PesiLive(p){
   /* Callback alla chiusura della config sheet del nuovo esercizio. */
   function onSaveNewExercise(cfg){
     if(!cfg) return;
-    var grp = muscleGroupOf(cfg.nome);
-    var withGr = Object.assign({}, cfg, {gr: cfg.gr || (grp && grp.label) || ''});
+    var withGr = Object.assign({}, cfg, {gr: cfg.gr || resolveGroup(cfg.nome)});
     var newEx;
     if(cfg.tipo==='riscaldamento'){
       newEx = Object.assign({}, withGr, {serie:[], fatto:false});
@@ -3428,6 +3479,7 @@ function CalLive(p){
     var loaded = {
       id: ex.id || uid(),
       nome: ex.nome,
+      gr: ex.gr || '',
       tipo: ex.tipo==='superset' ? 'superset' : 'standard',
       modalita: modalita,
       livello: ex.livello || (skill ? skill.lvl : null),
@@ -3503,6 +3555,7 @@ function CalLive(p){
     if(!cfg) return;
     var skill = findCalSkill(cfg.nome);
     var newEx = Object.assign({}, cfg, {
+      gr: cfg.gr || resolveGroup(cfg.nome),
       livello: skill ? skill.lvl : null,
       categoria: skill ? skill.categoryId : null,
       muscoli: skill ? skill.muscoli : null,
@@ -3913,14 +3966,13 @@ function AddPastSession(p){
     if(t!=='cardio') setExercises([]);
   }
   function addExercise(nome){
-    var grp = muscleGroupOf(nome);
     var skill = tipo==='cal' ? findCalSkill(nome) : null;
     var isHold = !!(skill && skill.type==='hold');
     setExercises(function(prev){
       return prev.concat([{
         id: uid(),
         nome: nome,
-        gr: (grp && grp.label) || '',
+        gr: resolveGroup(nome),
         esTipo: 'standard',
         sets: 3,
         reps: isHold ? 0 : 8,
@@ -3982,6 +4034,8 @@ function AddPastSession(p){
     if(dur<=0){ alert('Inserisci la durata in minuti'); return; }
     if(tipo!=='cardio' && exercises.length===0){ alert('Aggiungi almeno un esercizio'); return; }
     setSaving(true);
+    /* Memorizza il gruppo muscolare scelto per gli esercizi personalizzati (riusato le prossime volte). */
+    if(tipo!=='cardio') exercises.forEach(function(_ex){ rememberCustomGroup(_ex.nome, _ex.gr); });
     var t0Date = combineDateTime();
     var t0ISO = t0Date.toISOString();
     var t0Time = t0Date.getTime();
@@ -4078,6 +4132,8 @@ function AddPastSession(p){
 
   var inp={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14,boxSizing:'border-box'};
   var inpCenter = Object.assign({},inp,{textAlign:'center',fontFamily:"'Roboto Mono',monospace"});
+  /* Gruppi muscolari per la categorizzazione manuale (necessaria per le statistiche di copertura). */
+  var GRP_PAST=['Petto','Schiena','Spalle','Braccia','Bicipiti','Tricipiti','Gambe','Core','Cardio','Full Body'];
 
   /* Render del campo cardio (riusiamo la stessa logica di CardioLive) */
   var tipoDef = getCardioTipo(cardioTipo);
@@ -4189,6 +4245,17 @@ function AddPastSession(p){
                   style:{padding:'7px 14px',borderRadius:16,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:TEXT,fontSize:12,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',cursor:'pointer'}
                 }, t.label);
               })
+            ),
+            /* Gruppo muscolare: serve alle statistiche di copertura. Per esercizi personalizzati
+               (non in catalogo) va scelto a mano, altrimenti l'esercizio non viene conteggiato. */
+            (esTipo === 'standard' || esTipo === 'superset') && h('div',{style:{marginBottom:10}},
+              h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:4}},'GRUPPO MUSCOLARE'),
+              h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
+                GRP_PAST.map(function(g){
+                  var on = ex.gr === g;
+                  return h('button',{key:g,onClick:function(){hap(6);updateExercise(ei,'gr',on?'':g);},'aria-pressed':on,style:{padding:'5px 10px',borderRadius:14,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:MUTED,fontSize:11,cursor:'pointer'}}, g);
+                })
+              )
             ),
             /* Toggle modalità reps/hold per standard e superset (cal o pesi). Non si applica a riscaldamento. */
             (esTipo === 'standard' || esTipo === 'superset') && h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:4}}, esTipo==='superset' ? 'MODALITÀ A' : 'MODALITÀ'),
@@ -7672,6 +7739,11 @@ function App(){
           if(remote.profileRow.target_breakdown !== undefined){
             /* null è valido (utente che ha rimosso il breakdown); l'oggetto va salvato com'è */
             try{ saveTargetBreakdown(remote.profileRow.target_breakdown); }catch(e){}
+          }
+          if(remote.profileRow.custom_gr && typeof remote.profileRow.custom_gr === 'object'){
+            /* Merge additivo (il locale vince sui conflitti) per non perdere voci create
+               offline su questo device; l'unione risale al cloud al prossimo push. */
+            try{ saveCustomGroups(Object.assign({}, remote.profileRow.custom_gr, getCustomGroups())); }catch(e){}
           }
         }
 
