@@ -358,7 +358,7 @@ function gtLogExport(){
   var online = navigator.onLine ? 'online' : 'offline';
   var swOk = 'serviceWorker' in navigator && navigator.serviceWorker.controller ? 'attivo' : 'no';
   var header = '=== PumpLog Diagnostic Log ===\n' +
-    'Versione: v2.0.0\n' +
+    'Versione: v2.1.0\n' +
     'Data export: ' + new Date().toISOString() + '\n' +
     'User-Agent: ' + ua + '\n' +
     'Schermo: ' + screen + ' @ ' + (window.devicePixelRatio||1) + 'x\n' +
@@ -1506,33 +1506,49 @@ function uid(){return Math.random().toString(36).slice(2,8);}
 function fmtD(d){return new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'short'});}
 function fmtHM(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function fmtRec(s){if(!s||s===0)return '–';var m=Math.floor(s/60);var sc=s%60;if(m===0)return sc+'s';if(sc===0)return m+'min';return m+'\''+String(sc).padStart(2,'0')+'"';}
-function fmtSupersetName(ex){return ex.nome+' + '+(ex.partner&&ex.partner.nome||'?');}
-function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (ex.durata||10)+'min · '+(ex.intensita||'Media');if(t==='progressivo'){var holdP=ex.modalita==='hold';return 'Progressivo · '+(ex.progressione?ex.progressione.length:0)+' sett.'+(holdP?' (tenuta)':'')+' · '+(ex.peso||0)+'kg';}if(t==='superset'){var aHold=ex.modalita==='hold';var bHold=(ex.partner&&ex.partner.modalita)==='hold';var aLabel=aHold?((ex.durata||'?')+'s'):(ex.reps||'?')+((ex.peso||0)>0?' · '+ex.peso+'kg':'');var bLabel=bHold?(((ex.partner&&ex.partner.durata)||'?')+'s'):((ex.partner&&ex.partner.reps)||'?')+((ex.partner&&ex.partner.peso||0)>0?' · '+ex.partner.peso+'kg':'');return 'Superset '+( ex.sets||ex.serie||3)+' set · A: '+aLabel+' · B: '+bLabel+' · '+fmtRec(ex.recSet||ex.rec||90)+' rec';}if(ex.modalita==='hold')return (ex.sets||ex.serie||3)+'×'+(ex.durata||'?')+'s'+((ex.peso||0)>0?' · '+ex.peso+'kg':'')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+' · '+(ex.peso||0)+'kg · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}
+function fmtSupersetName(ex){var extra=supersetExtra(ex);var names=extra.filter(function(m){return m&&m.nome;}).map(function(m){return m.nome;});return ex.nome+' + '+(names.length?names.join(' + '):'?');}
+function fmtEsCard(ex){var t=ex.tipo||'standard';if(t==='riscaldamento')return (ex.durata||10)+'min · '+(ex.intensita||'Media');if(t==='progressivo'){var holdP=ex.modalita==='hold';return 'Progressivo · '+(ex.progressione?ex.progressione.length:0)+' sett.'+(holdP?' (tenuta)':'')+' · '+(ex.peso||0)+'kg';}if(t==='superset'){var _lab=function(mod,reps,dur,peso){return ((mod||'reps')==='hold'?((dur||'?')+'s'):(reps||'?'))+((peso||0)>0?' · '+peso+'kg':'');};var parts=['A: '+_lab(ex.modalita,ex.reps,ex.durata,ex.peso)];supersetExtra(ex).forEach(function(m,k){parts.push(String.fromCharCode(66+k)+': '+_lab(m.modalita,m.reps,m.durata,m.peso));});return 'Superset '+(ex.sets||ex.serie||3)+' round · '+parts.join(' · ')+' · '+fmtRec(ex.recSet||ex.rec||90)+' rec';}if(ex.modalita==='hold')return (ex.sets||ex.serie||3)+'×'+(ex.durata||'?')+'s'+((ex.peso||0)>0?' · '+ex.peso+'kg':'')+' · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';return (ex.sets||ex.serie||3)+'×'+(ex.reps||'?')+' · '+(ex.peso||0)+'kg · '+fmtRec(ex.recSet||ex.rec||90)+' fra set';}
 function ton(es){return es.reduce(function(t,e){return t+(e.serie||[]).filter(function(s){return s.ok;}).reduce(function(a,s){return a+s.peso*s.reps;},0);},0);}
+/* Restituisce i membri AGGIUNTIVI di un superset (B, C, ...). A resta l'entry top-level.
+   Nuovo modello: e.membri[] (ognuno con serie reali loggate). Legacy: e.partner singolo
+   (valori solo pianificati → serie sintetizzate dai set di A). */
+function supersetExtra(e){
+  if(!e || e.tipo!=='superset') return [];
+  if(e.membri && e.membri.length) return e.membri;
+  if(e.partner && e.partner.nome) return [e.partner];
+  return [];
+}
 function expandSupersetEs(esList){
   var out=[];
   (esList||[]).forEach(function(e){
     out.push(e);
-    if(e.tipo==='superset'&&e.partner&&e.partner.nome){
-      var pt=e.partner;
-      var ptIsHold=(pt.modalita||'reps')==='hold';
-      var ptReps=ptIsHold?0:(parseInt(pt.reps)||0);
-      var ptDur=ptIsHold?(parseInt(pt.durata)||0):0;
-      var ptPeso=parseFloat(pt.peso)||0;
-      var synSerie=(e.serie||[]).filter(function(s){return s.ok;}).map(function(s,i){
-        return {n:i+1,peso:ptPeso,reps:ptReps,durata:ptDur,ok:true,t:s.t};
-      });
+    supersetExtra(e).forEach(function(m, mi){
+      if(!m || !m.nome) return;
+      var mIsHold=(m.modalita||'reps')==='hold';
+      var serie;
+      if(m.serie && m.serie.length){
+        /* dati reali loggati per questo membro (nuovo modello) */
+        serie=m.serie;
+      } else {
+        /* fallback: sintetizza dai set completati di A coi valori pianificati del membro */
+        var mReps=mIsHold?0:(parseInt(m.reps)||0);
+        var mDur=mIsHold?(parseInt(m.durata)||0):0;
+        var mPeso=parseFloat(m.peso)||0;
+        serie=(e.serie||[]).filter(function(s){return s.ok;}).map(function(s,i){
+          return {n:i+1,peso:mPeso,reps:mReps,durata:mDur,ok:true,t:s.t};
+        });
+      }
       out.push({
-        id:(e.id||'')+'_B',
-        nome:pt.nome,
+        id:(e.id||'')+'_m'+mi,
+        nome:m.nome,
         tipo:'standard',
-        gr:pt.gr||resolveGroup(pt.nome),
-        modalita:pt.modalita||'reps',
-        serie:synSerie,
+        gr:m.gr||resolveGroup(m.nome),
+        modalita:m.modalita||'reps',
+        serie:serie,
         _supersetB:true,
         _supersetParent:e.nome
       });
-    }
+    });
   });
   return out;
 }
@@ -1824,8 +1840,14 @@ function ExerciseConfigSheet(p){
      memoria degli esercizi personalizzati (resolveGroup). Vuoto solo se mai categorizzato. */
   var _g=useState((ex&&ex.gr) || resolveGroup(nome));var gr=_g[0];var setGr=_g[1];
   var _prog=useState(ex&&ex.progressione||[{sets:3,reps:'6'},{sets:4,reps:'6'},{sets:4,reps:'8'}]);var prog=_prog[0];var setProg=_prog[1];
-  var _pt=useState(ex&&ex.partner||{nome:'',modalita:'reps',reps:'10',durata:20,peso:0,gr:''});var partner=_pt[0];var setPartner=_pt[1];
-  var _pp=useState(false);var pickerPartner=_pp[0];var setPickerPartner=_pp[1];
+  /* Superset: lista membri aggiuntivi (B, C, ...). Migra dal vecchio singolo `partner`. */
+  function _mkMembro(src){return Object.assign({nome:'',modalita:'reps',reps:'10',durata:20,peso:0,gr:''}, src||{});}
+  var _mem=useState((ex&&ex.membri&&ex.membri.length)?ex.membri.map(_mkMembro):((ex&&ex.partner&&ex.partner.nome)?[_mkMembro(ex.partner)]:[_mkMembro()]));
+  var membri=_mem[0];var setMembri=_mem[1];
+  var _pmi=useState(null);var pickerMemberIdx=_pmi[0];var setPickerMemberIdx=_pmi[1];
+  function setMembroField(i,field,val){setMembri(function(prev){return prev.map(function(m,k){if(k!==i)return m;var o=Object.assign({},m);o[field]=val;return o;});});}
+  function addMembro(){setMembri(function(prev){return prev.concat([_mkMembro()]);});}
+  function removeMembro(i){setMembri(function(prev){return prev.filter(function(_,k){return k!==i;});});}
   var _d=useState(String(ex&&ex.durata||10));var durata=_d[0];var setDurata=_d[1];
   var _int=useState(ex&&ex.intensita||'Media');var intensita=_int[0];var setIntensita=_int[1];
   var iB={width:'100%',background:SURF2,border:'1px solid '+BORD,borderRadius:8,padding:'10px 12px',color:TEXT,fontSize:14};
@@ -1853,23 +1875,21 @@ function ExerciseConfigSheet(p){
       onSave(Object.assign(base, payloadP));
     }
     else if(tipo==='superset'){
-      /* Superset: A e B hanno modalità indipendenti (reps o tenuta). */
-      var ptMod = (partner && partner.modalita) || 'reps';
-      var ptGr = partner.gr || resolveGroup(partner.nome) || '';
-      var partnerClean = {
-        nome: partner.nome || '',
-        modalita: ptMod,
-        peso: parseFloat(partner.peso)||0,
-        gr: ptGr
-      };
-      if(ptMod==='hold') partnerClean.durata = parseInt(partner.durata)||20;
-      else partnerClean.reps = partner.reps || '';
-      rememberCustomGroup(partner.nome, ptGr);
+      /* Superset: A (inline) + membri aggiuntivi, ognuno con modalità indipendente. */
+      var membriClean = membri.filter(function(m){return m && m.nome;}).map(function(m){
+        var mMod = m.modalita || 'reps';
+        var mGr = m.gr || resolveGroup(m.nome) || '';
+        rememberCustomGroup(m.nome, mGr);
+        var c = { nome: m.nome, modalita: mMod, peso: parseFloat(m.peso)||0, gr: mGr };
+        if(mMod==='hold') c.durata = parseInt(m.durata)||20;
+        else c.reps = m.reps || '';
+        return c;
+      });
       var payloadS = {
         sets:parseInt(sets)||3, serie:parseInt(sets)||3,
         peso:parseFloat(peso)||0,
         recSet:parseInt(recSet)||90, recEs:parseInt(recEs)||60, rec:parseInt(recSet)||90,
-        partner: partnerClean,
+        membri: membriClean,
         modalita: modalita
       };
       if(modalita==='hold') payloadS.durata = parseInt(holdDur)||20;
@@ -1891,14 +1911,14 @@ function ExerciseConfigSheet(p){
     }
   }
   return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)onClose();}},
-    pickerPartner&&h(ExercisePicker,{visible:true,onClose:function(){setPickerPartner(false);},onAdd:function(n){setPartner(function(pt){return Object.assign({},pt,{nome:n,gr:resolveGroup(n)||(pt&&pt.gr)||''});});setPickerPartner(false);},baseList:isCal?CAL_ES:PESI_ES,mode:isCal?'cal':'pesi',label:'Scegli esercizio B'}),
+    pickerMemberIdx!==null&&h(ExercisePicker,{visible:true,onClose:function(){setPickerMemberIdx(null);},onAdd:function(n){setMembri(function(prev){return prev.map(function(m,k){return k===pickerMemberIdx?Object.assign({},m,{nome:n,gr:resolveGroup(n)||m.gr||''}):m;});});setPickerMemberIdx(null);},baseList:isCal?CAL_ES:PESI_ES,mode:isCal?'cal':'pesi',label:'Scegli esercizio'}),
     h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0}},
         h('div',{style:{flex:1,minWidth:0}},
           tipo==='superset'&&h('div',{style:{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 7px',borderRadius:5,background:ACC2,border:'1px solid '+ACC3,marginBottom:4}},
             h('span',{style:{fontSize:9,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:ACC,letterSpacing:'0.1em'}},'SUPERSET')
           ),
-          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},tipo==='superset'&&partner.nome?(esNome+' + '+partner.nome):esNome)
+          h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:22,letterSpacing:'0.02em',color:ACC}},tipo==='superset'?(esNome+membri.filter(function(m){return m&&m.nome;}).map(function(m){return ' + '+m.nome;}).join('')):esNome)
         ),
         h('button',{onClick:onClose,'aria-label':'Chiudi configurazione esercizio',style:{background:'none',border:'none',color:MUTED,cursor:'pointer',padding:10,minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center'}},h(Icon,{n:'close',sz:20,c:MUTED}))
       ),
@@ -1933,58 +1953,61 @@ function ExerciseConfigSheet(p){
             h('div',null,h(Lbl,null,isCal?'+ Peso (kg)':'Peso (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,placeholder:'0',onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
           )
         ),
-        /* Superset: A e B hanno modalità indipendenti (reps o tenuta). */
-        tipo==='superset' && (function(){
-          var ptMod = partner.modalita || 'reps';
-          return h('div',null,
-            h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
-              h('div',{style:{width:22,height:22,borderRadius:6,background:ACC,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#000'}},'A'),
-              h('div',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em'}},'ESERCIZIO A — '+esNome.toUpperCase())
-            ),
-            h(Lbl,null,'Modalità A'),
-            h('div',{style:{display:'flex',gap:6,marginBottom:14}},
-              [{id:'reps',l:'Ripetizioni'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
-                var on = modalita === m.id;
-                return h('button',{key:m.id,onClick:function(){hap(6);setModalita(m.id);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, m.l);
-              })
-            ),
-            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}},
-              h('div',null,h(Lbl,null,'Serie'),h('input',{type:'number',value:sets,min:1,onChange:function(e){setSets(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})})),
-              modalita==='hold'
-                ? h('div',null,h(Lbl,null,'Tenuta A (s)'),h('input',{type:'number',value:holdDur,min:1,onChange:function(e){setHoldDur(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
-                : h('div',null,h(Lbl,null,'Reps A'),h('input',{type:'text',value:reps,onChange:function(e){setReps(e.target.value);},placeholder:'10',style:Object.assign({},iB,{textAlign:'center'})})),
-              h('div',null,h(Lbl,null,isCal?'+ Peso A (kg)':'Peso A (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
-            ),
-            h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:14,marginBottom:14}},
+        /* Superset: A (inline) + N membri aggiuntivi (B, C, ...), modalità indipendenti. */
+        tipo==='superset' && h('div',null,
+          h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
+            h('div',{style:{width:22,height:22,borderRadius:6,background:ACC,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#000'}},'A'),
+            h('div',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em'}},'ESERCIZIO A — '+esNome.toUpperCase())
+          ),
+          h(Lbl,null,'Modalità A'),
+          h('div',{style:{display:'flex',gap:6,marginBottom:14}},
+            [{id:'reps',l:'Ripetizioni'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
+              var on = modalita === m.id;
+              return h('button',{key:m.id,onClick:function(){hap(6);setModalita(m.id);},'aria-pressed':on,style:{flex:1,padding:'9px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, m.l);
+            })
+          ),
+          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}},
+            h('div',null,h(Lbl,null,'Round'),h('input',{type:'number',value:sets,min:1,onChange:function(e){setSets(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})})),
+            modalita==='hold'
+              ? h('div',null,h(Lbl,null,'Tenuta A (s)'),h('input',{type:'number',value:holdDur,min:1,onChange:function(e){setHoldDur(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
+              : h('div',null,h(Lbl,null,'Reps A'),h('input',{type:'text',value:reps,onChange:function(e){setReps(e.target.value);},placeholder:'10',style:Object.assign({},iB,{textAlign:'center'})})),
+            h('div',null,h(Lbl,null,isCal?'+ Peso A (kg)':'Peso A (kg)'),h('input',{type:'number',value:peso,step:0.5,min:0,onChange:function(e){setPeso(e.target.value);},style:Object.assign({},iB,{textAlign:'center'})}))
+          ),
+          membri.map(function(m, mi){
+            var mMod = m.modalita || 'reps';
+            var letter = String.fromCharCode(66+mi);
+            return h('div',{key:mi,style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:14,marginBottom:10}},
               h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-                h('div',{style:{width:22,height:22,borderRadius:6,background:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#000'}},'B'),
-                h('div',{style:{fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em'}},'ESERCIZIO B — ACCOPPIATO SENZA PAUSA')
+                h('div',{style:{width:22,height:22,borderRadius:6,background:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#000'}},letter),
+                h('div',{style:{flex:1,fontSize:11,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em'}},'ESERCIZIO '+letter+' — SENZA PAUSA'),
+                h('button',{onClick:function(){hap(8);removeMembro(mi);},'aria-label':'Rimuovi esercizio '+letter,style:{background:'none',border:'none',cursor:'pointer',padding:4}},h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.7)'}))
               ),
-              h('button',{onClick:function(){setPickerPartner(true);},style:{width:'100%',padding:'9px 12px',background:SURF2,border:'1px solid '+(partner.nome?ACC3:BORD),borderRadius:8,color:partner.nome?ACC:MUTED,fontSize:13,cursor:'pointer',textAlign:'left',marginBottom:partner.nome?8:0}},partner.nome||'Scegli esercizio B…'),
-              partner.nome&&h('div',null,
-                h(Lbl,null,'Modalità B'),
+              h('button',{onClick:function(){setPickerMemberIdx(mi);},style:{width:'100%',padding:'9px 12px',background:SURF2,border:'1px solid '+(m.nome?ACC3:BORD),borderRadius:8,color:m.nome?ACC:MUTED,fontSize:13,cursor:'pointer',textAlign:'left',marginBottom:m.nome?8:0}},m.nome||('Scegli esercizio '+letter+'…')),
+              m.nome&&h('div',null,
+                h(Lbl,null,'Modalità '+letter),
                 h('div',{style:{display:'flex',gap:6,marginBottom:10}},
-                  [{id:'reps',l:'Ripetizioni'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
-                    var on = ptMod === m.id;
-                    return h('button',{key:m.id,onClick:function(){hap(6);setPartner(function(pt){return Object.assign({},pt,{modalita:m.id});});},'aria-pressed':on,style:{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, m.l);
+                  [{id:'reps',l:'Ripetizioni'},{id:'hold',l:'Tenuta (sec)'}].map(function(mm){
+                    var on = mMod === mm.id;
+                    return h('button',{key:mm.id,onClick:function(){hap(6);setMembroField(mi,'modalita',mm.id);},'aria-pressed':on,style:{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:12,fontWeight:on?700:500,cursor:'pointer'}}, mm.l);
                   })
                 ),
                 h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-                  ptMod==='hold'
-                    ? h('div',null,h(Lbl,null,'Tenuta B (s)'),h('input',{type:'number',value:String(partner.durata||20),min:1,onChange:function(e){setPartner(function(pt){return Object.assign({},pt,{durata:parseInt(e.target.value)||0});});},style:Object.assign({},iB,{textAlign:'center'})}))
-                    : h('div',null,h(Lbl,null,'Reps B'),h('input',{type:'text',value:partner.reps,onChange:function(e){setPartner(function(pt){return Object.assign({},pt,{reps:e.target.value});});},style:Object.assign({},iB,{textAlign:'center'})})),
-                  h('div',null,h(Lbl,null,isCal?'+ Peso B (kg)':'Peso B (kg)'),h('input',{type:'number',value:String(partner.peso||0),step:0.5,min:0,onChange:function(e){setPartner(function(pt){return Object.assign({},pt,{peso:parseFloat(e.target.value)||0});});},style:Object.assign({},iB,{textAlign:'center'})}))
+                  mMod==='hold'
+                    ? h('div',null,h(Lbl,null,'Tenuta '+letter+' (s)'),h('input',{type:'number',value:String(m.durata||20),min:1,onChange:function(e){setMembroField(mi,'durata',parseInt(e.target.value)||0);},style:Object.assign({},iB,{textAlign:'center'})}))
+                    : h('div',null,h(Lbl,null,'Reps '+letter),h('input',{type:'text',value:m.reps,onChange:function(e){setMembroField(mi,'reps',e.target.value);},style:Object.assign({},iB,{textAlign:'center'})})),
+                  h('div',null,h(Lbl,null,(isCal?'+ Peso ':'Peso ')+letter+' (kg)'),h('input',{type:'number',value:String(m.peso||0),step:0.5,min:0,onChange:function(e){setMembroField(mi,'peso',parseFloat(e.target.value)||0);},style:Object.assign({},iB,{textAlign:'center'})}))
                 ),
                 h('div',{style:{marginTop:10}},
-                  h(Lbl,null,'Gruppo muscolare B'),
+                  h(Lbl,null,'Gruppo muscolare '+letter),
                   h('div',{style:{display:'flex',gap:4,flexWrap:'wrap'}},
-                    GRP.map(function(g){var on=(partner.gr||'')===g;return h('button',{key:g,onClick:function(){hap(6);setPartner(function(pt){return Object.assign({},pt,{gr:on?'':g});});},style:{padding:'5px 10px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},g);})
+                    GRP.map(function(g){var on=(m.gr||'')===g;return h('button',{key:g,onClick:function(){hap(6);setMembroField(mi,'gr',on?'':g);},style:{padding:'5px 10px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},g);})
                   )
                 )
               )
-            )
-          );
-        })(),
+            );
+          }),
+          h('button',{onClick:function(){hap(6);addMembro();},style:{width:'100%',padding:10,borderRadius:10,border:'1px dashed '+ACC3,background:ACC5,color:ACC,fontSize:13,cursor:'pointer',marginBottom:14,fontWeight:600}},'+ Aggiungi esercizio al superset')
+        ),
         tipo==='progressivo'&&h('div',{style:{marginBottom:14}},
           h(Lbl,null,'Modalità'),
           h('div',{style:{display:'flex',gap:6,marginBottom:14}},
@@ -2219,7 +2242,7 @@ function Settings(p){
     if(!fbMsg.trim()){ alert('Scrivi qualcosa prima di inviare'); return; }
     setFbSending(true); setFbOk('');
     try{
-      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'2.0.0'});
+      var r = await sbSendFeedback({type:'opinion', message:fbMsg.trim(), appVersion:'2.1.0'});
       if(r.error) throw r.error;
       setFbMsg(''); setFbOk('Grazie! Feedback ricevuto.');
       setTimeout(function(){ setFbOk(''); }, 3500);
@@ -2629,14 +2652,14 @@ function Home(p){
       );
     })(),
 
-    /* Volume gruppi muscolari (top 3) · ultimi 7 giorni
+    /* Volume gruppi muscolari (top 3) · settimana corrente (lun–dom)
        Driver #1 per ipertrofia secondo Schoenfeld/Israetel: serie effettive per gruppo/sett.
        Range MEV (minimo per crescere) - MAV (zona ottimale) - MRV (limite recupero).
        Include set equivalenti da sessioni cardio (spinning/bici → gambe, vogatore → schiena, ecc.)
        calcolati da durata × intensità (umore). Tocca per il dettaglio in Stats. */
     (function(){
-      var weekAgoTs = Date.now() - 7*86400000;
-      var recentSess = sessions.filter(function(s){ return new Date(s.t0).getTime() >= weekAgoTs; });
+      var weekStartTs = getWeekStart(new Date()).getTime();
+      var recentSess = sessions.filter(function(s){ return new Date(s.t0).getTime() >= weekStartTs; });
       var hits = {};
       var cardioHits = {};
       recentSess.forEach(function(s){
@@ -2648,7 +2671,8 @@ function Home(p){
           });
           return;
         }
-        (s.es||[]).forEach(function(e){
+        /* expandSupersetEs: conta anche l'esercizio B dei superset, non solo A */
+        expandSupersetEs(s.es||[]).forEach(function(e){
           if(e.tipo==='riscaldamento' || !e.gr) return;
           var sets = (e.serie||[]).filter(function(sr){return sr.ok;}).length;
           if(sets <= 0) return;
@@ -2684,7 +2708,7 @@ function Home(p){
         style:{background:SURF2,borderRadius:14,padding:'14px 16px',marginBottom:12,border:'0.5px solid '+BORD,cursor:'pointer'}
       },
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}},
-          h('div',{style:{fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:MUTED}},'Volume gruppi muscolari · 7g'),
+          h('div',{style:{fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:MUTED}},'Volume gruppi muscolari · settimana'),
           h('div',{style:{fontSize:11,color:ACC}},'Dettaglio →')
         ),
         h('div',{style:{fontSize:10,color:MUTED,marginBottom:10,lineHeight:1.4}}, 'Serie pesi + equivalenti cardio (spinning/bici/corsa → gambe) · zone ottimali da scienza del muscolo'),
@@ -3150,7 +3174,27 @@ function PesiLive(p){
         };
       });
     }
-    return Object.assign({},ex,{serie:serie});
+    /* Superset: serie reali anche per i membri aggiuntivi (B, C, ...); migra il vecchio `partner`. */
+    var rawMembri = (ex.tipo==='superset')
+      ? ((ex.membri&&ex.membri.length)?ex.membri:((ex.partner&&ex.partner.nome)?[ex.partner]:[]))
+      : null;
+    var membriInit = rawMembri ? rawMembri.map(function(m){
+      var mHold=(m.modalita||'reps')==='hold';
+      var mDefPeso=m.peso||0;
+      var mDefReps=mHold?0:parseReps(m.reps||10);
+      var mDefDur=mHold?(parseInt(m.durata)||20):0;
+      var mLast=findLastExerciseSession(m.nome,(p.allSessions||[]));
+      var mSerie=Array.from({length:nSets}, function(_, i){
+        var ref=(mLast&&mLast.serie&&mLast.serie.length)?(mLast.serie[i]||mLast.serie[mLast.serie.length-1]):null;
+        return {n:i+1,
+          peso: ref?(ref.peso||mDefPeso):mDefPeso,
+          reps: mHold?0:(ref?(ref.reps||mDefReps):mDefReps),
+          durata: mHold?(ref?(ref.durata||mDefDur):mDefDur):(ref?(ref.durata||0):0),
+          ok:false,t:null};
+      });
+      return Object.assign({},m,{serie:mSerie});
+    }) : null;
+    return membriInit ? Object.assign({},ex,{serie:serie,membri:membriInit}) : Object.assign({},ex,{serie:serie});
   }));
   var es=_2[0];var setEs=_2[1];
   var _3=useState(0);var ex=_3[0];var setEx=_3[1];
@@ -3174,7 +3218,7 @@ function PesiLive(p){
   var _fbr=useState(0);var fbRating=_fbr[0];var setFbRating=_fbr[1];
   var _fbt=useState('');var fbText=_fbt[0];var setFbText=_fbt[1];
   var _fbs2=useState('idle');var fbState=_fbs2[0];var setFbState=_fbs2[1];
-  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'2.0.0'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
+  function fbSend(){if(!fbRating)return;setFbState('sent');sbSendFeedback({type:'rest_feedback',rating:fbRating,message:fbText.trim()||null,appVersion:'2.1.0'}).catch(function(){});setTimeout(function(){setFbState('done');},1800);}
   function fbDismiss(){setFbState('done');}
   var fbProps=fbEligible?{show:true,state:fbState,rating:fbRating,text:fbText,onRate:setFbRating,onText:setFbText,onSend:fbSend,onDismiss:fbDismiss}:null;
 
@@ -3227,6 +3271,51 @@ function PesiLive(p){
     var willMark=!es[idx].fatto;
     setEs(function(prev){return prev.map(function(e,i){return i===idx?Object.assign({},e,{fatto:!e.fatto}):e;});});
     if(willMark) startRest(60,'Riposo dopo riscaldamento');
+  }
+  /* ── Superset live: A (memberKey -1, serie top-level) + membri (memberKey = indice). ── */
+  function _kv(k,v){var o={};o[k]=v;return o;}
+  function setMemberVal(idx, memberKey, r, field, val){
+    var num=parseFloat(val)||0;
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      if(memberKey<0){
+        return Object.assign({},e,{serie:e.serie.map(function(s,j){return j===r?Object.assign({},s,_kv(field,num)):s;})});
+      }
+      return Object.assign({},e,{membri:(e.membri||[]).map(function(m,k){
+        if(k!==memberKey) return m;
+        return Object.assign({},m,{serie:(m.serie||[]).map(function(s,j){return j===r?Object.assign({},s,_kv(field,num)):s;})});
+      })});
+    });});
+  }
+  /* Completa/annulla un intero round del superset (A + tutti i membri insieme) + recupero. */
+  function toggleRound(idx, r){
+    var exCur=es[idx];
+    var willCheck=!(exCur.serie[r]&&exCur.serie[r].ok);
+    if(willCheck) hap(15);
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      function mark(serie){return serie.map(function(s,j){return j===r?Object.assign({},s,{ok:willCheck,t:willCheck?Date.now():null}):s;});}
+      return Object.assign({},e,{serie:mark(e.serie),membri:(e.membri||[]).map(function(m){return Object.assign({},m,{serie:mark(m.serie||[])});})});
+    });});
+    if(willCheck){
+      var rec=exCur.recSet||exCur.rec||90;
+      if(r===exCur.serie.length-1) startRest(exCur.recEs||60,'Recupero fine superset');
+      else startRest(rec,'Recupero round');
+    }
+  }
+  function addRound(idx){
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      function ext(serie){var last=serie[serie.length-1]||{peso:0,reps:0,durata:0};return serie.concat([{n:serie.length+1,peso:last.peso,reps:last.reps,durata:last.durata,ok:false,t:null}]);}
+      return Object.assign({},e,{serie:ext(e.serie),membri:(e.membri||[]).map(function(m){return Object.assign({},m,{serie:ext(m.serie||[])});})});
+    });});
+  }
+  function removeRound(idx, r){
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      function rem(serie){return serie.filter(function(_,j){return j!==r;}).map(function(s,j){return Object.assign({},s,{n:j+1});});}
+      return Object.assign({},e,{serie:rem(e.serie),membri:(e.membri||[]).map(function(m){return Object.assign({},m,{serie:rem(m.serie||[])});})});
+    });});
   }
   function next(){
     hap(10);
@@ -3366,7 +3455,7 @@ function PesiLive(p){
               ),
               h('div',{style:{display:'flex',alignItems:'center',gap:4,marginTop:1}},
                 h('span',{style:{fontSize:11,color:ACC,fontWeight:700}},'+'),
-                h('span',{style:{fontSize:14,fontFamily:"'Bebas Neue',cursive",color:MUTED,letterSpacing:'0.02em'}},(curr.partner&&curr.partner.nome)||'—')
+                h('span',{style:{fontSize:14,fontFamily:"'Bebas Neue',cursive",color:MUTED,letterSpacing:'0.02em'}},supersetExtra(curr).map(function(m){return m.nome;}).filter(Boolean).join(' + ')||'—')
               )
             )
           : h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
@@ -3392,34 +3481,57 @@ function PesiLive(p){
         ),
         h('button',{onClick:function(){setWarmFatto(ex);},style:{width:'100%',padding:18,borderRadius:12,border:'none',background:curr.fatto?ACC:ACC2,color:curr.fatto?ACT:ACC,fontFamily:"'Bebas Neue',cursive",fontSize:20,letterSpacing:'0.05em',cursor:'pointer'}},curr.fatto?'✓ FATTO':'COMPLETATO')
       ):h('div',null,
-        curr.tipo==='superset'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:12,padding:12,marginBottom:14}},
-          h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.12em',marginBottom:8}},'ESEGUI IN SUPERSET — SENZA PAUSA TRA A E B'),
-          h('div',{style:{display:'flex',gap:8}},
-            h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'8px 10px',borderLeft:'3px solid '+ACC}},
-              h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:3}},'A'),
-              h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,marginBottom:2}},curr.nome),
-              h('div',{style:{fontSize:11,color:MUTED}},
-                (curr.modalita==='hold'?((curr.durata||'?')+'s tenuta'):((curr.reps||'?')+' reps'))+
-                ((curr.peso||0)>0?' · '+curr.peso+'kg':'')
-              )
-            ),
-            h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:8,padding:'8px 10px',borderLeft:'3px solid '+MUTED}},
-              h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:3}},'B'),
-              h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,marginBottom:2}},(curr.partner&&curr.partner.nome)||'—'),
-              curr.partner&&curr.partner.nome&&h('div',{style:{fontSize:11,color:MUTED}},
-                ((curr.partner.modalita||'reps')==='hold'?((curr.partner.durata||'?')+'s tenuta'):((curr.partner.reps||'?')+' reps'))+
-                ((curr.partner.peso||0)>0?' · '+curr.partner.peso+'kg':'')
-              )
-            )
-          )
-        ),
+        curr.tipo==='superset'&&(function(){
+          var mems=[{key:-1,nome:curr.nome,modalita:curr.modalita,serie:curr.serie}].concat(
+            supersetExtra(curr).map(function(mm,k){return {key:k,nome:mm.nome,modalita:mm.modalita,serie:(curr.membri&&curr.membri[k]&&curr.membri[k].serie)||[]};})
+          );
+          var rounds=curr.serie.length;
+          var fld={width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'7px 8px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:15,textAlign:'center',fontVariantNumeric:'tabular-nums'};
+          var lbl={fontSize:8,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:1};
+          return h('div',{style:{marginBottom:14}},
+            h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.12em',marginBottom:8}},'SUPERSET — SENZA PAUSA TRA GLI ESERCIZI'),
+            Array.from({length:rounds}).map(function(_,r){
+              var roundOk=mems.every(function(me){return me.serie[r]&&me.serie[r].ok;});
+              return h('div',{key:r,style:{background:roundOk?ACC5:SURF,border:'1px solid '+(roundOk?ACC3:BORD),borderRadius:10,padding:10,marginBottom:8,transition:'all 0.2s'}},
+                h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}},
+                  h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:16,letterSpacing:'0.04em',color:roundOk?ACC:TEXT}},'ROUND '+(r+1)),
+                  h('div',{style:{display:'flex',gap:6,alignItems:'center'}},
+                    rounds>1&&h('button',{onClick:function(){hap(8);removeRound(ex,r);},'aria-label':'Rimuovi round '+(r+1),style:{background:'transparent',border:'none',color:'rgba(239,68,68,0.55)',cursor:'pointer',padding:2}},h(Icon,{n:'trash',sz:13,c:'rgba(239,68,68,0.55)'})),
+                    h('button',{onClick:function(){toggleRound(ex,r);},'aria-label':roundOk?'Annulla round':'Completa round',style:{width:36,height:36,borderRadius:'50%',background:roundOk?ACC:'transparent',border:'2px solid '+(roundOk?ACC:BORD),color:roundOk?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},roundOk?h(Icon,{n:'check',sz:16,c:'var(--act)'}):'')
+                  )
+                ),
+                mems.map(function(me,mIdx){
+                  var sObj=me.serie[r]||{};
+                  var meHold=(me.modalita||'reps')==='hold';
+                  var letter=me.key<0?'A':String.fromCharCode(66+me.key);
+                  return h('div',{key:mIdx,style:{display:'flex',alignItems:'center',gap:8,marginBottom:mIdx===mems.length-1?0:6}},
+                    h('div',{style:{minWidth:78,display:'flex',alignItems:'center',gap:5}},
+                      h('div',{style:{width:18,height:18,borderRadius:4,background:me.key<0?ACC:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'#000',flexShrink:0}},letter),
+                      h('div',{style:{fontSize:11,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},me.nome)
+                    ),
+                    h('div',{style:{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
+                      h('div',null,
+                        h('div',{style:lbl},'KG'),
+                        h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*','aria-label':'Peso '+letter+' round '+(r+1),value:(sObj.peso===0||sObj.peso==null)?'':String(sObj.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){setMemberVal(ex,me.key,r,'peso',e.target.value.replace(',','.'));},style:fld})
+                      ),
+                      meHold
+                        ? h('div',null,h('div',{style:lbl},'SEC'),h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*','aria-label':'Tenuta '+letter+' round '+(r+1),value:(sObj.durata===0||sObj.durata==null)?'':String(sObj.durata),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){setMemberVal(ex,me.key,r,'durata',e.target.value);},style:fld}))
+                        : h('div',null,h('div',{style:lbl},'REPS'),h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*','aria-label':'Reps '+letter+' round '+(r+1),value:(sObj.reps===0||sObj.reps==null)?'':String(sObj.reps),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){setMemberVal(ex,me.key,r,'reps',e.target.value);},style:fld}))
+                    )
+                  );
+                })
+              );
+            }),
+            h('button',{onClick:function(){hap(6);addRound(ex);},style:{width:'100%',padding:10,borderRadius:8,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:12,cursor:'pointer',marginTop:2}},'+ Aggiungi round')
+          );
+        })(),
         curr.tipo==='progressivo'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10,marginBottom:14}},
           h('div',{style:{fontSize:10,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:3}},'ESERCIZIO PROGRESSIVO'),
           h('div',{style:{fontSize:11,color:MUTED}},'Progressione su '+(curr.progressione?curr.progressione.length:0)+' settimane')
         ),
         (curr.note&&!TIPS[curr.nome])&&h('div',{style:{background:SURF2,borderRadius:10,padding:'10px 12px',marginBottom:14,fontSize:13,color:TEXT,lineHeight:1.5,borderLeft:'3px solid '+ACC}},curr.note),
         lastForCurr && h(LastSessionHint,{info:lastForCurr}),
-        curr.serie.map(function(s,si){
+        curr.tipo!=='superset' && curr.serie.map(function(s,si){
           var canRemove = curr.serie.length > 1;
           var currIsHold = curr.modalita === 'hold';
           return h('div',{key:si,style:{background:s.ok?ACC5:SURF,border:'1px solid '+(s.ok?ACC3:BORD),borderRadius:10,padding:10,marginBottom:6,display:'flex',alignItems:'center',gap:6,transition:'all 0.2s'}},
@@ -3474,7 +3586,7 @@ function PesiLive(p){
             }, h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.55)'}))
           );
         }),
-        h('button',{onClick:function(){addSerie(ex);},style:{width:'100%',padding:10,borderRadius:8,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:12,cursor:'pointer',marginTop:4}},'+ Aggiungi serie')
+        curr.tipo!=='superset' && h('button',{onClick:function(){addSerie(ex);},style:{width:'100%',padding:10,borderRadius:8,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:12,cursor:'pointer',marginTop:4}},'+ Aggiungi serie')
       ),
       h('div',{style:{height:20}})
     ),
@@ -3562,8 +3674,26 @@ function CalLive(p){
       note: ex.note || '',
       serie: baseSerie
     };
-    /* Superset: preserviamo il partner (esercizio B) salvato nella scheda. */
-    if(ex.tipo==='superset' && ex.partner) loaded.partner = ex.partner;
+    /* Superset: serie reali anche per i membri aggiuntivi (B, C, ...); migra il vecchio `partner`. */
+    var rawMembriC = (ex.tipo==='superset')
+      ? ((ex.membri&&ex.membri.length)?ex.membri:((ex.partner&&ex.partner.nome)?[ex.partner]:[]))
+      : null;
+    if(rawMembriC) loaded.membri = rawMembriC.map(function(m){
+      var mHold=(m.modalita||'reps')==='hold';
+      var mDefPeso=parseFloat(m.peso)||0;
+      var mDefReps=mHold?0:(parseInt(m.reps)||5);
+      var mDefDur=mHold?(parseInt(m.durata)||20):0;
+      var mLast=findLastExerciseSession(m.nome,(p.allSessions||[]));
+      var mSerie=Array.from({length:nSets}, function(_, i){
+        var ref=(mLast&&mLast.serie&&mLast.serie.length)?(mLast.serie[i]||mLast.serie[mLast.serie.length-1]):null;
+        return {n:i+1,
+          peso: ref?(ref.peso||mDefPeso):mDefPeso,
+          reps: mHold?0:(ref?(ref.reps||mDefReps):mDefReps),
+          durata: mHold?(ref?(ref.durata||mDefDur):mDefDur):(ref?(ref.durata||0):0),
+          ok:false,t:null};
+      });
+      return Object.assign({},m,{serie:mSerie});
+    });
     return loaded;
   }) : [];
   var _2=useState(initEs);var es=_2[0];var setEs=_2[1];
@@ -3583,7 +3713,7 @@ function CalLive(p){
   var _cfbr=useState(0);var calFbRating=_cfbr[0];var setCalFbRating=_cfbr[1];
   var _cfbt=useState('');var calFbText=_cfbt[0];var setCalFbText=_cfbt[1];
   var _cfbs=useState('idle');var calFbState=_cfbs[0];var setCalFbState=_cfbs[1];
-  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'2.0.0'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
+  function calFbSend(){if(!calFbRating)return;setCalFbState('sent');sbSendFeedback({type:'rest_feedback',rating:calFbRating,message:calFbText.trim()||null,appVersion:'2.1.0'}).catch(function(){});setTimeout(function(){setCalFbState('done');},1800);}
   function calFbDismiss(){setCalFbState('done');}
   var calFbProps=calFbEligible?{show:true,state:calFbState,rating:calFbRating,text:calFbText,onRate:setCalFbRating,onText:setCalFbText,onSend:calFbSend,onDismiss:calFbDismiss}:null;
 
@@ -3648,6 +3778,46 @@ function CalLive(p){
     });
     if(willCheck) startRest(90,'Recupero');
   }
+  /* ── Superset live (cal): A (memberKey -1) + membri (memberKey = indice). ── */
+  function _kv(k,v){var o={};o[k]=v;return o;}
+  function setMemberVal(idx, memberKey, r, field, val){
+    var num=parseFloat(val)||0;
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      if(memberKey<0){
+        return Object.assign({},e,{serie:e.serie.map(function(s,j){return j===r?Object.assign({},s,_kv(field,num)):s;})});
+      }
+      return Object.assign({},e,{membri:(e.membri||[]).map(function(m,k){
+        if(k!==memberKey) return m;
+        return Object.assign({},m,{serie:(m.serie||[]).map(function(s,j){return j===r?Object.assign({},s,_kv(field,num)):s;})});
+      })});
+    });});
+  }
+  function toggleRound(idx, r){
+    var exCur=es[idx];
+    var willCheck=!(exCur.serie[r]&&exCur.serie[r].ok);
+    if(willCheck) hap(15);
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      function mark(serie){return serie.map(function(s,j){return j===r?Object.assign({},s,{ok:willCheck,t:willCheck?Date.now():null}):s;});}
+      return Object.assign({},e,{serie:mark(e.serie),membri:(e.membri||[]).map(function(m){return Object.assign({},m,{serie:mark(m.serie||[])});})});
+    });});
+    if(willCheck) startRest(exCur.recSet||90,'Recupero round');
+  }
+  function addRound(idx){
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      function ext(serie){var last=serie[serie.length-1]||{peso:0,reps:0,durata:0};return serie.concat([{n:serie.length+1,peso:last.peso,reps:last.reps,durata:last.durata,ok:false,t:null}]);}
+      return Object.assign({},e,{serie:ext(e.serie),membri:(e.membri||[]).map(function(m){return Object.assign({},m,{serie:ext(m.serie||[])});})});
+    });});
+  }
+  function removeRound(idx, r){
+    setEs(function(prev){return prev.map(function(e,i){
+      if(i!==idx) return e;
+      function rem(serie){return serie.filter(function(_,j){return j!==r;}).map(function(s,j){return Object.assign({},s,{n:j+1});});}
+      return Object.assign({},e,{serie:rem(e.serie),membri:(e.membri||[]).map(function(m){return Object.assign({},m,{serie:rem(m.serie||[])});})});
+    });});
+  }
   function saveSession(){
     if(saving)return;
     setSaving(true);
@@ -3700,25 +3870,49 @@ function CalLive(p){
               e.progressioneA && h('div',{style:{fontSize:10,color:'var(--muted-2)',marginTop:2}},'→ prossimo: '+e.progressioneA)
             )
           ),
-          e.tipo==='superset'&&h('div',{style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10,marginBottom:8}},
-            h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:6}},'SENZA PAUSA TRA A E B'),
-            h('div',{style:{display:'flex',gap:6}},
-              h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'6px 8px',borderLeft:'3px solid '+ACC}},
-                h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'A — '+e.nome),
-                h('div',{style:{fontSize:11,color:MUTED}},
-                  (isHold?((e.durata||'?')+'s'):((e.reps||'?')+' reps'))+((e.peso||0)>0?' · '+e.peso+'kg':'')
-                )
-              ),
-              h('div',{style:{flex:1,background:'rgba(255,255,255,0.04)',borderRadius:7,padding:'6px 8px',borderLeft:'3px solid '+MUTED}},
-                h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'B — '+((e.partner&&e.partner.nome)||'—')),
-                e.partner&&e.partner.nome&&h('div',{style:{fontSize:11,color:MUTED}},
-                  ((e.partner.modalita||'reps')==='hold'?((e.partner.durata||'?')+'s'):((e.partner.reps||'?')+' reps'))+((e.partner.peso||0)>0?' · '+e.partner.peso+'kg':'')
-                )
-              )
-            )
-          ),
+          e.tipo==='superset'&&(function(){
+            var mems=[{key:-1,nome:e.nome,modalita:e.modalita,serie:e.serie}].concat(
+              supersetExtra(e).map(function(mm,k){return {key:k,nome:mm.nome,modalita:mm.modalita,serie:(e.membri&&e.membri[k]&&e.membri[k].serie)||[]};})
+            );
+            var rounds=e.serie.length;
+            var fld={width:'100%',background:'transparent',border:'1px solid '+BORD,borderRadius:6,padding:'6px 6px',color:TEXT,fontFamily:"'Roboto Mono',monospace",fontSize:14,textAlign:'center',fontVariantNumeric:'tabular-nums'};
+            var lbl={fontSize:8,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:1};
+            return h('div',{style:{marginBottom:8}},
+              h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em',marginBottom:6}},'SUPERSET — SENZA PAUSA'),
+              Array.from({length:rounds}).map(function(_,r){
+                var roundOk=mems.every(function(me){return me.serie[r]&&me.serie[r].ok;});
+                return h('div',{key:r,style:{background:roundOk?ACC5:SURF2,border:'1px solid '+(roundOk?ACC3:BORD),borderRadius:8,padding:8,marginBottom:5}},
+                  h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},
+                    h('div',{style:{fontFamily:"'Bebas Neue',cursive",fontSize:15,letterSpacing:'0.04em',color:roundOk?ACC:TEXT}},'ROUND '+(r+1)),
+                    h('div',{style:{display:'flex',gap:6,alignItems:'center'}},
+                      rounds>1&&h('button',{onClick:function(){hap(8);removeRound(ei,r);},'aria-label':'Rimuovi round '+(r+1),style:{background:'transparent',border:'none',color:'rgba(239,68,68,0.55)',cursor:'pointer',padding:2}},h(Icon,{n:'trash',sz:12,c:'rgba(239,68,68,0.55)'})),
+                      h('button',{onClick:function(){toggleRound(ei,r);},'aria-label':roundOk?'Annulla round':'Completa round',style:{width:34,height:34,borderRadius:'50%',background:roundOk?ACC:'transparent',border:'2px solid '+(roundOk?ACC:BORD),color:roundOk?ACT:MUTED,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},roundOk?h(Icon,{n:'check',sz:15,c:'var(--act)'}):'')
+                    )
+                  ),
+                  mems.map(function(me,mIdx){
+                    var sObj=me.serie[r]||{};
+                    var meHold=(me.modalita||'reps')==='hold';
+                    var letter=me.key<0?'A':String.fromCharCode(66+me.key);
+                    return h('div',{key:mIdx,style:{display:'flex',alignItems:'center',gap:6,marginBottom:mIdx===mems.length-1?0:5}},
+                      h('div',{style:{minWidth:72,display:'flex',alignItems:'center',gap:4}},
+                        h('div',{style:{width:16,height:16,borderRadius:4,background:me.key<0?ACC:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700,color:'#000',flexShrink:0}},letter),
+                        h('div',{style:{fontSize:10,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},me.nome)
+                      ),
+                      h('div',{style:{flex:1,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
+                        meHold
+                          ? h('div',null,h('div',{style:lbl},'SEC'),h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:(sObj.durata===0||sObj.durata==null)?'':String(sObj.durata),placeholder:'0',onFocus:function(ev){ev.target.select();},onChange:function(ev){setMemberVal(ei,me.key,r,'durata',ev.target.value);},style:fld}))
+                          : h('div',null,h('div',{style:lbl},'REPS'),h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:(sObj.reps===0||sObj.reps==null)?'':String(sObj.reps),placeholder:'0',onFocus:function(ev){ev.target.select();},onChange:function(ev){setMemberVal(ei,me.key,r,'reps',ev.target.value);},style:fld})),
+                        h('div',null,h('div',{style:lbl},'KG'),h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(sObj.peso===0||sObj.peso==null)?'':String(sObj.peso).replace('.',','),placeholder:'0',onFocus:function(ev){ev.target.select();},onChange:function(ev){setMemberVal(ei,me.key,r,'peso',ev.target.value.replace(',','.'));},style:fld}))
+                      )
+                    );
+                  })
+                );
+              }),
+              h('button',{onClick:function(){hap(6);addRound(ei);},style:{width:'100%',padding:7,borderRadius:6,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:11,cursor:'pointer',marginTop:2}},'+ Aggiungi round')
+            );
+          })(),
           last && h(LastSessionHint,{info:last}),
-          e.serie.map(function(s,si){
+          e.tipo!=='superset' && e.serie.map(function(s,si){
             var canRemove = e.serie.length > 1;
             return h('div',{key:si,style:{background:s.ok?ACC5:SURF2,border:'1px solid '+(s.ok?ACC3:BORD),borderRadius:8,padding:8,marginBottom:5,display:'flex',alignItems:'center',gap:6}},
               h('div',{style:{minWidth:24,fontFamily:"'Bebas Neue',cursive",fontSize:16}},'#'+s.n),
@@ -3764,7 +3958,7 @@ function CalLive(p){
               }, h(Icon,{n:'trash',sz:13,c:'rgba(239,68,68,0.55)'}))
             );
           }),
-          h('button',{onClick:function(){addSerie(ei);},style:{width:'100%',padding:7,borderRadius:6,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:11,cursor:'pointer',marginTop:4}},'+ Serie')
+          e.tipo!=='superset' && h('button',{onClick:function(){addSerie(ei);},style:{width:'100%',padding:7,borderRadius:6,border:'1px dashed '+BORD,background:'transparent',color:MUTED,fontSize:11,cursor:'pointer',marginTop:4}},'+ Serie')
         );
       }),
       h('div',{style:{height:20}})
@@ -4064,28 +4258,41 @@ function AddPastSession(p){
         /* riscaldamento defaults */
         durataMin: 10,
         intensita: 'Media',
-        /* superset defaults: B ha modalità indipendente */
-        partner: { nome:'', modalita:'reps', reps:10, durata:20, peso:0, gr:'' }
+        /* superset: lista membri aggiuntivi (B, C, ...), ognuno con modalità indipendente */
+        membri: []
       }]);
     });
     setPickerOpen(false);
   }
-  function setPartnerName(idx, name){
+  function setMembroName(ei, mi, name){
     setExercises(function(prev){
       return prev.map(function(e,i){
-        if(i!==idx) return e;
-        var prevPt = e.partner||{nome:'',reps:10,peso:0};
-        return Object.assign({},e,{partner: Object.assign({}, prevPt, {nome:name, gr:resolveGroup(name)||prevPt.gr||''})});
+        if(i!==ei) return e;
+        var membri = (e.membri||[]).map(function(m,k){ return k!==mi ? m : Object.assign({},m,{nome:name, gr:resolveGroup(name)||m.gr||''}); });
+        return Object.assign({},e,{membri:membri});
       });
     });
   }
-  function setPartnerField(idx, field, val){
+  function setMembroField(ei, mi, field, val){
     setExercises(function(prev){
       return prev.map(function(e,i){
-        if(i!==idx) return e;
-        var pt = Object.assign({}, e.partner||{nome:'',reps:10,peso:0});
-        pt[field] = val;
-        return Object.assign({},e,{partner:pt});
+        if(i!==ei) return e;
+        var membri = (e.membri||[]).map(function(m,k){ if(k!==mi) return m; var o=Object.assign({},m); o[field]=val; return o; });
+        return Object.assign({},e,{membri:membri});
+      });
+    });
+  }
+  function addMembro(ei){
+    setExercises(function(prev){
+      return prev.map(function(e,i){
+        return i!==ei ? e : Object.assign({},e,{membri:(e.membri||[]).concat([{nome:'',modalita:'reps',reps:10,durata:20,peso:0,gr:''}])});
+      });
+    });
+  }
+  function removeMembro(ei, mi){
+    setExercises(function(prev){
+      return prev.map(function(e,i){
+        return i!==ei ? e : Object.assign({},e,{membri:(e.membri||[]).filter(function(_,k){return k!==mi;})});
       });
     });
   }
@@ -4184,21 +4391,29 @@ function AddPastSession(p){
         if(isHold) base.durata = parseInt(ex.durata)||0;
         /* Modalita: sempre presente, sia cal che pesi. */
         base.modalita = isHold ? 'hold' : 'reps';
-        /* Per superset, salviamo i dati dell'esercizio B come metadata.
-           B ha modalità indipendente da A (può essere reps mentre A è hold, o viceversa). */
-        if(esTipo === 'superset' && ex.partner && ex.partner.nome){
-          var ptMod = ex.partner.modalita || 'reps';
-          var ptGr = ex.partner.gr || resolveGroup(ex.partner.nome) || '';
-          var pt = {
-            nome: ex.partner.nome,
-            modalita: ptMod,
-            peso: parseFloat(ex.partner.peso)||0,
-            gr: ptGr
-          };
-          if(ptMod==='hold') pt.durata = parseInt(ex.partner.durata)||0;
-          else pt.reps = String(ex.partner.reps||'');
-          rememberCustomGroup(ex.partner.nome, ptGr);
-          base.partner = pt;
+        /* Superset: ogni membro aggiuntivo (B, C, ...) ha serie reali proprie,
+           con la stessa cadenza di round di A (nSets), e modalità indipendente. */
+        if(esTipo === 'superset' && ex.membri && ex.membri.length){
+          base.membri = ex.membri.filter(function(m){return m && m.nome;}).map(function(m){
+            var mMod = m.modalita || 'reps';
+            var mHold = mMod === 'hold';
+            var mGr = m.gr || resolveGroup(m.nome) || '';
+            rememberCustomGroup(m.nome, mGr);
+            var mSerie = [];
+            for(var k=0;k<nSets;k++){
+              mSerie.push({
+                n: k+1,
+                peso: parseFloat(m.peso)||0,
+                reps: mHold ? 0 : (parseInt(m.reps)||0),
+                durata: mHold ? (parseInt(m.durata)||0) : 0,
+                ok: true,
+                t: t0Time + k*60000
+              });
+            }
+            var mm = { nome: m.nome, modalita: mMod, peso: parseFloat(m.peso)||0, gr: mGr, serie: mSerie };
+            if(mHold) mm.durata = parseInt(m.durata)||0; else mm.reps = String(m.reps||'');
+            return mm;
+          });
         }
         return base;
       });
@@ -4315,7 +4530,7 @@ function AddPastSession(p){
             h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:8}},
               h('div',{style:{flex:1,minWidth:0}},
                 esTipo==='superset'&&h('span',{style:{display:'inline-block',fontSize:8,padding:'1px 6px',borderRadius:4,background:ACC2,border:'1px solid '+ACC3,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:3}},'SUPERSET'),
-                h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, esTipo==='superset'&&ex.partner&&ex.partner.nome ? fmtSupersetName(ex) : ex.nome),
+                h('div',{style:{fontSize:13,fontWeight:600,color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, esTipo==='superset'&&ex.membri&&ex.membri.some(function(m){return m&&m.nome;}) ? fmtSupersetName(ex) : ex.nome),
                 ex.gr && h('div',{style:{fontSize:10,color:MUTED,marginTop:2}}, ex.gr)
               ),
               h('button',{onClick:function(){removeExercise(ei);},'aria-label':'Rimuovi esercizio',style:{background:'transparent',border:'none',padding:4,cursor:'pointer',flexShrink:0}},h(Icon,{n:'trash',sz:14,c:'rgba(239,68,68,0.6)'}))
@@ -4388,54 +4603,58 @@ function AddPastSession(p){
                 h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(ex.peso===0||ex.peso==null)?'':String(ex.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){updateExercise(ei,'peso',e.target.value.replace(',','.'));},style:inpCenter})
               )
             ),
-            /* SUPERSET: pannello esercizio B (partner) con modalità indipendente */
-            esTipo === 'superset' && (function(){
-              var ptMod = (ex.partner && ex.partner.modalita) || 'reps';
-              var ptIsHold = ptMod === 'hold';
-              return h('div',{style:{marginTop:8,background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10}},
-                h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
-                  h('div',{style:{width:20,height:20,borderRadius:5,background:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#000'}},'B'),
-                  h('div',{style:{fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em'}},'ESERCIZIO B — SENZA PAUSA')
-                ),
-                h('button',{
-                  onClick:function(){setPartnerPickerFor(ei);},
-                  style:{width:'100%',padding:'8px 10px',background:SURF2,border:'1px solid '+((ex.partner&&ex.partner.nome)?ACC3:BORD),borderRadius:8,color:(ex.partner&&ex.partner.nome)?ACC:MUTED,fontSize:12,cursor:'pointer',textAlign:'left',marginBottom:(ex.partner&&ex.partner.nome)?6:0}
-                }, (ex.partner&&ex.partner.nome) || 'Scegli esercizio B…'),
-                ex.partner && ex.partner.nome && h('div',null,
-                  /* Toggle modalità B indipendente da A */
-                  h('div',{style:{display:'flex',gap:6,marginBottom:6}},
-                    [{id:'reps',l:'Reps'},{id:'hold',l:'Tenuta (sec)'}].map(function(m){
-                      var on = ptMod === m.id;
-                      return h('button',{
-                        key:m.id,
-                        onClick:function(){hap(6);setPartnerField(ei,'modalita',m.id);},
-                        'aria-pressed':on,
-                        style:{flex:1,padding:'5px 8px',borderRadius:7,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:11,fontWeight:on?700:500,cursor:'pointer'}
-                      }, m.l);
-                    })
+            /* SUPERSET: membri aggiuntivi (B, C, ...), ognuno con serie/modalità indipendenti */
+            esTipo === 'superset' && h('div',{style:{marginTop:8}},
+              (ex.membri||[]).map(function(m, mi){
+                var mMod = m.modalita || 'reps';
+                var mIsHold = mMod === 'hold';
+                var letter = String.fromCharCode(66+mi);
+                return h('div',{key:mi,style:{background:ACC5,border:'1px solid '+ACC3,borderRadius:10,padding:10,marginBottom:6}},
+                  h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
+                    h('div',{style:{width:20,height:20,borderRadius:5,background:MUTED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#000'}},letter),
+                    h('div',{style:{flex:1,fontSize:9,color:ACC,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.1em'}},'ESERCIZIO '+letter+' — SENZA PAUSA'),
+                    h('button',{onClick:function(){hap(8);removeMembro(ei,mi);},'aria-label':'Rimuovi esercizio '+letter,style:{background:'none',border:'none',cursor:'pointer',padding:2}},h(Icon,{n:'trash',sz:13,c:'rgba(239,68,68,0.7)'}))
                   ),
-                  h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
-                    ptIsHold ? h('div',null,
-                      h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'SEC B'),
-                      h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.partner.durata||''),placeholder:'20',onFocus:function(e){e.target.select();},onChange:function(e){setPartnerField(ei,'durata',parseInt(e.target.value.replace(/[^0-9]/g,''))||0);},style:inpCenter})
-                    ) : h('div',null,
-                      h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'REPS B'),
-                      h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(ex.partner.reps||''),placeholder:'10',onFocus:function(e){e.target.select();},onChange:function(e){setPartnerField(ei,'reps',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
+                  h('button',{
+                    onClick:function(){setPartnerPickerFor({ei:ei,mi:mi});},
+                    style:{width:'100%',padding:'8px 10px',background:SURF2,border:'1px solid '+(m.nome?ACC3:BORD),borderRadius:8,color:m.nome?ACC:MUTED,fontSize:12,cursor:'pointer',textAlign:'left',marginBottom:m.nome?6:0}
+                  }, m.nome || ('Scegli esercizio '+letter+'…')),
+                  m.nome && h('div',null,
+                    h('div',{style:{display:'flex',gap:6,marginBottom:6}},
+                      [{id:'reps',l:'Reps'},{id:'hold',l:'Tenuta (sec)'}].map(function(mm){
+                        var on = mMod === mm.id;
+                        return h('button',{
+                          key:mm.id,
+                          onClick:function(){hap(6);setMembroField(ei,mi,'modalita',mm.id);},
+                          'aria-pressed':on,
+                          style:{flex:1,padding:'5px 8px',borderRadius:7,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:TEXT,fontSize:11,fontWeight:on?700:500,cursor:'pointer'}
+                        }, mm.l);
+                      })
                     ),
-                    h('div',null,
-                      h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}}, tipo==='cal'?'+ KG B':'KG B'),
-                      h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(ex.partner.peso===0||ex.partner.peso==null)?'':String(ex.partner.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){setPartnerField(ei,'peso',parseFloat(e.target.value.replace(',','.'))||0);},style:inpCenter})
-                    )
-                  ),
-                  h('div',{style:{marginTop:8}},
-                    h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:4}},'GRUPPO MUSCOLARE B'),
-                    h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
-                      GRP_PAST.map(function(g){var on=(ex.partner.gr||'')===g;return h('button',{key:g,onClick:function(){hap(6);setPartnerField(ei,'gr',on?'':g);},'aria-pressed':on,style:{padding:'5px 10px',borderRadius:14,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:MUTED,fontSize:11,cursor:'pointer'}},g);})
+                    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
+                      mIsHold ? h('div',null,
+                        h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'SEC '+letter),
+                        h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(m.durata||''),placeholder:'20',onFocus:function(e){e.target.select();},onChange:function(e){setMembroField(ei,mi,'durata',parseInt(e.target.value.replace(/[^0-9]/g,''))||0);},style:inpCenter})
+                      ) : h('div',null,
+                        h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}},'REPS '+letter),
+                        h('input',{type:'text',inputMode:'numeric',pattern:'[0-9]*',value:String(m.reps||''),placeholder:'10',onFocus:function(e){e.target.select();},onChange:function(e){setMembroField(ei,mi,'reps',e.target.value.replace(/[^0-9]/g,''));},style:inpCenter})
+                      ),
+                      h('div',null,
+                        h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}}, (tipo==='cal'?'+ KG ':'KG ')+letter),
+                        h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(m.peso===0||m.peso==null)?'':String(m.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){setMembroField(ei,mi,'peso',parseFloat(e.target.value.replace(',','.'))||0);},style:inpCenter})
+                      )
+                    ),
+                    h('div',{style:{marginTop:8}},
+                      h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:4}},'GRUPPO MUSCOLARE '+letter),
+                      h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
+                        GRP_PAST.map(function(g){var on=(m.gr||'')===g;return h('button',{key:g,onClick:function(){hap(6);setMembroField(ei,mi,'gr',on?'':g);},'aria-pressed':on,style:{padding:'5px 10px',borderRadius:14,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:MUTED,fontSize:11,cursor:'pointer'}},g);})
+                      )
                     )
                   )
-                )
-              );
-            })()
+                );
+              }),
+              h('button',{onClick:function(){hap(6);addMembro(ei);},style:{width:'100%',padding:8,borderRadius:8,border:'1px dashed '+ACC3,background:'transparent',color:ACC,fontSize:12,cursor:'pointer',fontWeight:600}}, (ex.membri&&ex.membri.length) ? '+ Aggiungi un altro esercizio' : '+ Aggiungi esercizio B al superset')
+            )
           );
         }),
         h('button',{onClick:function(){setPickerOpen(true);},style:{width:'100%',padding:10,borderRadius:10,border:'1px dashed '+ACC3,background:ACC5,color:ACC,fontSize:13,cursor:'pointer',marginBottom:14,fontWeight:600}}, '+ Aggiungi esercizio')
@@ -4467,10 +4686,10 @@ function AddPastSession(p){
     partnerPickerFor !== null && h(ExercisePicker,{
       visible:true,
       onClose:function(){setPartnerPickerFor(null);},
-      onAdd:function(name){setPartnerName(partnerPickerFor, name); setPartnerPickerFor(null);},
+      onAdd:function(name){setMembroName(partnerPickerFor.ei, partnerPickerFor.mi, name); setPartnerPickerFor(null);},
       baseList: tipo==='cal' ? CAL_ES : PESI_ES,
       mode: tipo==='cal' ? 'cal' : 'pesi',
-      label: 'Scegli esercizio B'
+      label: 'Scegli esercizio'
     })
   );
 }
@@ -5093,16 +5312,18 @@ function Det(p){
       var serieList = ex.serie || [];
       var fatte = serieList.filter(function(sr){return sr.ok;});
       var isHold = ex.modalita==='hold';
+      /* Per i superset il totale include anche i set dei membri (B, C, ...). */
+      var sumSets = ex.tipo==='superset' ? expandSupersetEs([ex]).reduce(function(a,e){return a.concat((e.serie||[]).filter(function(sr){return sr.ok;}));},[]) : fatte;
       /* Tonnellaggio per pesi standard. Per cal mostriamo reps/sec totali invece. */
       var sumDisp;
       if(isHold){
-        var totSec = fatte.reduce(function(a,sr){return a+(sr.durata||0);},0);
+        var totSec = sumSets.reduce(function(a,sr){return a+(sr.durata||0);},0);
         sumDisp = totSec + 's';
       } else if(s.tipo==='cal'){
-        var totReps = fatte.reduce(function(a,sr){return a+(sr.reps||0);},0);
+        var totReps = sumSets.reduce(function(a,sr){return a+(sr.reps||0);},0);
         sumDisp = totReps + ' reps';
       } else {
-        var totKg = fatte.reduce(function(a,sr){return a+(sr.peso||0)*(sr.reps||0);},0);
+        var totKg = sumSets.reduce(function(a,sr){return a+(sr.peso||0)*(sr.reps||0);},0);
         sumDisp = Math.round(totKg) + 'kg';
       }
       return h(Card,{
@@ -5116,8 +5337,8 @@ function Det(p){
               h('span',{style:{fontSize:8,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:ACC,letterSpacing:'0.08em'}},'SUPERSET')
             ),
             h('div',{style:{fontWeight:500,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},ex.tipo==='superset'?fmtSupersetName(ex):ex.nome),
-            ex.tipo==='superset'&&ex.partner&&ex.partner.nome&&h('div',{style:{fontSize:10,color:MUTED,marginTop:1}},
-              'A: '+((ex.modalita||'reps')==='hold'?((ex.durata||'?')+'s'):((ex.reps||'?')+' reps'))+' · B: '+(((ex.partner.modalita||'reps')==='hold')?((ex.partner.durata||'?')+'s'):((ex.partner.reps||'?')+' reps'))
+            ex.tipo==='superset'&&supersetExtra(ex).length>0&&h('div',{style:{fontSize:10,color:MUTED,marginTop:1}},
+              ['A: '+((ex.modalita||'reps')==='hold'?((ex.durata||'?')+'s'):((ex.reps||'?')+' reps'))].concat(supersetExtra(ex).map(function(m,k){return String.fromCharCode(66+k)+': '+((m.modalita||'reps')==='hold'?((m.durata||'?')+'s'):((m.reps||'?')+' reps'));})).join(' · ')
             ),
             h('div',{style:{fontSize:11,color:MUTED,marginTop:2}}, fatte.length+'/'+serieList.length+' serie')
           ),

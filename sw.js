@@ -1,4 +1,4 @@
-/* PumpLog Service Worker — v2.0.1
+/* PumpLog Service Worker — v2.1.0
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -79,11 +79,18 @@
  *             scheda sia nel log manuale. Prima i set di B con muscolo diverso o personalizzato
  *             non venivano conteggiati nel volume per gruppo; ora A e B contano ciascuno
  *             per il proprio muscolo.
+ *   - v2.1.0: superset ristrutturati come gruppo round/membri. Ogni superset ora è A +
+ *             N esercizi co-egali (B, C, ...), ognuno con serie reali loggate round per
+ *             round durante l'allenamento (PesiLive/CalLive), un unico completamento e un
+ *             solo timer per round. Creazione (editor schede + log manuale) con aggiungi/
+ *             rimuovi esercizio. expandSupersetEs legge membri[] (retrocompatibile col
+ *             vecchio `partner`, migrato al volo). Tutte le statistiche (volume, tonnellaggio,
+ *             reps, copertura) contano ogni membro. Blocco volume Home ora a settimana lun–dom.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'pumplog-v2.0.1';
+const CACHE_VERSION = 'pumplog-v2.1.0';
 const CACHE_RUNTIME = 'pumplog-runtime-v5';
 
 /* HTML escluso dalla precache: viene preso network-first.
