@@ -1,4 +1,4 @@
-/* PumpLog Service Worker — v2.2.0
+/* PumpLog Service Worker — v2.2.2
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -91,11 +91,17 @@
  *             ogni gruppo selezionato. (2) Filtro periodo Statistiche di default = 1 settimana.
  *             (3) Nel log manuale ogni serie è modificabile singolarmente (reps/tenuta + peso),
  *             es. 15, 15, 10 — non più valori uniformi.
+ *   - v2.2.1: modifica completa di una sessione salvata (Log → dettaglio → esercizio):
+ *             ora si può editare il gruppo muscolare (multi), convertire Normale↔Superset,
+ *             e per i superset modificare ogni membro (nome, modalità, gruppo, serie per-set)
+ *             con aggiungi/rimuovi membro e serie. Prima si modificava solo l'esercizio A.
+ *   - v2.2.2: dal dettaglio di una sessione salvata si può ora AGGIUNGERE un esercizio
+ *             dimenticato (pulsante "+ Aggiungi esercizio" → picker → si apre l'editor).
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'pumplog-v2.2.0';
+const CACHE_VERSION = 'pumplog-v2.2.2';
 const CACHE_RUNTIME = 'pumplog-runtime-v5';
 
 /* HTML escluso dalla precache: viene preso network-first.
