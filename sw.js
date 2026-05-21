@@ -1,4 +1,4 @@
-/* PumpLog Service Worker — v2.0.0
+/* PumpLog Service Worker — v2.0.1
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -74,11 +74,16 @@
  *               la calisthenics. PesiLive ora supporta es=[] con empty state.
  *             • SW precache best-effort di React + ReactDOM + Supabase CDN così
  *               anche il primo avvio offline (dopo install) carica completamente.
+ *   - v2.0.1: superset cross-muscolo — l'esercizio B di un superset ha ora un proprio
+ *             gruppo muscolare selezionabile (auto-compilato dal catalogo) sia nell'editor
+ *             scheda sia nel log manuale. Prima i set di B con muscolo diverso o personalizzato
+ *             non venivano conteggiati nel volume per gruppo; ora A e B contano ciascuno
+ *             per il proprio muscolo.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'pumplog-v2.0.0';
+const CACHE_VERSION = 'pumplog-v2.0.1';
 const CACHE_RUNTIME = 'pumplog-runtime-v5';
 
 /* HTML escluso dalla precache: viene preso network-first.

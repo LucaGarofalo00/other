@@ -1824,7 +1824,7 @@ function ExerciseConfigSheet(p){
      memoria degli esercizi personalizzati (resolveGroup). Vuoto solo se mai categorizzato. */
   var _g=useState((ex&&ex.gr) || resolveGroup(nome));var gr=_g[0];var setGr=_g[1];
   var _prog=useState(ex&&ex.progressione||[{sets:3,reps:'6'},{sets:4,reps:'6'},{sets:4,reps:'8'}]);var prog=_prog[0];var setProg=_prog[1];
-  var _pt=useState(ex&&ex.partner||{nome:'',modalita:'reps',reps:'10',durata:20,peso:0});var partner=_pt[0];var setPartner=_pt[1];
+  var _pt=useState(ex&&ex.partner||{nome:'',modalita:'reps',reps:'10',durata:20,peso:0,gr:''});var partner=_pt[0];var setPartner=_pt[1];
   var _pp=useState(false);var pickerPartner=_pp[0];var setPickerPartner=_pp[1];
   var _d=useState(String(ex&&ex.durata||10));var durata=_d[0];var setDurata=_d[1];
   var _int=useState(ex&&ex.intensita||'Media');var intensita=_int[0];var setIntensita=_int[1];
@@ -1855,13 +1855,16 @@ function ExerciseConfigSheet(p){
     else if(tipo==='superset'){
       /* Superset: A e B hanno modalità indipendenti (reps o tenuta). */
       var ptMod = (partner && partner.modalita) || 'reps';
+      var ptGr = partner.gr || resolveGroup(partner.nome) || '';
       var partnerClean = {
         nome: partner.nome || '',
         modalita: ptMod,
-        peso: parseFloat(partner.peso)||0
+        peso: parseFloat(partner.peso)||0,
+        gr: ptGr
       };
       if(ptMod==='hold') partnerClean.durata = parseInt(partner.durata)||20;
       else partnerClean.reps = partner.reps || '';
+      rememberCustomGroup(partner.nome, ptGr);
       var payloadS = {
         sets:parseInt(sets)||3, serie:parseInt(sets)||3,
         peso:parseFloat(peso)||0,
@@ -1888,7 +1891,7 @@ function ExerciseConfigSheet(p){
     }
   }
   return h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.92)',zIndex:400,display:'flex',alignItems:'flex-end',justifyContent:'center'},onClick:function(e){if(e.target===e.currentTarget)onClose();}},
-    pickerPartner&&h(ExercisePicker,{visible:true,onClose:function(){setPickerPartner(false);},onAdd:function(n){setPartner(function(pt){return Object.assign({},pt,{nome:n});});setPickerPartner(false);},baseList:isCal?CAL_ES:PESI_ES,mode:isCal?'cal':'pesi',label:'Scegli esercizio B'}),
+    pickerPartner&&h(ExercisePicker,{visible:true,onClose:function(){setPickerPartner(false);},onAdd:function(n){setPartner(function(pt){return Object.assign({},pt,{nome:n,gr:resolveGroup(n)||(pt&&pt.gr)||''});});setPickerPartner(false);},baseList:isCal?CAL_ES:PESI_ES,mode:isCal?'cal':'pesi',label:'Scegli esercizio B'}),
     h('div',{className:'su',style:{width:'100%',maxWidth:440,background:SURF,borderRadius:'20px 20px 0 0',maxHeight:'94vh',display:'flex',flexDirection:'column'}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 16px 14px',borderBottom:'0.5px solid '+BORD,flexShrink:0}},
         h('div',{style:{flex:1,minWidth:0}},
@@ -1971,6 +1974,12 @@ function ExerciseConfigSheet(p){
                     ? h('div',null,h(Lbl,null,'Tenuta B (s)'),h('input',{type:'number',value:String(partner.durata||20),min:1,onChange:function(e){setPartner(function(pt){return Object.assign({},pt,{durata:parseInt(e.target.value)||0});});},style:Object.assign({},iB,{textAlign:'center'})}))
                     : h('div',null,h(Lbl,null,'Reps B'),h('input',{type:'text',value:partner.reps,onChange:function(e){setPartner(function(pt){return Object.assign({},pt,{reps:e.target.value});});},style:Object.assign({},iB,{textAlign:'center'})})),
                   h('div',null,h(Lbl,null,isCal?'+ Peso B (kg)':'Peso B (kg)'),h('input',{type:'number',value:String(partner.peso||0),step:0.5,min:0,onChange:function(e){setPartner(function(pt){return Object.assign({},pt,{peso:parseFloat(e.target.value)||0});});},style:Object.assign({},iB,{textAlign:'center'})}))
+                ),
+                h('div',{style:{marginTop:10}},
+                  h(Lbl,null,'Gruppo muscolare B'),
+                  h('div',{style:{display:'flex',gap:4,flexWrap:'wrap'}},
+                    GRP.map(function(g){var on=(partner.gr||'')===g;return h('button',{key:g,onClick:function(){hap(6);setPartner(function(pt){return Object.assign({},pt,{gr:on?'':g});});},style:{padding:'5px 10px',borderRadius:20,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:'transparent',color:on?ACC:MUTED,fontSize:12,cursor:'pointer'}},g);})
+                  )
                 )
               )
             )
@@ -4056,7 +4065,7 @@ function AddPastSession(p){
         durataMin: 10,
         intensita: 'Media',
         /* superset defaults: B ha modalità indipendente */
-        partner: { nome:'', modalita:'reps', reps:10, durata:20, peso:0 }
+        partner: { nome:'', modalita:'reps', reps:10, durata:20, peso:0, gr:'' }
       }]);
     });
     setPickerOpen(false);
@@ -4065,7 +4074,8 @@ function AddPastSession(p){
     setExercises(function(prev){
       return prev.map(function(e,i){
         if(i!==idx) return e;
-        return Object.assign({},e,{partner: Object.assign({}, e.partner||{nome:'',reps:10,peso:0}, {nome:name})});
+        var prevPt = e.partner||{nome:'',reps:10,peso:0};
+        return Object.assign({},e,{partner: Object.assign({}, prevPt, {nome:name, gr:resolveGroup(name)||prevPt.gr||''})});
       });
     });
   }
@@ -4178,13 +4188,16 @@ function AddPastSession(p){
            B ha modalità indipendente da A (può essere reps mentre A è hold, o viceversa). */
         if(esTipo === 'superset' && ex.partner && ex.partner.nome){
           var ptMod = ex.partner.modalita || 'reps';
+          var ptGr = ex.partner.gr || resolveGroup(ex.partner.nome) || '';
           var pt = {
             nome: ex.partner.nome,
             modalita: ptMod,
-            peso: parseFloat(ex.partner.peso)||0
+            peso: parseFloat(ex.partner.peso)||0,
+            gr: ptGr
           };
           if(ptMod==='hold') pt.durata = parseInt(ex.partner.durata)||0;
           else pt.reps = String(ex.partner.reps||'');
+          rememberCustomGroup(ex.partner.nome, ptGr);
           base.partner = pt;
         }
         return base;
@@ -4412,6 +4425,12 @@ function AddPastSession(p){
                     h('div',null,
                       h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,marginBottom:2}}, tipo==='cal'?'+ KG B':'KG B'),
                       h('input',{type:'text',inputMode:'decimal',pattern:'[0-9]*[.,]?[0-9]*',value:(ex.partner.peso===0||ex.partner.peso==null)?'':String(ex.partner.peso).replace('.',','),placeholder:'0',onFocus:function(e){e.target.select();},onChange:function(e){setPartnerField(ei,'peso',parseFloat(e.target.value.replace(',','.'))||0);},style:inpCenter})
+                    )
+                  ),
+                  h('div',{style:{marginTop:8}},
+                    h('div',{style:{fontSize:9,color:MUTED,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:'0.08em',marginBottom:4}},'GRUPPO MUSCOLARE B'),
+                    h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
+                      GRP_PAST.map(function(g){var on=(ex.partner.gr||'')===g;return h('button',{key:g,onClick:function(){hap(6);setPartnerField(ei,'gr',on?'':g);},'aria-pressed':on,style:{padding:'5px 10px',borderRadius:14,border:'1px solid '+(on?ACC:BORD),background:on?ACC2:SURF2,color:on?ACC:MUTED,fontSize:11,cursor:'pointer'}},g);})
                     )
                   )
                 )
