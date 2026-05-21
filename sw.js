@@ -1,4 +1,4 @@
-/* PumpLog Service Worker — v2.2.2
+/* PumpLog Service Worker — v2.2.4
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -97,11 +97,19 @@
  *             con aggiungi/rimuovi membro e serie. Prima si modificava solo l'esercizio A.
  *   - v2.2.2: dal dettaglio di una sessione salvata si può ora AGGIUNGERE un esercizio
  *             dimenticato (pulsante "+ Aggiungi esercizio" → picker → si apre l'editor).
+ *   - v2.2.3: fix modifica superset salvati — i membri (B, C…) ora compaiono SEMPRE
+ *             nell'editor (anche per superset vecchi/legacy: serie ricostruite da A) e sono
+ *             completamente modificabili. Card di dettaglio ridisegnata: ogni esercizio del
+ *             superset (A, B, C…) è una riga distinta con nome, conteggio serie e chip — la
+ *             struttura del superset è ora chiara a colpo d'occhio.
+ *   - v2.2.4: stessa chiarezza del superset anche nell'editor schede — ogni esercizio
+ *             (A, B, C…) è una riga con badge, nome e dettaglio (reps/peso), più "N round · rec".
+ *             Badge "SUPERSET · N ES." coerente in tutte le viste.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'pumplog-v2.2.2';
+const CACHE_VERSION = 'pumplog-v2.2.4';
 const CACHE_RUNTIME = 'pumplog-runtime-v5';
 
 /* HTML escluso dalla precache: viene preso network-first.
