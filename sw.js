@@ -1,4 +1,4 @@
-/* PumpLog Service Worker — v2.1.0
+/* PumpLog Service Worker — v2.2.0
  * Strategy:
  *   - Precache: shell app (manifest, icons) on install
  *   - HTML (index.html, /): NETWORK-FIRST so updates propagate immediately;
@@ -86,11 +86,16 @@
  *             rimuovi esercizio. expandSupersetEs legge membri[] (retrocompatibile col
  *             vecchio `partner`, migrato al volo). Tutte le statistiche (volume, tonnellaggio,
  *             reps, copertura) contano ogni membro. Blocco volume Home ora a settimana lun–dom.
+ *   - v2.2.0: (1) un esercizio può allenare più gruppi muscolari (multi-selezione) e si
+ *             possono aggiungere gruppi personalizzati; le statistiche di copertura contano
+ *             ogni gruppo selezionato. (2) Filtro periodo Statistiche di default = 1 settimana.
+ *             (3) Nel log manuale ogni serie è modificabile singolarmente (reps/tenuta + peso),
+ *             es. 15, 15, 10 — non più valori uniformi.
  *
  * Per forzare update: bump CACHE_VERSION qui sotto.
  */
 
-const CACHE_VERSION = 'pumplog-v2.1.0';
+const CACHE_VERSION = 'pumplog-v2.2.0';
 const CACHE_RUNTIME = 'pumplog-runtime-v5';
 
 /* HTML escluso dalla precache: viene preso network-first.
